@@ -142,7 +142,7 @@ class Acato_Rest_Cache {
         // create custom plugin settings menu
         add_action('admin_menu', [$plugin_admin, 'create_menu']);
 
-        add_action( 'save_post', [$plugin_admin, 'update_item'], 10, 2);
+        add_action( 'save_post', [$plugin_admin, 'update_item'], 90, 2);
         add_action( 'delete_post', [$plugin_admin, 'delete_item']);
         add_action( 'wp_before_admin_bar_render', [$plugin_admin, 'admin_bar_item'], 999 );
 	}
