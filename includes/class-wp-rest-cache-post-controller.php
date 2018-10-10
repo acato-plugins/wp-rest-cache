@@ -1,6 +1,6 @@
 <?php
 
-class Acato_Rest_Cache_Post_Controller extends WP_REST_Posts_Controller
+class WP_Rest_Cache_Post_Controller extends WP_REST_Posts_Controller
 {
     /**
      * Prepares a single post output for response.
@@ -13,7 +13,7 @@ class Acato_Rest_Cache_Post_Controller extends WP_REST_Posts_Controller
      */
     public function prepare_item_for_response( $post, $request )
     {
-        $key = Acato_Rest_Cache::transient_key($post);
+        $key = WP_Rest_Cache::transient_key($post);
 
         if(($value = get_transient($key)) == false){
             $value = $this->get_data($post, $request);
