@@ -5,9 +5,21 @@
         <form method="post" action="options.php" class="postbox" style="margin: 10px">
 
             <h2 style="padding: 0 12px"><span><?php _e('Settings', 'wp-rest-cache'); ?></span></h2>
-            <?php settings_fields('wp-rest-cache-settings-group'); ?>
-            <?php do_settings_sections('wp-rest-cache-settings-group'); ?>
+            <?php settings_fields( 'wp-rest-cache-settings' ); ?>
+            <?php do_settings_sections( 'wp-rest-cache-settings' ); ?>
+            <?php $timeout = ( get_option( 'wp_rest_cache_timeout' ) ? get_option( 'wp_rest_cache_timeout' ) : 0 ); ?>
+
             <table class="form-table" style="margin: 0 12px">
+                <tbody>
+                <tr>
+                    <th>Cache timeout</th>
+                    <td>
+                        <input type="number" min="0" name="wp_rest_cache_timeout" value="<?= $timeout ?>">
+                        <p class="description"
+                           id="wp_rest_cache_timeout-description"><?= __( 'Time until expiration in seconds from now, or 0 for never expires. (Default = 0)', 'wp-rest-cache' ); ?></p>
+                    </td>
+                </tr>
+                </tbody>
                 <tfoot>
                 <tr>
                     <td colspan="2" align="center">

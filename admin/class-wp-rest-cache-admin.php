@@ -117,7 +117,7 @@ class WP_Rest_Cache_Admin
 
     public function register_settings()
     {
-        // placeholder
+        register_setting('wp-rest-cache-settings', 'wp_rest_cache_timeout');
     }
 
     public function settings_page()
@@ -130,8 +130,9 @@ class WP_Rest_Cache_Admin
     {
         $controller = new WP_Rest_Cache_Post_Controller($post->post_type);
         $data = $controller->get_data($post, new WP_REST_Request());
+        $timeout = (get_option('wp_rest_cache_timeout') ? get_option('wp_rest_cache_timeout') : 0);
 
-        set_transient(WP_Rest_Cache::transient_key($post), $data);
+        set_transient(WP_Rest_Cache::transient_key($post), $data, $timeout);
     }
 
     public function delete_item($post_id)
