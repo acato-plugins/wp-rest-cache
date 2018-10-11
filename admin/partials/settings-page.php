@@ -7,7 +7,7 @@
             <h2 style="padding: 0 12px"><span><?php _e('Settings', 'wp-rest-cache'); ?></span></h2>
             <?php settings_fields( 'wp-rest-cache-settings' ); ?>
             <?php do_settings_sections( 'wp-rest-cache-settings' ); ?>
-            <?php $timeout = ( get_option( 'wp_rest_cache_timeout' ) ? get_option( 'wp_rest_cache_timeout' ) : 0 ); ?>
+            <?php $timeout = WP_Rest_Cache::get_timeout(); ?>
 
             <table class="form-table" style="margin: 0 12px">
                 <tbody>

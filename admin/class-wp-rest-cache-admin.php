@@ -126,20 +126,6 @@ class WP_Rest_Cache_Admin
         require_once(__DIR__ . '/partials/settings-page.php');
     }
 
-    public function update_item($post_id, WP_Post $post)
-    {
-        $controller = new WP_Rest_Cache_Post_Controller($post->post_type);
-        $data = $controller->get_data($post, new WP_REST_Request());
-        $timeout = (get_option('wp_rest_cache_timeout') ? get_option('wp_rest_cache_timeout') : 0);
-
-        set_transient(WP_Rest_Cache::transient_key($post), $data, $timeout);
-    }
-
-    public function delete_item($post_id)
-    {
-        delete_transient(WP_Rest_Cache::transient_key($post_id));
-    }
-
     // Add Toolbar Menus
     function admin_bar_item()
     {
@@ -147,7 +133,7 @@ class WP_Rest_Cache_Admin
 
         $args = [
             'id' => 'wp-rest-cache-clear',
-            'title' => __('Clear rest cache', 'scato-rest-cache'),
+            'title' => __('Clear rest cache', 'wp-rest-cache'),
             'href' => self::empty_cache_url(),
         ];
 

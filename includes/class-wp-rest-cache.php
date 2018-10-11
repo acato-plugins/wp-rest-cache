@@ -102,10 +102,8 @@ class WP_Rest_Cache {
 		 */
 		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-wp-rest-cache-api.php';
 
-		/**
-		 * The class responsible for defining all actions that occur for the REST Api.
-		 */
 		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-wp-rest-cache-post-controller.php';
+        require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-wp-rest-cache-term-controller.php';
 
 	}
 
@@ -142,8 +140,6 @@ class WP_Rest_Cache {
         // create custom plugin settings menu
         add_action('admin_menu', [$plugin_admin, 'create_menu']);
 
-        add_action( 'save_post', [$plugin_admin, 'update_item'], 90, 2);
-        add_action( 'delete_post', [$plugin_admin, 'delete_item']);
         add_action( 'wp_before_admin_bar_render', [$plugin_admin, 'admin_bar_item'], 999 );
 	}
 
@@ -157,41 +153,28 @@ class WP_Rest_Cache {
 	private function define_api_hooks() {
 
         $plugin_api = new WP_Rest_Cache_Api( $this->get_plugin_name(), $this->get_version() );
-        add_filter( 'register_post_type_args', [$plugin_api, 'set_rest_controller'], 10, 2 );
-//
-//
-//
-//        //add_action( 'wp_enqueue_scripts', array( $plugin_api, 'enqueue_styles') );
-//        //add_action( 'wp_enqueue_scripts', array( $plugin_api, 'enqueue_scripts') );
-//        add_action( 'rest_prepare_post_type', array( $plugin_api, 'filter_vacancy_overview' ), 10, 1 );
-//		add_action( 'init', array( 'WP_Rest_Cache_Posttpes', 'posttype_vacancy') );
-//        add_action( 'init', array( 'WP_Rest_Cache_Posttpes', 'posttype_teammember') );
-//		add_action( 'init', array( 'WP_Rest_Cache_Posttpes', 'taxonomy_workfield') );
-//        add_action( 'init', array( 'WP_Rest_Cache_Posttpes', 'taxonomy_function') );
-//		add_action( 'edit_tag_form_fields', array( 'WP_Rest_Cache_Posttpes', 'add_tax_wysiwyg_description'), 10, 2);
-//        add_action ('init', array( 'WP_Rest_Cache_Posttpes', 'allow_html_tax_description'), 1000, 1);
-//
-//        // Api hooks
-//		add_action( 'admin_init', array( 'WP_Rest_Cache_Sync', 'browser_run_sync'));
-//        add_action( 'wp_version_check', array( 'WP_Rest_Cache_Sync', 'schedule' ) );
-//        add_action( 'connexys_cron_sync', array( 'WP_Rest_Cache_Sync', 'run_sync' ) );
-//
-//        add_action( 'widgets_init', function(){
-//            register_widget( 'WP_Widget_Function' );
-//            register_widget( 'WP_Widget_Teammemberquote' );
-//        });
+        add_filter( 'register_post_type_args', [$plugin_api, 'set_post_type_rest_controller'], 10, 2 );
+        add_filter( 'register_taxonomy_args', [$plugin_api, 'set_taxonomy_rest_controller'], 10, 2 );
+
+        add_action( 'save_post', [$plugin_api, 'save_post'], 10, 2);
+        add_action( 'delete_post', [$plugin_api, 'delete_post']);
+        add_action( 'edited_terms', [$plugin_api, 'edited_terms'], 10, 2);
+        add_action( 'delete_term', [$plugin_api, 'delete_term']);
 	}
 
     /**
-     * @param WP_Post|int $post
+     * @param string $id
      * @return string
      */
-    public static function transient_key($post)
+    public static function transient_key($id)
     {
-        $id = $post instanceof WP_Post ? $post->ID : $post;
-
         return 'wp_rest_cache_' . $id;
 	}
+
+	public static function get_timeout()
+    {
+        return get_option('wp_rest_cache_timeout') ? get_option('wp_rest_cache_timeout') : 0;
+    }
 
 	/**
 	 * The name of the plugin used to uniquely identify it within the context of

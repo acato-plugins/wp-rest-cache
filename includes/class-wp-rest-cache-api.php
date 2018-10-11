@@ -54,22 +54,86 @@ class WP_Rest_Cache_Api
         $this->version = $version;
     }
 
-    public function set_rest_controller($args, $name)
+    public function set_post_type_rest_controller($args, $post_type)
     {
         $restController = isset($args['rest_controller_class']) ? $args['rest_controller_class'] : null;
-        if(!$this->should_use_custom_class($restController, $name)){
+        if(!$this->should_use_custom_class($restController, 'post_type')){
             return $args;
         }
 
         $args['rest_controller_class'] = WP_Rest_Cache_Post_Controller::class;
 
         return $args;
-
     }
 
-    protected function should_use_custom_class($className, $postType)
+    public function save_post($post_id, WP_Post $post)
     {
-        return $className == WP_REST_Posts_Controller::class;
+        $post_type = get_post_types(['name' => $post->post_type], 'objects')[$post->post_type];
+        if(!$this->should_use_custom_class($post_type->rest_controller_class, 'post_type')) {
+            return;
+        }
+
+        $controller = new WP_Rest_Cache_Post_Controller($post->post_type);
+        $controller->update_item_cache($post);
+    }
+
+    public function delete_post($post_id)
+    {
+        $post = get_post($post_id);
+        $post_type = get_post_types(['name' => $post->post_type], 'objects')[0];
+        if(!$this->should_use_custom_class($post_type->rest_controller_class, 'post_type')) {
+            return;
+        }
+
+        $controller = new WP_Rest_Cache_Post_Controller($post->post_type);
+        $controller->delete_item_cache($post);
+    }
+
+    public function set_taxonomy_rest_controller($args, $taxonomy)
+    {
+        $restController = isset($args['rest_controller_class']) ? $args['rest_controller_class'] : null;
+        if(!$this->should_use_custom_class($restController, 'taxonomy')){
+            return $args;
+        }
+
+        $args['rest_controller_class'] = WP_Rest_Cache_Term_Controller::class;
+
+        return $args;
+    }
+
+    public function edited_terms($term_id, $taxonomy)
+    {
+        $term = get_term($term_id, $taxonomy);
+        $tax_object = get_taxonomies(['name' => $term->taxonomy], 'objects')[$term->taxonomy];
+        if(!$this->should_use_custom_class($tax_object->rest_controller_class, 'taxonomy')) {
+            return;
+        }
+
+        $controller = new WP_Rest_Cache_Term_Controller($term->taxonomy);
+        $controller->update_item_cache($term);
+    }
+
+    public function delete_term($term_id)
+    {
+        $term = get_term($term_id);
+        $tax_object = get_taxonomies(['name' => $term->taxonomy], 'objects')[$term->taxonomy];
+        if(!$this->should_use_custom_class($tax_object->rest_controller_class, 'taxonomy')) {
+            return;
+        }
+
+        $controller = new WP_Rest_Cache_Term_Controller($term->taxonomy);
+        $controller->delete_item_cache($term);
+    }
+
+    protected function should_use_custom_class($class_name, $type)
+    {
+        switch($type) {
+            case 'taxonomy':
+                return $class_name == WP_REST_Terms_Controller::class || $class_name == WP_Rest_Cache_Term_Controller::class;
+            case 'post_type':
+            default:
+                return $class_name == WP_REST_Posts_Controller::class || $class_name == WP_Rest_Cache_Post_Controller::class;
+        }
     }
 
     public static function clear_cache()
