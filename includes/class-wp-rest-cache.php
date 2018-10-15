@@ -103,6 +103,7 @@ class WP_Rest_Cache {
 		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-wp-rest-cache-api.php';
 
 		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-wp-rest-cache-post-controller.php';
+        require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-wp-rest-cache-attachment-controller.php';
         require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-wp-rest-cache-term-controller.php';
 
 	}

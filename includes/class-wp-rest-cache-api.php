@@ -61,7 +61,12 @@ class WP_Rest_Cache_Api
             return $args;
         }
 
-        $args['rest_controller_class'] = WP_Rest_Cache_Post_Controller::class;
+        if($restController == WP_REST_Attachments_Controller::class) {
+            $args['rest_controller_class'] = WP_Rest_Cache_Attachment_Controller::class;
+        }
+        else {
+            $args['rest_controller_class'] = WP_Rest_Cache_Post_Controller::class;
+        }
 
         return $args;
     }
@@ -127,12 +132,16 @@ class WP_Rest_Cache_Api
 
     protected function should_use_custom_class($class_name, $type)
     {
-        switch($type) {
+        switch ( $type ) {
             case 'taxonomy':
-                return $class_name == WP_REST_Terms_Controller::class || $class_name == WP_Rest_Cache_Term_Controller::class;
+                return $class_name == WP_REST_Terms_Controller::class
+                       || $class_name == WP_Rest_Cache_Term_Controller::class;
             case 'post_type':
             default:
-                return $class_name == WP_REST_Posts_Controller::class || $class_name == WP_Rest_Cache_Post_Controller::class;
+                return $class_name == WP_REST_Posts_Controller::class
+                       || $class_name == WP_Rest_Cache_Post_Controller::class
+                       || $class_name == WP_REST_Attachments_Controller::class
+                       || $class_name == WP_Rest_Cache_Attachment_Controller::class;
         }
     }
 
