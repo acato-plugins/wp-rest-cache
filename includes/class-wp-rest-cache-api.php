@@ -132,6 +132,9 @@ class WP_Rest_Cache_Api
 
     protected function should_use_custom_class($class_name, $type)
     {
+        if ( is_null( $class_name ) ) {
+            return true;
+        }
         switch ( $type ) {
             case 'taxonomy':
                 return $class_name == WP_REST_Terms_Controller::class
