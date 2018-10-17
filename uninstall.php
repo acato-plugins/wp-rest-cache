@@ -20,9 +20,9 @@
  * https://github.com/tommcfarlin/WordPress-Plugin-Boilerplate/pull/123#issuecomment-28541913
  *
  * @link:       http://www.acato.nl
- * @since      1.0.0
+ * @since      2018.1
  *
- * @package    Acato_Rest_Cache
+ * @package    WP_Rest_Cache
  */
 
 // If uninstall not called from WordPress, then exit.

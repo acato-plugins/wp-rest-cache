@@ -7,10 +7,10 @@
  * public-facing side of the site and the admin area.
  *
  * @link:       http://www.acato.nl
- * @since      1.0.0
+ * @since      2018.1
  *
- * @package    Acato_Rest_Cache
- * @subpackage Acato_Rest_Cache/includes
+ * @package    WP_Rest_Cache
+ * @subpackage WP_Rest_Cache/includes
  */
 
 /**
@@ -22,17 +22,17 @@
  * Also maintains the unique identifier of this plugin as well as the current
  * version of the plugin.
  *
- * @since      1.0.0
- * @package    Acato_Rest_Cache
- * @subpackage Acato_Rest_Cache/includes
+ * @since      2018.1
+ * @package    WP_Rest_Cache
+ * @subpackage WP_Rest_Cache/includes
  * @author:       Richard Korthuis - Acato <richardkorthuis@acato.nl>
  */
-class Acato_Rest_Cache {
+class WP_Rest_Cache {
 
 	/**
 	 * The unique identifier of this plugin.
 	 *
-	 * @since    1.0.0
+	 * @since    2018.1
 	 * @access   protected
 	 * @var      string    $plugin_name    The string used to uniquely identify this plugin.
 	 */
@@ -41,7 +41,7 @@ class Acato_Rest_Cache {
 	/**
 	 * The current version of the plugin.
 	 *
-	 * @since    1.0.0
+	 * @since    2018.1
 	 * @access   protected
 	 * @var      string    $version    The current version of the plugin.
 	 */
@@ -54,12 +54,12 @@ class Acato_Rest_Cache {
 	 * Load the dependencies, define the locale, and set the hooks for the admin area and
 	 * the public-facing side of the site.
 	 *
-	 * @since    1.0.0
+	 * @since    2018.1
 	 */
 	public function __construct() {
 
-		$this->plugin_name = 'acato-rest-cache';
-		$this->version = '1.0.0';
+		$this->plugin_name = 'wp-rest-cache';
+		$this->version = '2018.1';
 
 		$this->load_dependencies();
 		$this->set_locale();
@@ -73,15 +73,15 @@ class Acato_Rest_Cache {
 	 *
 	 * Include the following files that make up the plugin:
 	 *
-	 * - Acato_Rest_Cache_Loader. Orchestrates the hooks of the plugin.
-	 * - Acato_Rest_Cache_i18n. Defines internationalization functionality.
-	 * - Acato_Rest_Cache_Admin. Defines all hooks for the admin area.
-	 * - Acato_Rest_Cache_Public. Defines all hooks for the public side of the site.
+	 * - WP_Rest_Cache_Loader. Orchestrates the hooks of the plugin.
+	 * - WP_Rest_Cache_i18n. Defines internationalization functionality.
+	 * - WP_Rest_Cache_Admin. Defines all hooks for the admin area.
+	 * - WP_Rest_Cache_Public. Defines all hooks for the public side of the site.
 	 *
 	 * Create an instance of the loader which will be used to register the hooks
 	 * with WordPress.
 	 *
-	 * @since    1.0.0
+	 * @since    2018.1
 	 * @access   private
 	 */
 	private function load_dependencies() {
@@ -90,37 +90,36 @@ class Acato_Rest_Cache {
 		 * The class responsible for defining internationalization functionality
 		 * of the plugin.
 		 */
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-acato-rest-cache-i18n.php';
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-wp-rest-cache-i18n.php';
 
 		/**
 		 * The class responsible for defining all actions that occur in the admin area.
 		 */
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'admin/class-acato-rest-cache-admin.php';
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'admin/class-wp-rest-cache-admin.php';
 
 		/**
 		 * The class responsible for defining all actions that occur for the REST Api.
 		 */
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-acato-rest-cache-api.php';
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-wp-rest-cache-api.php';
 
-		/**
-		 * The class responsible for defining all actions that occur for the REST Api.
-		 */
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-acato-rest-cache-post-controller.php';
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-wp-rest-cache-post-controller.php';
+        require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-wp-rest-cache-attachment-controller.php';
+        require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-wp-rest-cache-term-controller.php';
 
 	}
 
 	/**
 	 * Define the locale for this plugin for internationalization.
 	 *
-	 * Uses the Acato_Rest_Cache_i18n class in order to set the domain and to register the hook
+	 * Uses the WP_Rest_Cache_i18n class in order to set the domain and to register the hook
 	 * with WordPress.
 	 *
-	 * @since    1.0.0
+	 * @since    2018.1
 	 * @access   private
 	 */
 	private function set_locale() {
 
-		$plugin_i18n = new Acato_Rest_Cache_i18n();
+		$plugin_i18n = new WP_Rest_Cache_i18n();
 
 		add_action( 'plugins_loaded', [$plugin_i18n, 'load_plugin_textdomain'] );
 
@@ -130,20 +129,18 @@ class Acato_Rest_Cache {
 	 * Register all of the hooks related to the admin area functionality
 	 * of the plugin.
 	 *
-	 * @since    1.0.0
+	 * @since    2018.1
 	 * @access   private
 	 */
 	private function define_admin_hooks() {
 
-		$plugin_admin = new Acato_Rest_Cache_Admin( $this->get_plugin_name(), $this->get_version() );
+		$plugin_admin = new WP_Rest_Cache_Admin( $this->get_plugin_name(), $this->get_version() );
 
 		add_action( 'admin_enqueue_scripts', array($plugin_admin, 'enqueue_styles') );
 		add_action( 'admin_enqueue_scripts', array($plugin_admin, 'enqueue_scripts') );
         // create custom plugin settings menu
         add_action('admin_menu', [$plugin_admin, 'create_menu']);
 
-        add_action( 'save_post', [$plugin_admin, 'update_item'], 90, 2);
-        add_action( 'delete_post', [$plugin_admin, 'delete_item']);
         add_action( 'wp_before_admin_bar_render', [$plugin_admin, 'admin_bar_item'], 999 );
 	}
 
@@ -151,53 +148,40 @@ class Acato_Rest_Cache {
 	 * Register all of the hooks related to the public-facing functionality
 	 * of the plugin.
 	 *
-	 * @since    1.0.0
+	 * @since    2018.1
 	 * @access   private
 	 */
 	private function define_api_hooks() {
 
-        $plugin_api = new Acato_Rest_Cache_Api( $this->get_plugin_name(), $this->get_version() );
-        add_filter( 'register_post_type_args', [$plugin_api, 'set_rest_controller'], 10, 2 );
-//
-//
-//
-//        //add_action( 'wp_enqueue_scripts', array( $plugin_api, 'enqueue_styles') );
-//        //add_action( 'wp_enqueue_scripts', array( $plugin_api, 'enqueue_scripts') );
-//        add_action( 'rest_prepare_post_type', array( $plugin_api, 'filter_vacancy_overview' ), 10, 1 );
-//		add_action( 'init', array( 'Acato_Rest_Cache_Posttpes', 'posttype_vacancy') );
-//        add_action( 'init', array( 'Acato_Rest_Cache_Posttpes', 'posttype_teammember') );
-//		add_action( 'init', array( 'Acato_Rest_Cache_Posttpes', 'taxonomy_workfield') );
-//        add_action( 'init', array( 'Acato_Rest_Cache_Posttpes', 'taxonomy_function') );
-//		add_action( 'edit_tag_form_fields', array( 'Acato_Rest_Cache_Posttpes', 'add_tax_wysiwyg_description'), 10, 2);
-//        add_action ('init', array( 'Acato_Rest_Cache_Posttpes', 'allow_html_tax_description'), 1000, 1);
-//
-//        // Api hooks
-//		add_action( 'admin_init', array( 'Acato_Rest_Cache_Sync', 'browser_run_sync'));
-//        add_action( 'wp_version_check', array( 'Acato_Rest_Cache_Sync', 'schedule' ) );
-//        add_action( 'connexys_cron_sync', array( 'Acato_Rest_Cache_Sync', 'run_sync' ) );
-//
-//        add_action( 'widgets_init', function(){
-//            register_widget( 'WP_Widget_Function' );
-//            register_widget( 'WP_Widget_Teammemberquote' );
-//        });
+        $plugin_api = new WP_Rest_Cache_Api( $this->get_plugin_name(), $this->get_version() );
+        add_filter( 'register_post_type_args', [$plugin_api, 'set_post_type_rest_controller'], 10, 2 );
+        add_filter( 'register_taxonomy_args', [$plugin_api, 'set_taxonomy_rest_controller'], 10, 2 );
+
+        add_action( 'save_post', [$plugin_api, 'save_post'], 10, 2);
+        add_action( 'delete_post', [$plugin_api, 'delete_post']);
+        add_action( 'edited_terms', [$plugin_api, 'edited_terms'], 10, 2);
+        add_action( 'delete_term', [$plugin_api, 'delete_term']);
 	}
 
     /**
-     * @param WP_Post|int $post
+     * @param string $id
      * @return string
      */
-    public static function transient_key($post)
+    public static function transient_key($id)
     {
-        $id = $post instanceof WP_Post ? $post->ID : $post;
-
-        return 'acato_rest_cache_' . $id;
+        return 'wp_rest_cache_' . $id;
 	}
+
+	public static function get_timeout()
+    {
+        return get_option('wp_rest_cache_timeout') ? get_option('wp_rest_cache_timeout') : 0;
+    }
 
 	/**
 	 * The name of the plugin used to uniquely identify it within the context of
 	 * WordPress and to define internationalization functionality.
 	 *
-	 * @since     1.0.0
+	 * @since     2018.1
 	 * @return    string    The name of the plugin.
 	 */
 	public function get_plugin_name() {
@@ -207,7 +191,7 @@ class Acato_Rest_Cache {
 	/**
 	 * Retrieve the version number of the plugin.
 	 *
-	 * @since     1.0.0
+	 * @since     2018.1
 	 * @return    string    The version number of the plugin.
 	 */
 	public function get_version() {

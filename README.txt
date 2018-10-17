@@ -42,9 +42,9 @@ This section describes how to install the plugin and get it working.
 
 e.g.
 
-1. Upload `acato-rest-cache.php` to the `/wp-content/plugins/` directory
+1. Upload `wp-rest-cache.php` to the `/wp-content/plugins/` directory
 1. Activate the plugin through the 'Plugins' menu in WordPress
-1. Place `<?php do_action('Acato_Rest_Cache_hook'); ?>` in your templates
+1. Place `<?php do_action('WP_Rest_Cache_hook'); ?>` in your templates
 
 == Frequently Asked Questions ==
 

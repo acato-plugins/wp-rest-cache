@@ -4,10 +4,10 @@
  * Fired during plugin deactivation
  *
  * @link:       http://www.acato.nl
- * @since      1.0.0
+ * @since      2018.1
  *
- * @package    Acato_Rest_Cache
- * @subpackage Acato_Rest_Cache/includes
+ * @package    WP_Rest_Cache
+ * @subpackage WP_Rest_Cache/includes
  */
 
 /**
@@ -15,22 +15,22 @@
  *
  * This class defines all code necessary to run during the plugin's deactivation.
  *
- * @since      1.0.0
- * @package    Acato_Rest_Cache
- * @subpackage Acato_Rest_Cache/includes
+ * @since      2018.1
+ * @package    WP_Rest_Cache
+ * @subpackage WP_Rest_Cache/includes
  * @author:       Richard Korthuis - Acato <richardkorthuis@acato.nl>
  */
-class Acato_Rest_Cache_Deactivator {
+class WP_Rest_Cache_Deactivator {
 
 	/**
 	 * Short Description. (use period)
 	 *
 	 * Long Description.
 	 *
-	 * @since    1.0.0
+	 * @since    2018.1
 	 */
 	public static function deactivate() {
-        Acato_Rest_Cache_Api::clear_cache();
+        WP_Rest_Cache_Api::clear_cache();
 	}
 
 }
