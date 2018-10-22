@@ -102,6 +102,7 @@ class WP_Rest_Cache {
 		 */
 		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-wp-rest-cache-api.php';
 
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/trait-wp-rest-cache-has-caching.php';
 		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-wp-rest-cache-post-controller.php';
         require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-wp-rest-cache-attachment-controller.php';
         require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-wp-rest-cache-term-controller.php';
@@ -157,9 +158,9 @@ class WP_Rest_Cache {
         add_filter( 'register_post_type_args', [$plugin_api, 'set_post_type_rest_controller'], 10, 2 );
         add_filter( 'register_taxonomy_args', [$plugin_api, 'set_taxonomy_rest_controller'], 10, 2 );
 
-        add_action( 'save_post', [$plugin_api, 'save_post'], 10, 2);
+        add_action( 'save_post', [$plugin_api, 'save_post'], 999, 2);
         add_action( 'delete_post', [$plugin_api, 'delete_post']);
-        add_action( 'edited_terms', [$plugin_api, 'edited_terms'], 10, 2);
+        add_action( 'edited_terms', [$plugin_api, 'edited_terms'], 999, 2);
         add_action( 'delete_term', [$plugin_api, 'delete_term']);
 	}
 

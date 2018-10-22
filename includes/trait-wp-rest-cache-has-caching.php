@@ -1,6 +1,6 @@
 <?php
 
-class WP_Rest_Cache_Post_Controller extends WP_REST_Posts_Controller
+trait WP_Rest_Cache_Has_Caching
 {
     /**
      * Prepares a single post output for response.
@@ -11,26 +11,6 @@ class WP_Rest_Cache_Post_Controller extends WP_REST_Posts_Controller
      */
     public function prepare_item_for_response($post, $request)
     {
-        var_dump($post);
-        echo "class-wp-rest-cache-post-controller.php:15\n<br/>";
-        die;
-        if($post->ID == 1001){
-
-
-            echo "So far so g00d!\n<br/>";
-            echo "class-wp-rest-cache-post-controller.php:18\n<br/>";
-            exit;
-
-
-
-
-            echo "So far so g00d!\n<br/>";
-            echo "class-wp-rest-cache-post-controller.php:18\n<br/>";
-//            exit;
-
-
-            return $this->get_data($post, $request);
-        }
         $key = $this->transient_key($post);
 
         if (($value = get_transient($key)) == false) {
@@ -58,8 +38,19 @@ class WP_Rest_Cache_Post_Controller extends WP_REST_Posts_Controller
         delete_transient($this->transient_key($post));
     }
 
-    private function transient_key($post)
+    protected function transient_key($post)
     {
+        if(is_object($post)){
+            if($post instanceof WP_Post){
+                $id = $post->ID;
+            } elseif( $post instanceof WP_Term) {
+                $id = $post->term_id;
+            } else {
+                $id = $post;
+            }
+        } else {
+            $id = $post;
+        }
         $id = $post instanceof WP_Post ? $post->ID : $post;
         return WP_Rest_Cache::transient_key($id);
     }
