@@ -2,44 +2,18 @@
 
 class WP_Rest_Cache_Post_Controller extends WP_REST_Posts_Controller
 {
-    /**
-     * Prepares a single post output for response.
-     *
-     * @param WP_Post         $post    Post object.
-     * @param WP_REST_Request $request Request object.
-     * @return WP_REST_Response Response object.
-     */
-    public function prepare_item_for_response( $post, $request )
-    {
-        $key = $this->transient_key($post);
+    use WP_Rest_Cache_Has_Caching;
 
-        if(($value = get_transient($key)) == false){
-            $value = $this->get_data($post, $request);
-            set_transient($key, $value, WP_Rest_Cache::get_timeout());
+    public function enrich_data(WP_Post $post, WP_REST_Response $response)
+    {
+        if(!class_exists('ACF_To_REST_API_ACF_API')){
+            return $response;
         }
 
-        return $value;
-    }
+        $acfController = new ACF_To_REST_API_ACF_API($post->post_type);
+        $fields = $acfController->get_fields($post->ID);
 
-    public function get_data($post, $request)
-    {
-        return parent::prepare_item_for_response($post, $request);
-    }
-
-    public function update_item_cache(WP_Post $post)
-    {
-        $data = $this->get_data($post, new WP_REST_Request());
-
-        set_transient($this->transient_key($post), $data, WP_Rest_Cache::get_timeout());
-    }
-
-    public function delete_item_cache(WP_Post $post)
-    {
-        delete_transient($this->transient_key($post));
-    }
-
-    private function transient_key($post) {
-        $id = $post instanceof WP_Post ? $post->ID : $post;
-        return WP_Rest_Cache::transient_key($id);
+        $response->data['acf'] = $fields['acf'];
+        return $response;
     }
 }
