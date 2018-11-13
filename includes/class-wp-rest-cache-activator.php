@@ -46,7 +46,7 @@ class WP_Rest_Cache_Activator {
         global $wp_filesystem;
 
         if ( ! $wp_filesystem->is_dir( WPMU_PLUGIN_DIR ) ) {
-            $wp_filesystem->mk_dir( WPMU_PLUGIN_DIR );
+            $wp_filesystem->mkdir( WPMU_PLUGIN_DIR );
         }
 
         $source = plugin_dir_path( __DIR__ ) . 'sources/wp-rest-cache.php';

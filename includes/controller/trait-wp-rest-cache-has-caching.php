@@ -30,10 +30,12 @@ trait WP_Rest_Cache_Has_Caching
     public function prepare_item_for_response($item, $request)
     {
         $key = $this->transient_key($item);
+        //delete_transient($this->transient_key($item));
+        $value = get_transient($key);
 
-        if (($value = get_transient($key)) == false) {
+        if ( $value === false || $value === '' ) {
             $value = $this->get_data($item, $request);
-            set_transient($key, $value, WP_Rest_Cache::get_timeout());
+            if( isset( $value->data ) && (string) $value->data !== '' ) set_transient($key, $value->data, WP_Rest_Cache::get_timeout());
         }
 
         return $value;
@@ -54,12 +56,8 @@ trait WP_Rest_Cache_Has_Caching
      */
     public function update_item_cache($item)
     {
-        $data = $this->get_data($item, new WP_REST_Request());
-        if(method_exists($this, 'enrich_data')){
-            $data = $this->enrich_data($item, $data);
-        }
-
-        set_transient($this->transient_key($item), $data, WP_Rest_Cache::get_timeout());
+        $url = site_url() . '/wp-json/wp/v2/posts/' . $item->ID;
+        $request = wp_remote_get( $url );
         $this->delete_related_caches($item);
     }
 

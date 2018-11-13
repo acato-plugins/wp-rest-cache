@@ -20,295 +20,340 @@
  * @subpackage WP_Rest_Cache/includes
  * @author:       Richard Korthuis - Acato <richardkorthuis@acato.nl>
  */
-class WP_Rest_Cache_Api
-{
+class WP_Rest_Cache_Api {
 
-    /**
-     * The ID of this plugin.
-     *
-     * @since    2018.1
-     * @access   private
-     * @var      string $plugin_name The ID of this plugin.
-     */
-    private $plugin_name;
+	/**
+	 * The ID of this plugin.
+	 *
+	 * @since    2018.1
+	 * @access   private
+	 * @var      string $plugin_name The ID of this plugin.
+	 */
+	private $plugin_name;
 
-    /**
-     * The version of this plugin.
-     *
-     * @since    2018.1
-     * @access   private
-     * @var      string $version The current version of this plugin.
-     */
-    private $version;
+	/**
+	 * The version of this plugin.
+	 *
+	 * @since    2018.1
+	 * @access   private
+	 * @var      string $version The current version of this plugin.
+	 */
+	private $version;
 
-    /**
-     * Initialize the class and set its properties.
-     *
-     * @since    2018.1
-     */
-    public function __construct()
-    {
-    }
+	private $request_uri;
 
-    public function set_post_type_rest_controller($args, $post_type)
-    {
-        $restController = isset($args['rest_controller_class']) ? $args['rest_controller_class'] : null;
-        if(!$this->should_use_custom_class($restController, 'post_type')){
-            return $args;
-        }
+	private $cache_key;
 
-        if($restController == WP_REST_Attachments_Controller::class) {
-            $args['rest_controller_class'] = WP_Rest_Cache_Attachment_Controller::class;
-        }
-        else {
-            $args['rest_controller_class'] = WP_Rest_Cache_Post_Controller::class;
-        }
+	private $response_headers = array(
+        'Content-Type' => 'application/json; charset=UTF-8',
+        'X-WP-cached-call' => 'served-cache',
+        'X-Robots-Tag' => 'noindex',
+        'X-Content-Type-Options' => 'nosniff',
+		'Access-Control-Expose-Headers' => 'X-WP-Total, X-WP-TotalPages',
+		'Access-Control-Allow-Headers' => 'Authorization, Content-Type'
+    );
 
-        return $args;
-    }
+	/**
+	 * Initialize the class and set its properties.
+	 *
+	 * @since    2018.1
+	 */
+	public function __construct() {
+	}
 
-    public function save_post($post_id, WP_Post $post)
-    {
-        $post_type = get_post_types(['name' => $post->post_type], 'objects')[$post->post_type];
-        if(!$this->should_use_custom_class($post_type->rest_controller_class, 'post_type')
-        || wp_is_post_revision($post)) {
-            return;
-        }
+	public function set_post_type_rest_controller( $args, $post_type ) {
+		$restController = isset( $args['rest_controller_class'] ) ? $args['rest_controller_class'] : null;
+		if ( ! $this->should_use_custom_class( $restController, 'post_type' ) ) {
+			return $args;
+		}
 
-        $controller = new WP_Rest_Cache_Post_Controller($post->post_type);
-        $controller->update_item_cache($post);
-    }
+		if ( $restController == WP_REST_Attachments_Controller::class ) {
+			$args['rest_controller_class'] = WP_Rest_Cache_Attachment_Controller::class;
+		} else {
+			$args['rest_controller_class'] = WP_Rest_Cache_Post_Controller::class;
+		}
 
-    public function delete_post($post_id)
-    {
-        $post = get_post($post_id);
-        if(wp_is_post_revision($post)) {
-            return;
-        }
-        $post_type = get_post_types(['name' => $post->post_type], 'objects')[0];
-        if(!$this->should_use_custom_class($post_type->rest_controller_class, 'post_type')) {
-            return;
-        }
+		return $args;
+	}
 
-        $controller = new WP_Rest_Cache_Post_Controller($post->post_type);
-        $controller->delete_item_cache($post);
-    }
+	public function save_post( $post_id, WP_Post $post ) {
 
-    public function set_taxonomy_rest_controller($args, $taxonomy)
-    {
-        $restController = isset($args['rest_controller_class']) ? $args['rest_controller_class'] : null;
-        if(!$this->should_use_custom_class($restController, 'taxonomy')){
-            return $args;
-        }
+		$post_type = get_post_types( [ 'name' => $post->post_type ], 'objects' )[ $post->post_type ];
+		if ( ! $this->should_use_custom_class( $post_type->rest_controller_class, 'post_type' )
+		     || wp_is_post_revision( $post ) ) {
+			return;
+		}
 
-        $args['rest_controller_class'] = WP_Rest_Cache_Term_Controller::class;
+		$controller = new WP_Rest_Cache_Post_Controller( $post->post_type );
+		$controller->update_item_cache( $post );
+	}
 
-        return $args;
-    }
+	public function delete_post( $post_id ) {
+		$post = get_post( $post_id );
+		if ( wp_is_post_revision( $post ) ) {
+			return;
+		}
+		$post_type = get_post_types( [ 'name' => $post->post_type ], 'objects' )[0];
+		if ( ! $this->should_use_custom_class( $post_type->rest_controller_class, 'post_type' ) ) {
+			return;
+		}
 
-    public function edited_terms($term_id, $taxonomy)
-    {
-        $term = get_term($term_id, $taxonomy);
-        $tax_object = get_taxonomies(['name' => $term->taxonomy], 'objects')[$term->taxonomy];
-        if(!$this->should_use_custom_class($tax_object->rest_controller_class, 'taxonomy')) {
-            return;
-        }
+		$controller = new WP_Rest_Cache_Post_Controller( $post->post_type );
+		$controller->delete_item_cache( $post );
+	}
 
-        $controller = new WP_Rest_Cache_Term_Controller($term->taxonomy);
-        $controller->update_item_cache($term);
-    }
+	public function set_taxonomy_rest_controller( $args, $taxonomy ) {
+		$restController = isset( $args['rest_controller_class'] ) ? $args['rest_controller_class'] : null;
+		if ( ! $this->should_use_custom_class( $restController, 'taxonomy' ) ) {
+			return $args;
+		}
 
-    public function delete_term($term_id)
-    {
-        $term = get_term($term_id);
-        $tax_object = get_taxonomies(['name' => $term->taxonomy], 'objects')[$term->taxonomy];
-        if(!$this->should_use_custom_class($tax_object->rest_controller_class, 'taxonomy')) {
-            return;
-        }
+		$args['rest_controller_class'] = WP_Rest_Cache_Term_Controller::class;
 
-        $controller = new WP_Rest_Cache_Term_Controller($term->taxonomy);
-        $controller->delete_item_cache($term);
-    }
+		return $args;
+	}
 
-    protected function should_use_custom_class($class_name, $type)
-    {
-        if ( is_null( $class_name ) ) {
-            return true;
-        }
-        switch ( $type ) {
-            case 'taxonomy':
-                return $class_name == WP_REST_Terms_Controller::class
-                       || $class_name == WP_Rest_Cache_Term_Controller::class;
-            case 'post_type':
-            default:
-                return $class_name == WP_REST_Posts_Controller::class
-                       || $class_name == WP_Rest_Cache_Post_Controller::class
-                       || $class_name == WP_REST_Attachments_Controller::class
-                       || $class_name == WP_Rest_Cache_Attachment_Controller::class;
-        }
-    }
+	public function edited_terms( $term_id, $taxonomy ) {
+		$term       = get_term( $term_id, $taxonomy );
+		$tax_object = get_taxonomies( [ 'name' => $term->taxonomy ], 'objects' )[ $term->taxonomy ];
+		if ( ! $this->should_use_custom_class( $tax_object->rest_controller_class, 'taxonomy' ) ) {
+			return;
+		}
 
-    public static function clear_cache()
-    {
-        global $wpdb;
+		$controller = new WP_Rest_Cache_Term_Controller( $term->taxonomy );
+		$controller->update_item_cache( $term );
+	}
 
-        return $wpdb->query( $wpdb->prepare(
-            "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
-            '_transient_wp_rest_cache_%'
-        ) );
-    }
+	public function delete_term( $term_id ) {
+		$term       = get_term( $term_id );
+		$tax_object = get_taxonomies( [ 'name' => $term->taxonomy ], 'objects' )[ $term->taxonomy ];
+		if ( ! $this->should_use_custom_class( $tax_object->rest_controller_class, 'taxonomy' ) ) {
+			return;
+		}
 
-    /**
-     * Check if the current call is a REST API call, if so check if it has already been cached, otherwise cache it.
-     * Inspired by https://stackoverflow.com/a/36438831
-     */
-    public function get_api_cache() {
-        // Don't run if we are calling to cache the request (see later in the code)
-        if ( isset( $_GET['wp-rest-cache'] ) && $_GET['wp-rest-cache'] === '1' ) {
-            return;
-        }
+		$controller = new WP_Rest_Cache_Term_Controller( $term->taxonomy );
+		$controller->delete_item_cache( $term );
+	}
 
-        // Only cache GET-requests
-        if ( 'GET' !== filter_input( INPUT_SERVER, 'REQUEST_METHOD', FILTER_SANITIZE_STRING ) ) {
-            return;
-        }
+	protected function should_use_custom_class( $class_name, $type ) {
+		if ( is_null( $class_name ) ) {
+			return true;
+		}
+		switch ( $type ) {
+			case 'taxonomy':
+				return $class_name == WP_REST_Terms_Controller::class
+				       || $class_name == WP_Rest_Cache_Term_Controller::class;
+			case 'post_type':
+			default:
+				return $class_name == WP_REST_Posts_Controller::class
+				       || $class_name == WP_Rest_Cache_Post_Controller::class
+				       || $class_name == WP_REST_Attachments_Controller::class
+				       || $class_name == WP_Rest_Cache_Attachment_Controller::class;
+		}
+	}
 
-        // Make sure we only apply to allowed api calls
-        $request_uri = filter_input( INPUT_SERVER, 'REQUEST_URI', FILTER_SANITIZE_URL );
-        $rest_prefix = '/' . get_option('wp_rest_cache_rest_prefix', 'wp-json') . '/';
-        if ( strpos( $request_uri, $rest_prefix ) === false ) {
-            return;
-        }
+	public static function clear_cache() {
+		global $wpdb;
 
-        $allowed_endpoints = get_option('wp_rest_cache_allowed_endpoints', []);
+		// Remove all related post meta
+		$wpdb->query( $wpdb->prepare(
+			"DELETE FROM {$wpdb->postmeta} WHERE meta_key = %s",
+			'_wp_rest_cache_entry'
+		) );
 
-        $allowed_endpoint  = false;
-        foreach ( $allowed_endpoints as $namespace => $endpoints ) {
-            foreach ( $endpoints as $endpoint ) {
-                if ( strpos( $request_uri, $rest_prefix . $namespace . '/' . $endpoint ) !== false ) {
-                    $allowed_endpoint = true;
-                    break 2;
-                }
+		// Remove all relater term meta
+		$wpdb->query( $wpdb->prepare(
+			"DELETE FROM {$wpdb->termmeta} WHERE meta_key = %s",
+			'_wp_rest_cache_entry'
+		) );
+
+		// Remove all cache entries
+		$wpdb->query( $wpdb->prepare(
+			"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
+			'%wp_rest_cache_%'
+		) );
+	}
+
+	public function build_request_uri(){
+
+		$request_uri    = filter_input( INPUT_SERVER, 'REQUEST_URI', FILTER_SANITIZE_URL );
+		$uri_parts      = parse_url($request_uri);
+		$request_path   = rtrim( $uri_parts['path'], '/');
+
+		if( isset( $uri_parts['query'] ) && !empty( $uri_parts['query'] ) ){
+			parse_str( $uri_parts['query'], $params );
+			ksort($params);
+			$request_path.= '?' . http_build_query($params);
+		}
+
+		$this->request_uri = $request_path;
+		$this->cache_key = 'wp_rest_cache_' . md5( $this->request_uri );
+
+		return $request_path;
+	}
+
+
+	public function save_cache_headers( $served, WP_HTTP_Response $result, WP_REST_Request $request, WP_REST_Server $server ){
+
+	    $headers = $result->get_headers();
+	    if( isset($headers) && !empty($headers) ){
+	        foreach ( $headers as $key => $value ){
+                $this->response_headers[$key] = $value;
             }
         }
 
-        if ( ! $allowed_endpoint ) {
-            return;
-        }
-
-        //ok reasonably confident its a api call...
-
-        $already_cached = true;
-        $cache_key = 'wp_rest_cache_' . md5($request_uri);
-
-        if ( ( $data = get_transient( $cache_key ) ) === false ) {
-            $already_cached = false;
-            $ch = curl_init();
-
-            $request_uri = filter_input( INPUT_SERVER, 'REQUEST_URI', FILTER_SANITIZE_URL );
-            list( $request_uri ) = explode( '?', $request_uri );
-            $url = get_home_url() . $request_uri . '?' . http_build_query( array_merge( $_GET, [ 'wp-rest-cache' => 1 ] ) );
-            $headers = [];
-
-            curl_setopt( $ch, CURLOPT_URL, $url );
-            curl_setopt( $ch, CURLOPT_RETURNTRANSFER, 1 );
-            curl_setopt( $ch, CURLOPT_CONNECTTIMEOUT, 5 );
-            curl_setopt( $ch, CURLOPT_ENCODING, '' );
-
-            // https://stackoverflow.com/a/41135574
-            curl_setopt( $ch, CURLOPT_HEADERFUNCTION,
-                function($curl, $header) use (&$headers) {
-                    $len = strlen($header);
-                    $header = explode(':', $header, 2);
-                    if (count($header) < 2) {
-                        return $len;
-                    }
-
-                    $name = $header[0];
-                    if(substr(strtolower($name), 0, 5) == 'x-wp-') {
-                        if (!array_key_exists($name, $headers)) {
-                            $headers[ $name ] = [ trim( $header[1] ) ];
-                        } else {
-                            $headers[ $name ][] = trim( $header[1] );
-                        }
-                    }
-                    return $len;
-                }
-            );
-            $json = curl_exec( $ch );
-            $httpcode = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
-            curl_close( $ch );
-
-            $decoded = json_decode($json, true);
-            if($httpcode == 200 && is_array($decoded)) {
-                $data = [
-                    'json' => $json,
-                    'headers' => $headers
-                ];
-                set_transient( $cache_key, $data );
-                $this->save_cache_relations($decoded, $cache_key);
-            }
-        }
-
-        header('Content-Type: application/json; charset=UTF-8');
-        header( 'X-WP-cached-call: ' . ($already_cached ? 'served-cache' : 'freshly-cached'));
-        if(count($data['headers'])) {
-            foreach ( $data['headers'] as $header => $values ) {
-                foreach ( $values as $value ) {
-                    header( $header . ': ' . $value );
-                }
-            }
-        }
-        echo $data['json'];
-        exit;// we need nothing else from php exit
     }
 
-    /**
-     * Save all cache relations for the current cache. This is done so caches can be cleared when a relation is updated.
-     *
-     * @param array $json       The REST API result containing all objects
-     * @param string $cache_key The cache key for the current cache
-     */
-    private function save_cache_relations( $json, $cache_key ) {
-        if ( array_key_exists( 'id', $json ) ) {
-            if ( array_key_exists( 'type', $json ) ) {
-                $function = 'add_post_meta';
-            } else if ( array_key_exists( 'taxonomy', $json ) ) {
-                $function = 'add_term_meta';
-            } else {
-                return;
-            }
-            call_user_func_array( $function, [ $json['id'], '_wp_rest_cache_entry', $cache_key ] );
-        } else {
-            if ( count( $json ) ) {
-                if ( array_key_exists( 'type', $json[0] ) ) {
-                    $function = 'add_post_meta';
-                } else if ( array_key_exists( 'taxonomy', $json[0] ) ) {
-                    $function = 'add_term_meta';
-                } else {
-                    return;
-                }
-                foreach ( $json as $post_array ) {
-                    call_user_func_array( $function, [ $post_array['id'], '_wp_rest_cache_entry', $cache_key ] );
-                }
-            }
-        }
-    }
+	public function save_cache( $result, WP_REST_Server $server, WP_REST_Request $request ) {
 
-    /**
-     * Re-save the options if they have changed.
-     */
-    public function save_options() {
-        $original_allowed_endpoints = get_option( 'wp_rest_cache_allowed_endpoints', [] );
-        $allowed_endpoints          = apply_filters( 'wp_rest_cache/allowed_endpoints', $original_allowed_endpoints );
-        if ( $original_allowed_endpoints != $allowed_endpoints ) {
-            update_option( 'wp_rest_cache_allowed_endpoints', $allowed_endpoints );
-        }
+		// Only Avoid cache if not 200
+		if( !empty( $result ) && is_array( $result ) && isset( $result['data']['status'] ) && (int) $result['data']['status'] !== 200 ){
+			return $result;
+		}
 
-        $original_rest_prefix = get_option( 'wp_rest_cache_rest_prefix' );
-        $rest_prefix          = rest_get_url_prefix();
-        if ( $original_rest_prefix != $rest_prefix ) {
-            update_option( 'wp_rest_cache_rest_prefix', $rest_prefix );
-        }
-    }
+		// Encode the json result
+		$data = array(
+		    'data' => $result,
+            'headers' => $this->response_headers
+        );
+		$last_error = json_last_error();
+
+		// No errors? Lets save!
+		if ( $last_error === JSON_ERROR_NONE  ) {
+			set_transient( $this->cache_key, $data );
+			$this->save_cache_relations( $result, $this->cache_key );
+		}
+
+		return $result;
+	}
+
+	public function skip_caching(){
+
+		// Don't run if we are calling to cache the request (see later in the code)
+		if ( isset( $_GET['wp-rest-cache'] ) && (string) $_GET['wp-rest-cache'] === '1' ) {
+			return true;
+		}
+
+		// Only cache GET-requests
+		if ( 'GET' !== filter_input( INPUT_SERVER, 'REQUEST_METHOD', FILTER_SANITIZE_STRING ) ) {
+			return true;
+		}
+
+		// Make sure we only apply to allowed api calls
+		$rest_prefix = sprintf('/%s/', get_option( 'wp_rest_cache_rest_prefix', 'wp-json' ) );
+		if ( strpos( $this->request_uri, $rest_prefix ) === false ) {
+			return true;
+		}
+
+		$allowed_endpoints = get_option( 'wp_rest_cache_allowed_endpoints', [] );
+
+		$allowed_endpoint = false;
+		foreach ( $allowed_endpoints as $namespace => $endpoints ) {
+			foreach ( $endpoints as $endpoint ) {
+				if ( strpos( $this->request_uri, $rest_prefix . $namespace . '/' . $endpoint ) !== false ) {
+					$allowed_endpoint = true;
+					break 2;
+				}
+			}
+		}
+
+		if ( !$allowed_endpoint ) {
+			return true;
+		}
+
+		// We dont skip
+		return false;
+
+	}
+
+	/**
+	 * Check if the current call is a REST API call, if so check if it has already been cached, otherwise cache it.
+	 * Inspired by https://stackoverflow.com/a/36438831
+	 */
+	public function get_api_cache() {
+
+		$this->build_request_uri();
+
+		if( $this->skip_caching() ) {
+			return;
+		}
+
+		$cache = get_transient( $this->cache_key );
+
+		if( $cache !== false ){
+
+            // We want the data to be json
+            $data       = wp_json_encode( $cache['data'] );
+
+            $last_error = json_last_error();
+
+            if( $last_error === JSON_ERROR_NONE ){
+
+                foreach ( $cache['headers'] as $key => $value ){
+                    $header = sprintf('%s: %s', $key, $value );
+                    header( $header );
+                }
+
+                echo $data;
+                exit;
+            }
+
+		}
+
+        // catch the headers after serving
+        add_filter( 'rest_pre_serve_request', [$this, 'save_cache_headers' ], 9999, 4 );
+
+		// catch the result after serving
+		add_filter( 'rest_pre_echo_response', [$this, 'save_cache' ], 1000, 3 );
+
+	}
+
+	/**
+	 * Save all cache relations for the current cache. This is done so caches can be cleared when a relation is updated.
+	 *
+	 * @param array $json The REST API result containing all objects
+	 * @param string $cache_key The cache key for the current cache
+	 */
+	private function save_cache_relations( $json, $cache_key ) {
+		if ( array_key_exists( 'id', $json ) ) {
+			if ( array_key_exists( 'type', $json ) ) {
+				$function = 'add_post_meta';
+			} else if ( array_key_exists( 'taxonomy', $json ) ) {
+				$function = 'add_term_meta';
+			} else {
+				return;
+			}
+			call_user_func_array( $function, [ $json['id'], '_wp_rest_cache_entry', $cache_key ] );
+		} else {
+			if ( count( $json ) ) {
+				if ( array_key_exists( 'type', $json[0] ) ) {
+					$function = 'add_post_meta';
+				} else if ( array_key_exists( 'taxonomy', $json[0] ) ) {
+					$function = 'add_term_meta';
+				} else {
+					return;
+				}
+				foreach ( $json as $post_array ) {
+					call_user_func_array( $function, [ $post_array['id'], '_wp_rest_cache_entry', $cache_key ] );
+				}
+			}
+		}
+	}
+
+	/**
+	 * Re-save the options if they have changed.
+	 */
+	public function save_options() {
+		$original_allowed_endpoints = get_option( 'wp_rest_cache_allowed_endpoints', [] );
+		$allowed_endpoints          = apply_filters( 'wp_rest_cache/allowed_endpoints', $original_allowed_endpoints );
+		if ( $original_allowed_endpoints != $allowed_endpoints ) {
+			update_option( 'wp_rest_cache_allowed_endpoints', $allowed_endpoints );
+		}
+
+		$original_rest_prefix = get_option( 'wp_rest_cache_rest_prefix' );
+		$rest_prefix          = rest_get_url_prefix();
+		if ( $original_rest_prefix != $rest_prefix ) {
+			update_option( 'wp_rest_cache_rest_prefix', $rest_prefix );
+		}
+	}
 }

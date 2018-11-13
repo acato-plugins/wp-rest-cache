@@ -146,6 +146,7 @@ class WP_Rest_Cache {
         add_action( 'admin_notices', [$plugin_admin, 'display_notices'] );
 
         add_action( 'wp_before_admin_bar_render', [$plugin_admin, 'admin_bar_item'], 999 );
+
 	}
 
 	/**
