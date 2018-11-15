@@ -100,7 +100,8 @@ class WP_Rest_Cache {
 		/**
 		 * The class responsible for defining all actions that occur for the REST Api.
 		 */
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-wp-rest-cache-api.php';
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/api/class-wp-rest-cache-item-api.php';
+        require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/api/class-wp-rest-cache-endpoint-api.php';
 
 		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/controller/trait-wp-rest-cache-has-caching.php';
 		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/controller/class-wp-rest-cache-post-controller.php';
@@ -157,18 +158,24 @@ class WP_Rest_Cache {
 	 * @access   private
 	 */
 	private function define_api_hooks() {
+        $endpoint_api = new WP_Rest_Cache_Endpoint_Api();
 
-        $plugin_api = new WP_Rest_Cache_Api();
-        add_filter( 'register_post_type_args', [$plugin_api, 'set_post_type_rest_controller'], 10, 2 );
-        add_filter( 'register_taxonomy_args', [$plugin_api, 'set_taxonomy_rest_controller'], 10, 2 );
+        add_action( 'save_post', [$endpoint_api, 'save_post'], 998, 2);
+        add_action( 'delete_post', [$endpoint_api, 'delete_post']);
+        add_action( 'edited_terms', [$endpoint_api, 'edited_terms'], 998, 2);
+        add_action( 'delete_term', [$endpoint_api, 'delete_term']);
 
-        add_action( 'save_post', [$plugin_api, 'save_post'], 999, 2);
-        add_action( 'delete_post', [$plugin_api, 'delete_post']);
-        add_action( 'edited_terms', [$plugin_api, 'edited_terms'], 999, 2);
-        add_action( 'delete_term', [$plugin_api, 'delete_term']);
+        add_action( 'init', [$endpoint_api, 'save_options'] );
+        add_action( 'rest_api_init', [$endpoint_api, 'save_options'] );
 
-        add_action( 'init', [$plugin_api, 'save_options'] );
-        add_action( 'rest_api_init', [$plugin_api, 'save_options'] );
+        $item_api = new WP_Rest_Cache_Item_Api();
+        add_filter( 'register_post_type_args', [$item_api, 'set_post_type_rest_controller'], 10, 2 );
+        add_filter( 'register_taxonomy_args', [$item_api, 'set_taxonomy_rest_controller'], 10, 2 );
+
+        add_action( 'save_post', [$item_api, 'save_post'], 999, 2);
+        add_action( 'delete_post', [$item_api, 'delete_post']);
+        add_action( 'edited_terms', [$item_api, 'edited_terms'], 999, 2);
+        add_action( 'delete_term', [$item_api, 'delete_term']);
 	}
 
     /**

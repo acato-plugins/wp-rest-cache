@@ -151,7 +151,7 @@ class WP_Rest_Cache_Admin
     {
         if (isset($_REQUEST['rest_cache_nonce']) && wp_verify_nonce($_REQUEST['rest_cache_nonce'], 'rest_cache_options')) {
             if (isset($_GET['clear']) && 1 == $_GET['clear']) {
-                if (WP_Rest_Cache_Api::clear_cache()) {
+                if (WP_Rest_Cache_Item_Api::clear_cache()) {
                     $this->add_notice('success', __( 'The cache has been successfully cleared', 'wp-rest-cache' ) );
                 } else {
                     $this->add_notice('error', __( 'There were no items cached', 'wp-rest-cache' ) );

@@ -26,7 +26,7 @@ class WP_Rest_Cache_Deactivator {
      * Deactivate the plugin. Clear cache and delete mu-plugin.
      */
     public static function deactivate() {
-        WP_Rest_Cache_Api::clear_cache();
+        WP_Rest_Cache_Item_Api::clear_cache();
         if ( file_exists( WPMU_PLUGIN_DIR . '/wp-rest-cache.php' ) ) {
             unlink( WPMU_PLUGIN_DIR . '/wp-rest-cache.php' );
         }
