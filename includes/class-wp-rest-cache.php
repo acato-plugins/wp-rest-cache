@@ -59,7 +59,7 @@ class WP_Rest_Cache {
 	public function __construct() {
 
 		$this->plugin_name = 'wp-rest-cache';
-		$this->version = '2018.1.1';
+		$this->version = '2018.2.0';
 
 		$this->load_dependencies();
 		$this->set_locale();
@@ -100,12 +100,13 @@ class WP_Rest_Cache {
 		/**
 		 * The class responsible for defining all actions that occur for the REST Api.
 		 */
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-wp-rest-cache-api.php';
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/api/class-wp-rest-cache-item-api.php';
+        require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/api/class-wp-rest-cache-endpoint-api.php';
 
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/trait-wp-rest-cache-has-caching.php';
-		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-wp-rest-cache-post-controller.php';
-        require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-wp-rest-cache-attachment-controller.php';
-        require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-wp-rest-cache-term-controller.php';
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/controller/trait-wp-rest-cache-has-caching.php';
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/controller/class-wp-rest-cache-post-controller.php';
+        require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/controller/class-wp-rest-cache-attachment-controller.php';
+        require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/controller/class-wp-rest-cache-term-controller.php';
 
 	}
 
@@ -140,9 +141,13 @@ class WP_Rest_Cache {
 		add_action( 'admin_enqueue_scripts', array($plugin_admin, 'enqueue_styles') );
 		add_action( 'admin_enqueue_scripts', array($plugin_admin, 'enqueue_scripts') );
         // create custom plugin settings menu
-        add_action('admin_menu', [$plugin_admin, 'create_menu']);
+        add_action( 'admin_menu', [$plugin_admin, 'create_menu'] );
+        add_action( 'admin_init', [$plugin_admin, 'check_muplugin_existence'] );
+        add_action( 'admin_init', [$plugin_admin, 'handle_actions'] );
+        add_action( 'admin_notices', [$plugin_admin, 'display_notices'] );
 
         add_action( 'wp_before_admin_bar_render', [$plugin_admin, 'admin_bar_item'], 999 );
+
 	}
 
 	/**
@@ -153,15 +158,24 @@ class WP_Rest_Cache {
 	 * @access   private
 	 */
 	private function define_api_hooks() {
+        $endpoint_api = new WP_Rest_Cache_Endpoint_Api();
 
-        $plugin_api = new WP_Rest_Cache_Api( $this->get_plugin_name(), $this->get_version() );
-        add_filter( 'register_post_type_args', [$plugin_api, 'set_post_type_rest_controller'], 10, 2 );
-        add_filter( 'register_taxonomy_args', [$plugin_api, 'set_taxonomy_rest_controller'], 10, 2 );
+        add_action( 'save_post', [$endpoint_api, 'save_post'], 998, 2);
+        add_action( 'delete_post', [$endpoint_api, 'delete_post']);
+        add_action( 'edited_terms', [$endpoint_api, 'edited_terms'], 998, 2);
+        add_action( 'delete_term', [$endpoint_api, 'delete_term']);
 
-        add_action( 'save_post', [$plugin_api, 'save_post'], 999, 2);
-        add_action( 'delete_post', [$plugin_api, 'delete_post']);
-        add_action( 'edited_terms', [$plugin_api, 'edited_terms'], 999, 2);
-        add_action( 'delete_term', [$plugin_api, 'delete_term']);
+        add_action( 'init', [$endpoint_api, 'save_options'] );
+        add_action( 'rest_api_init', [$endpoint_api, 'save_options'] );
+
+        $item_api = new WP_Rest_Cache_Item_Api();
+        add_filter( 'register_post_type_args', [$item_api, 'set_post_type_rest_controller'], 10, 2 );
+        add_filter( 'register_taxonomy_args', [$item_api, 'set_taxonomy_rest_controller'], 10, 2 );
+
+        add_action( 'save_post', [$item_api, 'save_post'], 999, 2);
+        add_action( 'delete_post', [$item_api, 'delete_post']);
+        add_action( 'edited_terms', [$item_api, 'edited_terms'], 999, 2);
+        add_action( 'delete_term', [$item_api, 'delete_term']);
 	}
 
     /**

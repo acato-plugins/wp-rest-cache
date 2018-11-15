@@ -3,7 +3,7 @@
 /**
  * Fired during plugin deactivation
  *
- * @link:       http://www.acato.nl
+ * @link:      http://www.acato.nl
  * @since      2018.1
  *
  * @package    WP_Rest_Cache
@@ -18,19 +18,17 @@
  * @since      2018.1
  * @package    WP_Rest_Cache
  * @subpackage WP_Rest_Cache/includes
- * @author:       Richard Korthuis - Acato <richardkorthuis@acato.nl>
+ * @author:    Richard Korthuis - Acato <richardkorthuis@acato.nl>
  */
 class WP_Rest_Cache_Deactivator {
 
-	/**
-	 * Short Description. (use period)
-	 *
-	 * Long Description.
-	 *
-	 * @since    2018.1
-	 */
-	public static function deactivate() {
-        WP_Rest_Cache_Api::clear_cache();
-	}
-
+    /**
+     * Deactivate the plugin. Clear cache and delete mu-plugin.
+     */
+    public static function deactivate() {
+        WP_Rest_Cache_Item_Api::clear_cache();
+        if ( file_exists( WPMU_PLUGIN_DIR . '/wp-rest-cache.php' ) ) {
+            unlink( WPMU_PLUGIN_DIR . '/wp-rest-cache.php' );
+        }
+    }
 }

@@ -41,6 +41,8 @@ class WP_Rest_Cache_Admin
      */
     private $version;
 
+    private $notices;
+
     /**
      * Initialize the class and set its properties.
      *
@@ -53,6 +55,7 @@ class WP_Rest_Cache_Admin
 
         $this->plugin_name = $plugin_name;
         $this->version = $version;
+        $this->notices = [];
 
     }
 
@@ -122,7 +125,6 @@ class WP_Rest_Cache_Admin
 
     public function settings_page()
     {
-        $this->handle_actions();
         require_once(__DIR__ . '/partials/settings-page.php');
     }
 
@@ -145,24 +147,64 @@ class WP_Rest_Cache_Admin
         return wp_nonce_url(admin_url('options-general.php?page=wp-rest-cache&clear=1'), 'rest_cache_options', 'rest_cache_nonce');
     }
 
-    protected function handle_actions()
+    public function handle_actions()
     {
-        $notice = NULL;
-
         if (isset($_REQUEST['rest_cache_nonce']) && wp_verify_nonce($_REQUEST['rest_cache_nonce'], 'rest_cache_options')) {
             if (isset($_GET['clear']) && 1 == $_GET['clear']) {
-                if (WP_Rest_Cache_Api::clear_cache()) {
-                    $this->add_notice('success', 'The cache has been successfully cleared');
+                if (WP_Rest_Cache_Item_Api::clear_cache()) {
+                    $this->add_notice('success', __( 'The cache has been successfully cleared', 'wp-rest-cache' ) );
                 } else {
-                    $this->add_notice('error', 'There were 0 items cached');
+                    $this->add_notice('error', __( 'There were no items cached', 'wp-rest-cache' ) );
                 }
             }
         }
     }
 
-    protected function add_notice($type, $message)
-    {
-        // @todo at least show something!
+    protected function add_notice( $type, $message, $dismissible = true ) {
+        $this->notices[ $type ][] = [ 'message' => $message, 'dismissible' => $dismissible ];
+    }
+
+    /**
+     * Check if the MU plugin was created, if not display a warning.
+     */
+    public function check_muplugin_existence() {
+        if ( ! file_exists( WPMU_PLUGIN_DIR . '/wp-rest-cache.php' ) ) {
+            $from = '<code>' . substr(
+                    plugin_dir_path( __DIR__ ) . 'sources/wp-rest-cache.php',
+                    strpos( plugin_dir_path( __DIR__ ), '/wp-content/' )
+                ) . '</code>';
+            $to   = '<code>' . substr(
+                    WPMU_PLUGIN_DIR . '/wp-rest-cache.php',
+                    strpos( WPMU_PLUGIN_DIR, '/wp-content/' )
+                ) . '</code>';
+
+            $this->add_notice(
+                'warning',
+                sprintf(
+                    __( 'You are not getting the best caching result! <br/>Please copy %s to %s', 'wp-rest-cache' ),
+                    $from,
+                    $to
+                ),
+                false );
+        }
+    }
+
+    /**
+     * Display notices (if any) on the Admin dashboard
+     */
+    public function display_notices() {
+        if ( count( $this->notices ) ) {
+            foreach ( $this->notices as $type => $messages ) {
+                foreach ( $messages as $message ) {
+                    ?>
+                    <div
+                        class="notice notice-<?php echo $type; ?> <?php echo $message['dismissible'] ? 'is-dismissible' : ''; ?>">
+                        <p><strong>WP REST Cache:</strong> <?php echo $message['message']; ?></p>
+                    </div>
+                    <?php
+                }
+            }
+        }
     }
 
 }
