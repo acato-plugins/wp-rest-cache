@@ -3,11 +3,11 @@
 /**
  * Fired during plugin activation
  *
- * @link:      http://www.acato.nl
- * @since      2018.1
+ * @link:       http://www.acato.nl
+ * @since       2018.1
  *
- * @package    WP_Rest_Cache
- * @subpackage WP_Rest_Cache/includes
+ * @package     WP_Rest_Cache
+ * @subpackage  WP_Rest_Cache/includes
  */
 
 /**
@@ -15,15 +15,14 @@
  *
  * This class defines all code necessary to run during the plugin's activation.
  *
- * @since      2018.1
- * @package    WP_Rest_Cache
- * @subpackage WP_Rest_Cache/includes
- * @author:    Richard Korthuis - Acato <richardkorthuis@acato.nl>
+ * @package     WP_Rest_Cache
+ * @subpackage  WP_Rest_Cache/includes
+ * @author:     Richard Korthuis - Acato <richardkorthuis@acato.nl>
  */
 class WP_Rest_Cache_Activator {
 
     /**
-     * Activate the plugin. Copy mu-plugin to correct directory.
+     * Activate the plugin. Add default options and copy Must-Use plugin to correct directory.
      */
     public static function activate() {
         if ( ! get_option( 'wp_rest_cache_allowed_endpoints' ) ) {

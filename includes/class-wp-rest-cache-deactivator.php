@@ -3,11 +3,11 @@
 /**
  * Fired during plugin deactivation
  *
- * @link:      http://www.acato.nl
- * @since      2018.1
+ * @link:       http://www.acato.nl
+ * @since       2018.1
  *
- * @package    WP_Rest_Cache
- * @subpackage WP_Rest_Cache/includes
+ * @package     WP_Rest_Cache
+ * @subpackage  WP_Rest_Cache/includes
  */
 
 /**
@@ -15,15 +15,14 @@
  *
  * This class defines all code necessary to run during the plugin's deactivation.
  *
- * @since      2018.1
- * @package    WP_Rest_Cache
- * @subpackage WP_Rest_Cache/includes
- * @author:    Richard Korthuis - Acato <richardkorthuis@acato.nl>
+ * @package     WP_Rest_Cache
+ * @subpackage  WP_Rest_Cache/includes
+ * @author:     Richard Korthuis - Acato <richardkorthuis@acato.nl>
  */
 class WP_Rest_Cache_Deactivator {
 
     /**
-     * Deactivate the plugin. Clear cache and delete mu-plugin.
+     * Deactivate the plugin. Clear cache and delete Must-Use plugin.
      */
     public static function deactivate() {
         WP_Rest_Cache_Item_Api::clear_cache();

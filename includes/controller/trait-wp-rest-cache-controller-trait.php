@@ -1,9 +1,23 @@
 <?php
 
 /**
- * Trait WP_Rest_Cache_Has_Caching
+ * Trait for the REST Controller extensions.
+ *
+ * @link:       http://www.acato.nl
+ * @since       2018.1
+ *
+ * @package     WP_Rest_Cache
+ * @subpackage  WP_Rest_Cache/includes/controller
  */
-trait WP_Rest_Cache_Has_Caching {
+
+/**
+ * Trait for the REST Controller extensions.
+ *
+ * @package     WP_Rest_Cache
+ * @subpackage  WP_Rest_Cache/includes/api
+ * @author:     Richard Korthuis - Acato <richardkorthuis@acato.nl>
+ */
+trait WP_Rest_Cache_Controller_Trait {
     /**
      * Constructor.
      *
@@ -22,7 +36,7 @@ trait WP_Rest_Cache_Has_Caching {
     /**
      * Prepares a single post output for response.
      *
-     * @param WP_Post|WP_Term $item Post object.
+     * @param WP_Post|WP_Term $item Post/Term object.
      * @param WP_REST_Request $request Request object.
      *
      * @return WP_REST_Response Response object.
@@ -45,22 +59,26 @@ trait WP_Rest_Cache_Has_Caching {
     }
 
     /**
-     * @param WP_Post|WP_Term $item
-     * @param WP_REST_Request $request
+     * Get the data as it would have been served without caching.
      *
-     * @return WP_REST_Response
+     * @param   WP_Post|WP_Term $item Post/Term object
+     * @param   WP_REST_Request $request Request object.
+     *
+     * @return  WP_REST_Response Response object.
      */
     public function get_data( $item, $request ) {
         return parent::prepare_item_for_response( $item, $request );
     }
 
     /**
-     * @param WP_Term|WP_Post $item
+     * Update the item cache by calling it's single REST endpoint.
+     *
+     * @param   WP_Term|WP_Post $item The object for which the cache should be updated.
      */
     public function update_item_cache( $item ) {
         delete_transient( $this->transient_key( $item ) );
 
-        $url     = home_url() . '/' . rest_get_url_prefix() . '/' . $this->namespace . '/' . $this->rest_base . '/';
+        $url = home_url() . '/' . rest_get_url_prefix() . '/' . $this->namespace . '/' . $this->rest_base . '/';
         switch ( get_class( $item ) ) {
             case WP_Post::class:
                 $url .= $item->ID;
@@ -75,34 +93,40 @@ trait WP_Rest_Cache_Has_Caching {
     }
 
     /**
-     * @param WP_Term|WP_Post $item
+     * Delete the cache for the current item.
+     *
+     * @param   WP_Term|WP_Post $item The item for which the cache should be deleted.
      */
     public function delete_item_cache( $item ) {
         delete_transient( $this->transient_key( $item ) );
     }
 
     /**
-     * @param WP_Term|WP_Post $post
+     * Get the cache key for the current item.
      *
-     * @return string
+     * @param   WP_Term|WP_Post $item The item for which the cache key should be returned.
+     *
+     * @return  string Cache key.
      */
-    protected function transient_key( $post ) {
-        return WP_Rest_Cache::transient_key( $this->get_id( $post ) );
+    protected function transient_key( $item ) {
+        return WP_Rest_Cache::transient_key( $this->get_id( $item ) );
     }
 
     /**
-     * @param WP_Post|WP_Term $post
+     * Get the cache key item ID.
      *
-     * @return int|string
+     * @param   WP_Post|WP_Term $item The item for which the ID should be returned.
+     *
+     * @return  int|string Item ID.
      */
-    protected function get_id( $post ) {
-        switch ( get_class( $post ) ) {
+    protected function get_id( $item ) {
+        switch ( get_class( $item ) ) {
             case WP_Post::class:
-                return $post->ID;
+                return $item->ID;
             case WP_Term::class:
-                return 'taxonomy_' . $post->term_id;
+                return 'taxonomy_' . $item->term_id;
             default:
-                return $post;
+                return $item;
         }
     }
 }

@@ -1,31 +1,50 @@
 <?php
 
 /**
- * The admin-specific functionality of the plugin.
+ * API for endpoint caching.
  *
  * @link:       http://www.acato.nl
- * @since      2018.1
+ * @since       2018.1
  *
- * @package    WP_Rest_Cache
- * @subpackage WP_Rest_Cache/includes
+ * @package     WP_Rest_Cache
+ * @subpackage  WP_Rest_Cache/includes/api
  */
 
 /**
- * The admin-specific functionality of the plugin.
+ * API for endpoint caching.
  *
- * Defines the plugin name, version, and two examples hooks for how to
- * enqueue the admin-specific stylesheet and JavaScript.
+ * Caches complete endpoints and handles the deletion if single items are updated.
  *
- * @package    WP_Rest_Cache
- * @subpackage WP_Rest_Cache/includes
- * @author:       Richard Korthuis - Acato <richardkorthuis@acato.nl>
+ * @package     WP_Rest_Cache
+ * @subpackage  WP_Rest_Cache/includes/api
+ * @author:     Richard Korthuis - Acato <richardkorthuis@acato.nl>
+ *
+ * @TODO:       Clear caches if new Posts/Terms are created
  */
 class WP_Rest_Cache_Endpoint_Api {
 
+    /**
+     * The requested URI.
+     *
+     * @access   private
+     * @var      string $request_uri The requested URI string.
+     */
     private $request_uri;
 
+    /**
+     * The current cache key.
+     *
+     * @access  private
+     * @var     string $cache_key The current cache key.
+     */
     private $cache_key;
 
+    /**
+     * The response headers that need to be send with the cached call.
+     *
+     * $access  private
+     * @var     array $response_headers The response headers.
+     */
     private $response_headers = array(
         'Content-Type'                  => 'application/json; charset=UTF-8',
         'X-WP-cached-call'              => 'served-cache',
@@ -37,35 +56,60 @@ class WP_Rest_Cache_Endpoint_Api {
 
     /**
      * Initialize the class and set its properties.
-     *
-     * @since    2018.1
      */
     public function __construct() {
     }
 
+    /**
+     * Fired upon post update (WordPress hook 'save_post'). Make sure the item cache is updated.
+     *
+     * @param   int $post_id The ID of the post that is being updated.
+     * @param   WP_Post $post The post object of the post that is being updated.
+     */
     public function save_post( $post_id, WP_Post $post ) {
-        $this->update_item_cache( $post );
+        $this->delete_related_caches( $post );
     }
 
+    /**
+     * Fired upon post deletion (WordPress hook 'delete_post'). Make sure the item cache is deleted.
+     *
+     * @param   int $post_id The ID of the post that is being deleted.
+     */
     public function delete_post( $post_id ) {
         $post = get_post( $post_id );
         if ( wp_is_post_revision( $post ) ) {
             return;
         }
 
-        $this->delete_item_cache( $post );
+        $this->delete_related_caches( $post );
     }
 
+    /**
+     * Fired upon term update (WordPress hook 'edited_term'). Make sure the item cache is updated.
+     *
+     * @param   int $term_id The term_id of the term that is being updated.
+     * @param   string $taxonomy The taxonomy of the term that is being updated.
+     */
     public function edited_terms( $term_id, $taxonomy ) {
         $term = get_term( $term_id, $taxonomy );
-        $this->update_item_cache( $term );
+        $this->delete_related_caches( $term );
     }
 
+    /**
+     * Fired upon term deletion (WordPress hook 'delete_term'). Make sure the item cache is deleted.
+     *
+     * @param   int $term_id The term_id of the term that is being deleted.
+     */
     public function delete_term( $term_id ) {
         $term = get_term( $term_id );
-        $this->delete_item_cache( $term );
+        $this->delete_related_caches( $term );
     }
 
+    /**
+     * Get the requested URI and create the cache key.
+     *
+     * @return  string The request URI.
+     */
     public function build_request_uri() {
         $request_uri  = filter_input( INPUT_SERVER, 'REQUEST_URI', FILTER_SANITIZE_URL );
         $uri_parts    = parse_url( $request_uri );
@@ -83,7 +127,14 @@ class WP_Rest_Cache_Endpoint_Api {
         return $request_path;
     }
 
-
+    /**
+     * Save the response headers so they can be added to the cache.
+     *
+     * @param   bool $served Whether the request has already been served. Default false.
+     * @param   WP_HTTP_Response $result Result to send to the client.
+     * @param   WP_REST_Request $request Request used to generate the response.
+     * @param   WP_REST_Server $server Server instance.
+     */
     public function save_cache_headers( $served, WP_HTTP_Response $result, WP_REST_Request $request, WP_REST_Server $server ) {
         $headers = $result->get_headers();
 
@@ -95,6 +146,15 @@ class WP_Rest_Cache_Endpoint_Api {
 
     }
 
+    /**
+     * Cache the response data.
+     *
+     * @param   array $result Response data to send to the client.
+     * @param   WP_REST_Server $server Server instance.
+     * @param   WP_REST_Request $request Request used to generate the response.
+     *
+     * @return  array Response data to send to the client.
+     */
     public function save_cache( $result, WP_REST_Server $server, WP_REST_Request $request ) {
         // Only Avoid cache if not 200
         if ( ! empty( $result ) && is_array( $result ) && isset( $result['data']['status'] ) && (int) $result['data']['status'] !== 200 ) {
@@ -117,6 +177,11 @@ class WP_Rest_Cache_Endpoint_Api {
         return $result;
     }
 
+    /**
+     * Check if caching should be skipped.
+     *
+     * @return bool True if no caching should be applied, false if caching can be applied.
+     */
     public function skip_caching() {
         // Don't run if we are calling to cache the request (see later in the code)
         if ( isset( $_GET['wp-rest-cache'] ) && (string) $_GET['wp-rest-cache'] === '1' ) {
@@ -156,7 +221,6 @@ class WP_Rest_Cache_Endpoint_Api {
 
     /**
      * Check if the current call is a REST API call, if so check if it has already been cached, otherwise cache it.
-     * Inspired by https://stackoverflow.com/a/36438831
      */
     public function get_api_cache() {
 
@@ -224,7 +288,8 @@ class WP_Rest_Cache_Endpoint_Api {
     }
 
     /**
-     * Re-save the options if they have changed.
+     * Re-save the options if they have changed. We need them as options since we are going to use them early in the
+     * WordPress process even before several hooks are fired.
      */
     public function save_options() {
         $original_allowed_endpoints = get_option( 'wp_rest_cache_allowed_endpoints', [] );
@@ -238,20 +303,6 @@ class WP_Rest_Cache_Endpoint_Api {
         if ( $original_rest_prefix != $rest_prefix ) {
             update_option( 'wp_rest_cache_rest_prefix', $rest_prefix );
         }
-    }
-
-    /**
-     * @param WP_Term|WP_Post $item
-     */
-    public function update_item_cache( $item ) {
-        $this->delete_related_caches( $item );
-    }
-
-    /**
-     * @param WP_Term|WP_Post $item
-     */
-    public function delete_item_cache( $item ) {
-        $this->delete_related_caches( $item );
     }
 
     /**
