@@ -14,7 +14,7 @@
  * REST Controller for Attachment caching.
  *
  * @package     WP_Rest_Cache
- * @subpackage  WP_Rest_Cache/includes/api
+ * @subpackage  WP_Rest_Cache/includes/controller
  * @author:     Richard Korthuis - Acato <richardkorthuis@acato.nl>
  */
 class WP_Rest_Cache_Attachment_Controller extends WP_REST_Attachments_Controller {

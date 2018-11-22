@@ -55,9 +55,9 @@ class WP_Rest_Cache_Item_Api {
      *
      * @param   int $post_id The ID of the post that is being updated.
      * @param   WP_Post $post The post object of the post that is being updated.
+     * @param   bool $update True if it is an updated post, false if it is a new post.
      */
-    public function save_post( $post_id, WP_Post $post ) {
-
+    public function save_post( $post_id, WP_Post $post, $update ) {
         $post_type = get_post_types( [ 'name' => $post->post_type ], 'objects' )[ $post->post_type ];
         if ( ! $this->should_use_custom_class( $post_type->rest_controller_class, 'post_type' )
              || wp_is_post_revision( $post ) ) {
@@ -66,25 +66,6 @@ class WP_Rest_Cache_Item_Api {
 
         $controller = new WP_Rest_Cache_Post_Controller( $post->post_type );
         $controller->update_item_cache( $post );
-    }
-
-    /**
-     * Fired upon post deletion (WordPress hook 'delete_post'). Make sure the item cache is deleted.
-     *
-     * @param   int $post_id The ID of the post that is being deleted.
-     */
-    public function delete_post( $post_id ) {
-        $post = get_post( $post_id );
-        if ( wp_is_post_revision( $post ) ) {
-            return;
-        }
-        $post_type = get_post_types( [ 'name' => $post->post_type ], 'objects' )[0];
-        if ( ! $this->should_use_custom_class( $post_type->rest_controller_class, 'post_type' ) ) {
-            return;
-        }
-
-        $controller = new WP_Rest_Cache_Post_Controller( $post->post_type );
-        $controller->delete_item_cache( $post );
     }
 
     /**
@@ -107,12 +88,14 @@ class WP_Rest_Cache_Item_Api {
     }
 
     /**
-     * Fired upon term update (WordPress hook 'edited_term'). Make sure the item cache is updated.
+     * Fired upon term creation / update (WordPress hooks 'created_term' and 'edited_term'). Make sure the item cache
+     * is updated.
      *
      * @param   int $term_id The term_id of the term that is being updated.
+     * @param   int $tt_id The term taxonomy id.
      * @param   string $taxonomy The taxonomy of the term that is being updated.
      */
-    public function edited_terms( $term_id, $taxonomy ) {
+    public function edited_term( $term_id, $tt_id, $taxonomy ) {
         $term       = get_term( $term_id, $taxonomy );
         $tax_object = get_taxonomies( [ 'name' => $term->taxonomy ], 'objects' )[ $term->taxonomy ];
         if ( ! $this->should_use_custom_class( $tax_object->rest_controller_class, 'taxonomy' ) ) {
@@ -121,22 +104,6 @@ class WP_Rest_Cache_Item_Api {
 
         $controller = new WP_Rest_Cache_Term_Controller( $term->taxonomy );
         $controller->update_item_cache( $term );
-    }
-
-    /**
-     * Fired upon term deletion (WordPress hook 'delete_term'). Make sure the item cache is deleted.
-     *
-     * @param   int $term_id The term_id of the term that is being deleted.
-     */
-    public function delete_term( $term_id ) {
-        $term       = get_term( $term_id );
-        $tax_object = get_taxonomies( [ 'name' => $term->taxonomy ], 'objects' )[ $term->taxonomy ];
-        if ( ! $this->should_use_custom_class( $tax_object->rest_controller_class, 'taxonomy' ) ) {
-            return;
-        }
-
-        $controller = new WP_Rest_Cache_Term_Controller( $term->taxonomy );
-        $controller->delete_item_cache( $term );
     }
 
     /**
@@ -162,32 +129,5 @@ class WP_Rest_Cache_Item_Api {
                        || $class_name == WP_REST_Attachments_Controller::class
                        || $class_name == WP_Rest_Cache_Attachment_Controller::class;
         }
-    }
-
-    /**
-     * Clear all caches.
-     *
-     * @TODO: Do not use queries to determine which caches to clear and to clear them.
-     */
-    public static function clear_cache() {
-        global $wpdb;
-
-        // Remove all related post meta
-        $wpdb->query( $wpdb->prepare(
-            "DELETE FROM {$wpdb->postmeta} WHERE meta_key = %s",
-            '_wp_rest_cache_entry'
-        ) );
-
-        // Remove all relater term meta
-        $wpdb->query( $wpdb->prepare(
-            "DELETE FROM {$wpdb->termmeta} WHERE meta_key = %s",
-            '_wp_rest_cache_entry'
-        ) );
-
-        // Remove all cache entries
-        $wpdb->query( $wpdb->prepare(
-            "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
-            '%wp_rest_cache_%'
-        ) );
     }
 }

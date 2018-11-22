@@ -14,7 +14,7 @@
  * Trait for the REST Controller extensions.
  *
  * @package     WP_Rest_Cache
- * @subpackage  WP_Rest_Cache/includes/api
+ * @subpackage  WP_Rest_Cache/includes/controller
  * @author:     Richard Korthuis - Acato <richardkorthuis@acato.nl>
  */
 trait WP_Rest_Cache_Controller_Trait {
@@ -42,8 +42,9 @@ trait WP_Rest_Cache_Controller_Trait {
      * @return WP_REST_Response Response object.
      */
     public function prepare_item_for_response( $item, $request ) {
-        $key   = $this->transient_key( $item );
-        $value = get_transient( $key );
+        $key     = $this->get_id( $item );
+        $caching = WP_Rest_Cache_Caching::get_instance();
+        $value   = $caching->get_cache( $key );
 
         if ( empty( $value )
              || $request['context'] !== 'view' ) {
@@ -51,7 +52,8 @@ trait WP_Rest_Cache_Controller_Trait {
             if ( isset( $value->data )
                  && ! empty( $value->data )
                  && $request['context'] === 'view' ) {
-                set_transient( $key, $value, WP_Rest_Cache::get_timeout() );
+                $object_type = isset( $this->post_type ) ? $this->post_type : ( isset( $this->taxonomy ) ? $this->taxonomy : '' );
+                $caching->set_cache( $key, $value, 'item', '', $object_type );
             }
         }
 
@@ -76,8 +78,6 @@ trait WP_Rest_Cache_Controller_Trait {
      * @param   WP_Term|WP_Post $item The object for which the cache should be updated.
      */
     public function update_item_cache( $item ) {
-        delete_transient( $this->transient_key( $item ) );
-
         $url = home_url() . '/' . rest_get_url_prefix() . '/' . $this->namespace . '/' . $this->rest_base . '/';
         switch ( get_class( $item ) ) {
             case WP_Post::class:
@@ -89,27 +89,7 @@ trait WP_Rest_Cache_Controller_Trait {
             default:
                 return;
         }
-        $request = wp_remote_get( $url, [ 'timeout' => 10, 'sslverify' => false ] );
-    }
-
-    /**
-     * Delete the cache for the current item.
-     *
-     * @param   WP_Term|WP_Post $item The item for which the cache should be deleted.
-     */
-    public function delete_item_cache( $item ) {
-        delete_transient( $this->transient_key( $item ) );
-    }
-
-    /**
-     * Get the cache key for the current item.
-     *
-     * @param   WP_Term|WP_Post $item The item for which the cache key should be returned.
-     *
-     * @return  string Cache key.
-     */
-    protected function transient_key( $item ) {
-        return WP_Rest_Cache::transient_key( $this->get_id( $item ) );
+        wp_remote_get( $url, [ 'timeout' => 10, 'sslverify' => false ] );
     }
 
     /**

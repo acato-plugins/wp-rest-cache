@@ -13,7 +13,7 @@
  * REST Controller for (Custom) Term caching.
  *
  * @package     WP_Rest_Cache
- * @subpackage  WP_Rest_Cache/includes/api
+ * @subpackage  WP_Rest_Cache/includes/controller
  * @author:     Richard Korthuis - Acato <richardkorthuis@acato.nl>
  */
 class WP_Rest_Cache_Term_Controller extends WP_REST_Terms_Controller {
