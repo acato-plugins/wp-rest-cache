@@ -25,7 +25,7 @@ class WP_Rest_Cache_Deactivator {
      * Deactivate the plugin. Clear cache and delete Must-Use plugin.
      */
     public static function deactivate() {
-        WP_Rest_Cache_Item_Api::clear_cache();
+        WP_Rest_Cache_Caching::get_instance()->clear_caches( true );
         if ( file_exists( WPMU_PLUGIN_DIR . '/wp-rest-cache.php' ) ) {
             unlink( WPMU_PLUGIN_DIR . '/wp-rest-cache.php' );
         }

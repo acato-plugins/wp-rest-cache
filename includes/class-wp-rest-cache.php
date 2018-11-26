@@ -52,7 +52,6 @@ class WP_Rest_Cache {
      * the public-facing side of the site.
      */
     public function __construct() {
-
         $this->plugin_name = 'wp-rest-cache';
         $this->version     = '2018.2.0';
 
@@ -60,7 +59,7 @@ class WP_Rest_Cache {
         $this->set_locale();
         $this->define_admin_hooks();
         $this->define_api_hooks();
-
+        $this->define_caching_hooks();
     }
 
     /**
@@ -95,6 +94,7 @@ class WP_Rest_Cache {
         require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/controller/class-wp-rest-cache-attachment-controller.php';
         require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/controller/class-wp-rest-cache-term-controller.php';
 
+        require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/caching/class-wp-rest-cache-caching.php';
     }
 
     /**
@@ -137,42 +137,32 @@ class WP_Rest_Cache {
     private function define_api_hooks() {
         $endpoint_api = new WP_Rest_Cache_Endpoint_Api();
 
-        add_action( 'save_post', [ $endpoint_api, 'save_post' ], 998, 2 );
-        add_action( 'delete_post', [ $endpoint_api, 'delete_post' ] );
-        add_action( 'edited_terms', [ $endpoint_api, 'edited_terms' ], 998, 2 );
-        add_action( 'delete_term', [ $endpoint_api, 'delete_term' ] );
-
         add_action( 'init', [ $endpoint_api, 'save_options' ] );
         add_action( 'rest_api_init', [ $endpoint_api, 'save_options' ] );
 
         $item_api = new WP_Rest_Cache_Item_Api();
+
         add_filter( 'register_post_type_args', [ $item_api, 'set_post_type_rest_controller' ], 10, 2 );
         add_filter( 'register_taxonomy_args', [ $item_api, 'set_taxonomy_rest_controller' ], 10, 2 );
 
-        add_action( 'save_post', [ $item_api, 'save_post' ], 999, 2 );
-        add_action( 'delete_post', [ $item_api, 'delete_post' ] );
-        add_action( 'edited_terms', [ $item_api, 'edited_terms' ], 999, 2 );
-        add_action( 'delete_term', [ $item_api, 'delete_term' ] );
+        add_action( 'save_post', [ $item_api, 'save_post' ], 1000, 3 );
+        add_action( 'created_term', [ $item_api, 'edited_term' ], 1000, 3 );
+        add_action( 'edited_term', [ $item_api, 'edited_term' ], 1000, 3 );
     }
 
     /**
-     * Get the cache key for the current ID.
-     *
-     * @param   string|int $id The ID used for the cache key.
-     *
-     * @return  string The cache key.
+     * Register all of the hooks related to the caching functionality of the plugin.
      */
-    public static function transient_key( $id ) {
-        return 'wp_rest_cache_' . $id;
-    }
+    private function define_caching_hooks() {
+        $caching = WP_Rest_Cache_Caching::get_instance();
 
-    /**
-     * Get the cache timeout as set in the plugin Settings.
-     *
-     * @return  int Timeout in seconds.
-     */
-    public static function get_timeout() {
-        return get_option( 'wp_rest_cache_timeout' ) ? get_option( 'wp_rest_cache_timeout' ) : 0;
+        add_action( 'init', [ $caching, 'update_database_structure' ] );
+
+        add_action( 'save_post', [ $caching, 'save_post' ], 999, 3 );
+        add_action( 'delete_post', [ $caching, 'delete_post' ] );
+        add_action( 'created_term', [ $caching, 'created_term' ], 999, 3 );
+        add_action( 'edited_term', [ $caching, 'edited_term' ], 999, 3 );
+        add_action( 'delete_term', [ $caching, 'delete_term' ], 10, 5 );
     }
 
     /**

@@ -61,51 +61,6 @@ class WP_Rest_Cache_Endpoint_Api {
     }
 
     /**
-     * Fired upon post update (WordPress hook 'save_post'). Make sure the item cache is updated.
-     *
-     * @param   int $post_id The ID of the post that is being updated.
-     * @param   WP_Post $post The post object of the post that is being updated.
-     */
-    public function save_post( $post_id, WP_Post $post ) {
-        $this->delete_related_caches( $post );
-    }
-
-    /**
-     * Fired upon post deletion (WordPress hook 'delete_post'). Make sure the item cache is deleted.
-     *
-     * @param   int $post_id The ID of the post that is being deleted.
-     */
-    public function delete_post( $post_id ) {
-        $post = get_post( $post_id );
-        if ( wp_is_post_revision( $post ) ) {
-            return;
-        }
-
-        $this->delete_related_caches( $post );
-    }
-
-    /**
-     * Fired upon term update (WordPress hook 'edited_term'). Make sure the item cache is updated.
-     *
-     * @param   int $term_id The term_id of the term that is being updated.
-     * @param   string $taxonomy The taxonomy of the term that is being updated.
-     */
-    public function edited_terms( $term_id, $taxonomy ) {
-        $term = get_term( $term_id, $taxonomy );
-        $this->delete_related_caches( $term );
-    }
-
-    /**
-     * Fired upon term deletion (WordPress hook 'delete_term'). Make sure the item cache is deleted.
-     *
-     * @param   int $term_id The term_id of the term that is being deleted.
-     */
-    public function delete_term( $term_id ) {
-        $term = get_term( $term_id );
-        $this->delete_related_caches( $term );
-    }
-
-    /**
      * Get the requested URI and create the cache key.
      *
      * @return  string The request URI.
@@ -122,7 +77,7 @@ class WP_Rest_Cache_Endpoint_Api {
         }
 
         $this->request_uri = $request_path;
-        $this->cache_key   = 'wp_rest_cache_' . md5( $this->request_uri );
+        $this->cache_key   = md5( $this->request_uri );
 
         return $request_path;
     }
@@ -143,7 +98,6 @@ class WP_Rest_Cache_Endpoint_Api {
                 $this->response_headers[ $key ] = $value;
             }
         }
-
     }
 
     /**
@@ -170,8 +124,7 @@ class WP_Rest_Cache_Endpoint_Api {
 
         // No errors? Lets save!
         if ( $last_error === JSON_ERROR_NONE ) {
-            set_transient( $this->cache_key, $data, WP_Rest_Cache::get_timeout() );
-            $this->save_cache_relations( $result, $this->cache_key );
+            WP_Rest_Cache_Caching::get_instance()->set_cache( $this->cache_key, $data, 'endpoint', $this->request_uri );
         }
 
         return $result;
@@ -230,7 +183,7 @@ class WP_Rest_Cache_Endpoint_Api {
             return;
         }
 
-        $cache = get_transient( $this->cache_key );
+        $cache = WP_Rest_Cache_Caching::get_instance()->get_cache( $this->cache_key );
 
         if ( $cache !== false ) {
             // We want the data to be json
@@ -256,38 +209,6 @@ class WP_Rest_Cache_Endpoint_Api {
     }
 
     /**
-     * Save all cache relations for the current cache. This is done so caches can be cleared when a relation is updated.
-     *
-     * @param array $json The REST API result containing all objects
-     * @param string $cache_key The cache key for the current cache
-     */
-    private function save_cache_relations( $json, $cache_key ) {
-        if ( array_key_exists( 'id', $json ) ) {
-            if ( array_key_exists( 'type', $json ) ) {
-                $function = 'add_post_meta';
-            } else if ( array_key_exists( 'taxonomy', $json ) ) {
-                $function = 'add_term_meta';
-            } else {
-                return;
-            }
-            call_user_func_array( $function, [ $json['id'], '_wp_rest_cache_entry', $cache_key ] );
-        } else {
-            if ( count( $json ) ) {
-                if ( array_key_exists( 'type', $json[0] ) ) {
-                    $function = 'add_post_meta';
-                } else if ( array_key_exists( 'taxonomy', $json[0] ) ) {
-                    $function = 'add_term_meta';
-                } else {
-                    return;
-                }
-                foreach ( $json as $post_array ) {
-                    call_user_func_array( $function, [ $post_array['id'], '_wp_rest_cache_entry', $cache_key ] );
-                }
-            }
-        }
-    }
-
-    /**
      * Re-save the options if they have changed. We need them as options since we are going to use them early in the
      * WordPress process even before several hooks are fired.
      */
@@ -302,87 +223,6 @@ class WP_Rest_Cache_Endpoint_Api {
         $rest_prefix          = rest_get_url_prefix();
         if ( $original_rest_prefix != $rest_prefix ) {
             update_option( 'wp_rest_cache_rest_prefix', $rest_prefix );
-        }
-    }
-
-    /**
-     * Delete all related caches for the item that has just been updated.
-     *
-     * @param WP_Post|WP_Term $item The item that has been updated.
-     */
-    private function delete_related_caches( $item ) {
-        switch ( get_class( $item ) ) {
-            case WP_Post::class:
-                $this->delete_post_related_caches( $item );
-                break;
-            case WP_Term::class:
-                $this->delete_term_related_caches( $item );
-                break;
-        }
-    }
-
-    /**
-     * Delete all related caches for the selected post.
-     *
-     * @param WP_Post $post The post item that has been updated.
-     */
-    private function delete_post_related_caches( $post ) {
-        $related_caches = get_post_meta( $post->ID, '_wp_rest_cache_entry' );
-        foreach ( $related_caches as $related_cache ) {
-            delete_transient( $related_cache );
-            $this->delete_cache_related_posts_meta( $related_cache );
-        }
-        delete_post_meta( $post->ID, '_wp_rest_cache_entry' );
-    }
-
-    /**
-     * Delete all related caches for the selected term.
-     *
-     * @param WP_Term $term The term item that has been updated.
-     */
-    private function delete_term_related_caches( $term ) {
-        $related_caches = get_term_meta( $term->term_id, '_wp_rest_cache_entry' );
-        foreach ( $related_caches as $related_cache ) {
-            delete_transient( $related_cache );
-            $this->delete_cache_related_terms_meta( $related_cache );
-        }
-        delete_term_meta( $term->term_id, '_wp_rest_cache_entry' );
-    }
-
-    /**
-     * Delete all relations from posts for a cache that has been deleted.
-     *
-     * @param string $related_cache The cache key for a cache that has just been deleted.
-     */
-    private function delete_cache_related_posts_meta( $related_cache ) {
-        $posts = get_posts( [
-            'meta_key'    => '_wp_rest_cache_entry',
-            'meta_value'  => $related_cache,
-            'nopaging'    => true,
-            'post_status' => 'any',
-            'fields'      => 'ids'
-        ] );
-
-        foreach ( $posts as $post ) {
-            delete_post_meta( $post, '_wp_rest_cache_entry', $related_cache );
-        }
-    }
-
-    /**
-     * Delete all relations from terms for a cache that has been deleted.
-     *
-     * @param string $related_cache The cache key for a cache that has just been deleted.
-     */
-    private function delete_cache_related_terms_meta( $related_cache ) {
-        $terms = get_terms( [
-            'meta_key'   => '_wp_rest_cache_entry',
-            'meta_value' => $related_cache,
-            'hide_empty' => false,
-            'fields'     => 'ids'
-        ] );
-
-        foreach ( $terms as $term ) {
-            delete_term_meta( $term, '_wp_rest_cache_entry', $related_cache );
         }
     }
 }
