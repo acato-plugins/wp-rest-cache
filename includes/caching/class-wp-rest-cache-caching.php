@@ -182,10 +182,8 @@ class WP_Rest_Cache_Caching {
         global $wpdb;
 
         $caches = $wpdb->get_results(
-            $wpdb->prepare(
-                'SELECT `cache_key`
-                FROM `' . $this->db_table_caches . '`'
-            )
+            'SELECT `cache_key`
+            FROM `' . $this->db_table_caches . '`'
         );
 
         if ( $caches ) {

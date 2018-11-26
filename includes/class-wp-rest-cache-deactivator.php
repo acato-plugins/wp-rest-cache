@@ -27,6 +27,7 @@ class WP_Rest_Cache_Deactivator {
     public static function deactivate() {
         WP_Rest_Cache_Caching::get_instance()->clear_caches( true );
         if ( file_exists( WPMU_PLUGIN_DIR . '/wp-rest-cache.php' ) ) {
+            // @TODO: If multisite only delete if not active on ANY subsite
             unlink( WPMU_PLUGIN_DIR . '/wp-rest-cache.php' );
         }
     }
