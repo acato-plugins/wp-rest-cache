@@ -6,9 +6,11 @@
  * @link:       http://www.acato.nl
  * @since       2018.1
  *
- * @package     WP_Rest_Cache
- * @subpackage  WP_Rest_Cache/admin
+ * @package     WP_Rest_Cache_Plugin
+ * @subpackage  WP_Rest_Cache_Plugin/Admin
  */
+
+namespace WP_Rest_Cache_Plugin\Admin;
 
 /**
  * The admin-specific functionality of the plugin.
@@ -16,11 +18,11 @@
  * Defines the plugin name, version, and two examples hooks for how to
  * enqueue the admin-specific stylesheet and JavaScript.
  *
- * @package     WP_Rest_Cache
- * @subpackage  WP_Rest_Cache/admin
+ * @package     WP_Rest_Cache_Plugin
+ * @subpackage  WP_Rest_Cache_Plugin/Admin
  * @author:     Richard Korthuis - Acato <richardkorthuis@acato.nl>
  */
-class WP_Rest_Cache_Admin {
+class Admin {
 
     /**
      * The ID of this plugin.
@@ -126,7 +128,7 @@ class WP_Rest_Cache_Admin {
     public function handle_actions() {
         if ( isset( $_REQUEST['rest_cache_nonce'] ) && wp_verify_nonce( $_REQUEST['rest_cache_nonce'], 'rest_cache_options' ) ) {
             if ( isset( $_GET['clear'] ) && 1 == $_GET['clear'] ) {
-                if ( WP_Rest_Cache_Caching::get_instance()->clear_caches() ) {
+                if ( \WP_Rest_Cache_Plugin\Includes\Caching\Caching::get_instance()->clear_caches() ) {
                     $this->add_notice( 'success', __( 'The cache has been successfully cleared', 'wp-rest-cache' ) );
                 } else {
                     $this->add_notice( 'error', __( 'There were no items cached', 'wp-rest-cache' ) );

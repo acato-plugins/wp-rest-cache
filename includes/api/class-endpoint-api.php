@@ -6,22 +6,21 @@
  * @link:       http://www.acato.nl
  * @since       2018.1
  *
- * @package     WP_Rest_Cache
- * @subpackage  WP_Rest_Cache/includes/api
+ * @package     WP_Rest_Cache_Plugin
+ * @subpackage  WP_Rest_Cache_Plugin/Includes/API
  */
 
+namespace WP_Rest_Cache_Plugin\Includes\API;
 /**
  * API for endpoint caching.
  *
  * Caches complete endpoints and handles the deletion if single items are updated.
  *
- * @package     WP_Rest_Cache
- * @subpackage  WP_Rest_Cache/includes/api
+ * @package     WP_Rest_Cache_Plugin
+ * @subpackage  WP_Rest_Cache_Plugin/Includes/API
  * @author:     Richard Korthuis - Acato <richardkorthuis@acato.nl>
- *
- * @TODO:       Clear caches if new Posts/Terms are created
  */
-class WP_Rest_Cache_Endpoint_Api {
+class Endpoint_Api {
 
     /**
      * The requested URI.
@@ -86,11 +85,11 @@ class WP_Rest_Cache_Endpoint_Api {
      * Save the response headers so they can be added to the cache.
      *
      * @param   bool $served Whether the request has already been served. Default false.
-     * @param   WP_HTTP_Response $result Result to send to the client.
-     * @param   WP_REST_Request $request Request used to generate the response.
-     * @param   WP_REST_Server $server Server instance.
+     * @param   \WP_HTTP_Response $result Result to send to the client.
+     * @param   \WP_REST_Request $request Request used to generate the response.
+     * @param   \WP_REST_Server $server Server instance.
      */
-    public function save_cache_headers( $served, WP_HTTP_Response $result, WP_REST_Request $request, WP_REST_Server $server ) {
+    public function save_cache_headers( $served, \WP_HTTP_Response $result, \WP_REST_Request $request, \WP_REST_Server $server ) {
         $headers = $result->get_headers();
 
         if ( isset( $headers ) && ! empty( $headers ) ) {
@@ -104,12 +103,12 @@ class WP_Rest_Cache_Endpoint_Api {
      * Cache the response data.
      *
      * @param   array $result Response data to send to the client.
-     * @param   WP_REST_Server $server Server instance.
-     * @param   WP_REST_Request $request Request used to generate the response.
+     * @param   \WP_REST_Server $server Server instance.
+     * @param   \WP_REST_Request $request Request used to generate the response.
      *
      * @return  array Response data to send to the client.
      */
-    public function save_cache( $result, WP_REST_Server $server, WP_REST_Request $request ) {
+    public function save_cache( $result, \WP_REST_Server $server, \WP_REST_Request $request ) {
         // Only Avoid cache if not 200
         if ( ! empty( $result ) && is_array( $result ) && isset( $result['data']['status'] ) && (int) $result['data']['status'] !== 200 ) {
             return $result;
@@ -124,7 +123,7 @@ class WP_Rest_Cache_Endpoint_Api {
 
         // No errors? Lets save!
         if ( $last_error === JSON_ERROR_NONE ) {
-            WP_Rest_Cache_Caching::get_instance()->set_cache( $this->cache_key, $data, 'endpoint', $this->request_uri );
+            \WP_Rest_Cache_Plugin\Includes\Caching\Caching::get_instance()->set_cache( $this->cache_key, $data, 'endpoint', $this->request_uri );
         }
 
         return $result;
@@ -183,7 +182,7 @@ class WP_Rest_Cache_Endpoint_Api {
             return;
         }
 
-        $cache = WP_Rest_Cache_Caching::get_instance()->get_cache( $this->cache_key );
+        $cache = \WP_Rest_Cache_Plugin\Includes\Caching\Caching::get_instance()->get_cache( $this->cache_key );
 
         if ( $cache !== false ) {
             // We want the data to be json

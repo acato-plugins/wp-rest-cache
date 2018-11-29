@@ -6,20 +6,21 @@
  * @link:       http://www.acato.nl
  * @since       2018.2
  *
- * @package     WP_Rest_Cache
- * @subpackage  WP_Rest_Cache/includes/api
+ * @package     WP_Rest_Cache_Plugin
+ * @subpackage  WP_Rest_Cache_Plugin/Includes/API
  */
 
+namespace WP_Rest_Cache_Plugin\Includes\API;
 /**
  * API for item caching.
  *
  * Caches single items (result of prepare_item_for_response) and handles the update if single items are updated.
  *
- * @package     WP_Rest_Cache
- * @subpackage  WP_Rest_Cache/includes/api
+ * @package     WP_Rest_Cache_Plugin
+ * @subpackage  WP_Rest_Cache_Plugin/Includes/API
  * @author:     Richard Korthuis - Acato <richardkorthuis@acato.nl>
  */
-class WP_Rest_Cache_Item_Api {
+class Item_Api {
 
     /**
      * Initialize the class and set its properties.
@@ -41,10 +42,10 @@ class WP_Rest_Cache_Item_Api {
             return $args;
         }
 
-        if ( $restController == WP_REST_Attachments_Controller::class ) {
-            $args['rest_controller_class'] = WP_Rest_Cache_Attachment_Controller::class;
+        if ( $restController == \WP_REST_Attachments_Controller::class ) {
+            $args['rest_controller_class'] = \WP_Rest_Cache_Plugin\Includes\Controller\Attachment_Controller::class;
         } else {
-            $args['rest_controller_class'] = WP_Rest_Cache_Post_Controller::class;
+            $args['rest_controller_class'] = \WP_Rest_Cache_Plugin\Includes\Controller\Post_Controller::class;
         }
 
         return $args;
@@ -54,17 +55,17 @@ class WP_Rest_Cache_Item_Api {
      * Fired upon post update (WordPress hook 'save_post'). Make sure the item cache is updated.
      *
      * @param   int $post_id The ID of the post that is being updated.
-     * @param   WP_Post $post The post object of the post that is being updated.
+     * @param   \WP_Post $post The post object of the post that is being updated.
      * @param   bool $update True if it is an updated post, false if it is a new post.
      */
-    public function save_post( $post_id, WP_Post $post, $update ) {
+    public function save_post( $post_id, \WP_Post $post, $update ) {
         $post_type = get_post_types( [ 'name' => $post->post_type ], 'objects' )[ $post->post_type ];
         if ( ! $this->should_use_custom_class( $post_type->rest_controller_class, 'post_type' )
              || wp_is_post_revision( $post ) ) {
             return;
         }
 
-        $controller = new WP_Rest_Cache_Post_Controller( $post->post_type );
+        $controller = new \WP_Rest_Cache_Plugin\Includes\Controller\Post_Controller( $post->post_type );
         $controller->update_item_cache( $post );
     }
 
@@ -82,7 +83,7 @@ class WP_Rest_Cache_Item_Api {
             return $args;
         }
 
-        $args['rest_controller_class'] = WP_Rest_Cache_Term_Controller::class;
+        $args['rest_controller_class'] = \WP_Rest_Cache_Plugin\Includes\Controller\Term_Controller::class;
 
         return $args;
     }
@@ -102,7 +103,7 @@ class WP_Rest_Cache_Item_Api {
             return;
         }
 
-        $controller = new WP_Rest_Cache_Term_Controller( $term->taxonomy );
+        $controller = new \WP_Rest_Cache_Plugin\Includes\Controller\Term_Controller( $term->taxonomy );
         $controller->update_item_cache( $term );
     }
 
@@ -120,14 +121,14 @@ class WP_Rest_Cache_Item_Api {
         }
         switch ( $type ) {
             case 'taxonomy':
-                return $class_name == WP_REST_Terms_Controller::class
-                       || $class_name == WP_Rest_Cache_Term_Controller::class;
+                return $class_name == \WP_REST_Terms_Controller::class
+                       || $class_name == \WP_Rest_Cache_Plugin\Includes\Controller\Term_Controller::class;
             case 'post_type':
             default:
-                return $class_name == WP_REST_Posts_Controller::class
-                       || $class_name == WP_Rest_Cache_Post_Controller::class
-                       || $class_name == WP_REST_Attachments_Controller::class
-                       || $class_name == WP_Rest_Cache_Attachment_Controller::class;
+                return $class_name == \WP_REST_Posts_Controller::class
+                       || $class_name == \WP_Rest_Cache_Plugin\Includes\Controller\Post_Controller::class
+                       || $class_name == \WP_REST_Attachments_Controller::class
+                       || $class_name == \WP_Rest_Cache_Plugin\Includes\Controller\Attachment_Controller::class;
         }
     }
 }
