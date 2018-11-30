@@ -5,18 +5,19 @@
  * @link:       http://www.acato.nl
  * @since       2018.3
  *
- * @package     WP_Rest_Cache
- * @subpackage  WP_Rest_Cache/includes/caching
+ * @package     WP_Rest_Cache_Plugin
+ * @subpackage  WP_Rest_Cache_Plugin/Includes/Caching
  */
 
+namespace WP_Rest_Cache_Plugin\Includes\Caching;
 /**
  * Class responsible for caching and saving cache relations.
  *
- * @package     WP_Rest_Cache
- * @subpackage  WP_Rest_Cache/includes/caching
+ * @package     WP_Rest_Cache_Plugin
+ * @subpackage  WP_Rest_Cache_Plugin/Includes/Caching
  * @author:     Richard Korthuis - Acato <richardkorthuis@acato.nl>
  */
-class WP_Rest_Cache_Caching {
+class Caching {
     /**
      * The current version of the database tables, used to determine if they need updating after plugin update.
      *
@@ -42,7 +43,7 @@ class WP_Rest_Cache_Caching {
      * The singleton instance of this class.
      *
      * @access   private
-     * @var      WP_Rest_Cache_Caching $instance The singleton instance of this class.
+     * @var      \WP_Rest_Cache_Plugin\Includes\Caching\Caching $instance The singleton instance of this class.
      */
     private static $instance = null;
 
@@ -87,11 +88,11 @@ class WP_Rest_Cache_Caching {
     /**
      * Get the singleton instance of this class.
      *
-     * @return WP_Rest_Cache_Caching
+     * @return \WP_Rest_Cache_Plugin\Includes\Caching\Caching
      */
     public static function get_instance() {
         if ( ! self::$instance ) {
-            self::$instance = new WP_Rest_Cache_Caching();
+            self::$instance = new Caching();
         }
 
         return self::$instance;
@@ -202,7 +203,7 @@ class WP_Rest_Cache_Caching {
      * non-single endpoint caches for this post type.
      *
      * @param   int $post_id Post ID.
-     * @param   WP_Post $post Post object.
+     * @param   \WP_Post $post Post object.
      * @param   bool $update Whether this is an existing post being updated or not.
      */
     public function save_post( $post_id, $post, $update ) {

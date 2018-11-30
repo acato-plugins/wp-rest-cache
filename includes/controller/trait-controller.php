@@ -6,18 +6,19 @@
  * @link:       http://www.acato.nl
  * @since       2018.1
  *
- * @package     WP_Rest_Cache
- * @subpackage  WP_Rest_Cache/includes/controller
+ * @package     WP_Rest_Cache_Plugin
+ * @subpackage  WP_Rest_Cache_Plugin/Includes/Controller
  */
 
+namespace WP_Rest_Cache_Plugin\Includes\Controller;
 /**
  * Trait for the REST Controller extensions.
  *
- * @package     WP_Rest_Cache
- * @subpackage  WP_Rest_Cache/includes/controller
+ * @package     WP_Rest_Cache_Plugin
+ * @subpackage  WP_Rest_Cache_Plugin/Includes/Controller
  * @author:     Richard Korthuis - Acato <richardkorthuis@acato.nl>
  */
-trait WP_Rest_Cache_Controller_Trait {
+trait Controller_Trait {
     /**
      * Constructor.
      *
@@ -36,14 +37,14 @@ trait WP_Rest_Cache_Controller_Trait {
     /**
      * Prepares a single post output for response.
      *
-     * @param WP_Post|WP_Term $item Post/Term object.
-     * @param WP_REST_Request $request Request object.
+     * @param \WP_Post|\WP_Term $item Post/Term object.
+     * @param \WP_REST_Request $request Request object.
      *
-     * @return WP_REST_Response Response object.
+     * @return \WP_REST_Response Response object.
      */
     public function prepare_item_for_response( $item, $request ) {
         $key     = $this->get_id( $item );
-        $caching = WP_Rest_Cache_Caching::get_instance();
+        $caching = \WP_Rest_Cache_Plugin\Includes\Caching\Caching::get_instance();
         $value   = $caching->get_cache( $key );
 
         if ( empty( $value )
@@ -63,10 +64,10 @@ trait WP_Rest_Cache_Controller_Trait {
     /**
      * Get the data as it would have been served without caching.
      *
-     * @param   WP_Post|WP_Term $item Post/Term object
-     * @param   WP_REST_Request $request Request object.
+     * @param   \WP_Post|\WP_Term $item Post/Term object
+     * @param   \WP_REST_Request $request Request object.
      *
-     * @return  WP_REST_Response Response object.
+     * @return  \WP_REST_Response Response object.
      */
     public function get_data( $item, $request ) {
         return parent::prepare_item_for_response( $item, $request );
@@ -75,15 +76,15 @@ trait WP_Rest_Cache_Controller_Trait {
     /**
      * Update the item cache by calling it's single REST endpoint.
      *
-     * @param   WP_Term|WP_Post $item The object for which the cache should be updated.
+     * @param   \WP_Term|\WP_Post $item The object for which the cache should be updated.
      */
     public function update_item_cache( $item ) {
         $url = home_url() . '/' . rest_get_url_prefix() . '/' . $this->namespace . '/' . $this->rest_base . '/';
         switch ( get_class( $item ) ) {
-            case WP_Post::class:
+            case \WP_Post::class:
                 $url .= $item->ID;
                 break;
-            case WP_Term::class:
+            case \WP_Term::class:
                 $url .= $item->term_id;
                 break;
             default:
@@ -95,15 +96,15 @@ trait WP_Rest_Cache_Controller_Trait {
     /**
      * Get the cache key item ID.
      *
-     * @param   WP_Post|WP_Term $item The item for which the ID should be returned.
+     * @param   \WP_Post|\WP_Term $item The item for which the ID should be returned.
      *
      * @return  int|string Item ID.
      */
     protected function get_id( $item ) {
         switch ( get_class( $item ) ) {
-            case WP_Post::class:
+            case \WP_Post::class:
                 return $item->ID;
-            case WP_Term::class:
+            case \WP_Term::class:
                 return 'taxonomy_' . $item->term_id;
             default:
                 return $item;

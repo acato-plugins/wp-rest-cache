@@ -9,10 +9,11 @@
  * @link:       http://www.acato.nl
  * @since       2018.1
  *
- * @package     WP_Rest_Cache
- * @subpackage  WP_Rest_Cache/includes
+ * @package     WP_Rest_Cache_Plugin
+ * @subpackage  WP_Rest_Cache_Plugin/Includes
  */
 
+namespace WP_Rest_Cache_Plugin\Includes;
 /**
  * The core plugin class.
  *
@@ -22,11 +23,11 @@
  * Also maintains the unique identifier of this plugin as well as the current
  * version of the plugin.
  *
- * @package     WP_Rest_Cache
- * @subpackage  WP_Rest_Cache/includes
+ * @package     WP_Rest_Cache_Plugin
+ * @subpackage  WP_Rest_Cache_Plugin/Includes
  * @author:     Richard Korthuis - Acato <richardkorthuis@acato.nl>
  */
-class WP_Rest_Cache {
+class Plugin {
 
     /**
      * The unique identifier of this plugin.
@@ -53,9 +54,8 @@ class WP_Rest_Cache {
      */
     public function __construct() {
         $this->plugin_name = 'wp-rest-cache';
-        $this->version     = '2018.3.1';
+        $this->version     = '2018.4.0';
 
-        $this->load_dependencies();
         $this->set_locale();
         $this->define_admin_hooks();
         $this->define_api_hooks();
@@ -63,49 +63,14 @@ class WP_Rest_Cache {
     }
 
     /**
-     * Load the required dependencies for this plugin.
-     *
-     * Include the following files that make up the plugin:
-     *
-     * - WP_Rest_Cache_i18n. Defines internationalization functionality.
-     * - WP_Rest_Cache_Admin. Defines all hooks for the admin area.
-     */
-    private function load_dependencies() {
-
-        /**
-         * The class responsible for defining internationalization functionality
-         * of the plugin.
-         */
-        require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-wp-rest-cache-i18n.php';
-
-        /**
-         * The class responsible for defining all actions that occur in the admin area.
-         */
-        require_once plugin_dir_path( dirname( __FILE__ ) ) . 'admin/class-wp-rest-cache-admin.php';
-
-        /**
-         * The class responsible for defining all actions that occur for the REST Api.
-         */
-        require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/api/class-wp-rest-cache-item-api.php';
-        require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/api/class-wp-rest-cache-endpoint-api.php';
-
-        require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/controller/trait-wp-rest-cache-controller-trait.php';
-        require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/controller/class-wp-rest-cache-post-controller.php';
-        require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/controller/class-wp-rest-cache-attachment-controller.php';
-        require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/controller/class-wp-rest-cache-term-controller.php';
-
-        require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/caching/class-wp-rest-cache-caching.php';
-    }
-
-    /**
      * Define the locale for this plugin for internationalization.
      *
-     * Uses the WP_Rest_Cache_i18n class in order to set the domain and to register the hook
+     * Uses the WP_Rest_Cache_Plugin\Includes\I18n class in order to set the domain and to register the hook
      * with WordPress.
      */
     private function set_locale() {
 
-        $plugin_i18n = new WP_Rest_Cache_i18n();
+        $plugin_i18n = new I18n();
 
         add_action( 'plugins_loaded', [ $plugin_i18n, 'load_plugin_textdomain' ] );
 
@@ -116,7 +81,7 @@ class WP_Rest_Cache {
      */
     private function define_admin_hooks() {
 
-        $plugin_admin = new WP_Rest_Cache_Admin( $this->get_plugin_name(), $this->get_version() );
+        $plugin_admin = new \WP_Rest_Cache_Plugin\Admin\Admin( $this->get_plugin_name(), $this->get_version() );
 
         add_action( 'admin_enqueue_scripts', array( $plugin_admin, 'enqueue_styles' ) );
         add_action( 'admin_enqueue_scripts', array( $plugin_admin, 'enqueue_scripts' ) );
@@ -135,12 +100,12 @@ class WP_Rest_Cache {
      * Register all of the hooks related to the api functionality of the plugin.
      */
     private function define_api_hooks() {
-        $endpoint_api = new WP_Rest_Cache_Endpoint_Api();
+        $endpoint_api = new API\Endpoint_Api();
 
         add_action( 'init', [ $endpoint_api, 'save_options' ] );
         add_action( 'rest_api_init', [ $endpoint_api, 'save_options' ] );
 
-        $item_api = new WP_Rest_Cache_Item_Api();
+        $item_api = new API\Item_Api();
 
         add_filter( 'register_post_type_args', [ $item_api, 'set_post_type_rest_controller' ], 10, 2 );
         add_filter( 'register_taxonomy_args', [ $item_api, 'set_taxonomy_rest_controller' ], 10, 2 );
@@ -154,7 +119,7 @@ class WP_Rest_Cache {
      * Register all of the hooks related to the caching functionality of the plugin.
      */
     private function define_caching_hooks() {
-        $caching = WP_Rest_Cache_Caching::get_instance();
+        $caching = Caching\Caching::get_instance();
 
         add_action( 'init', [ $caching, 'update_database_structure' ] );
 
