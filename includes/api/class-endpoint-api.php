@@ -46,7 +46,7 @@ class Endpoint_Api {
      */
     private $response_headers = array(
         'Content-Type'                  => 'application/json; charset=UTF-8',
-        'X-WP-cached-call'              => 'served-cache',
+        'X-WP-Cached-Call'              => 'served-cache',
         'X-Robots-Tag'                  => 'noindex',
         'X-Content-Type-Options'        => 'nosniff',
         'Access-Control-Expose-Headers' => 'X-WP-Total, X-WP-TotalPages',
