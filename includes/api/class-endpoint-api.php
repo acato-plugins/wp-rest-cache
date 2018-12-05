@@ -194,6 +194,7 @@ class Endpoint_Api {
                     $header = sprintf( '%s: %s', $key, $value );
                     header( $header );
                 }
+                rest_send_cors_headers('');
 
                 echo $data;
                 exit;
