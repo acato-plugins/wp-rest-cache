@@ -33,6 +33,10 @@ class Activator {
             add_option( 'wp_rest_cache_rest_prefix', rest_get_url_prefix(), '', false );
         }
 
+        self::create_mu_plugin();
+    }
+
+    public static function create_mu_plugin() {
         $access_type = get_filesystem_method();
         if ( $access_type !== 'direct' ) {
             return;

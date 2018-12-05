@@ -153,23 +153,27 @@ class Admin {
      */
     public function check_muplugin_existence() {
         if ( ! file_exists( WPMU_PLUGIN_DIR . '/wp-rest-cache.php' ) ) {
-            $from = '<code>' . substr(
-                    plugin_dir_path( __DIR__ ) . 'sources/wp-rest-cache.php',
-                    strpos( plugin_dir_path( __DIR__ ), '/wp-content/' )
-                ) . '</code>';
-            $to   = '<code>' . substr(
-                    WPMU_PLUGIN_DIR . '/wp-rest-cache.php',
-                    strpos( WPMU_PLUGIN_DIR, '/wp-content/' )
-                ) . '</code>';
+            \WP_Rest_Cache_Plugin\Includes\Activator::create_mu_plugin();
+            if ( ! file_exists( WPMU_PLUGIN_DIR . '/wp-rest-cache.php' ) ) {
 
-            $this->add_notice(
-                'warning',
-                sprintf(
-                    __( 'You are not getting the best caching result! <br/>Please copy %s to %s', 'wp-rest-cache' ),
-                    $from,
-                    $to
-                ),
-                false );
+                $from = '<code>' . substr(
+                        plugin_dir_path( __DIR__ ) . 'sources/wp-rest-cache.php',
+                        strpos( plugin_dir_path( __DIR__ ), '/wp-content/' )
+                    ) . '</code>';
+                $to   = '<code>' . substr(
+                        WPMU_PLUGIN_DIR . '/wp-rest-cache.php',
+                        strpos( WPMU_PLUGIN_DIR, '/wp-content/' )
+                    ) . '</code>';
+
+                $this->add_notice(
+                    'warning',
+                    sprintf(
+                        __( 'You are not getting the best caching result! <br/>Please copy %s to %s', 'wp-rest-cache' ),
+                        $from,
+                        $to
+                    ),
+                    false );
+            }
         }
     }
 
