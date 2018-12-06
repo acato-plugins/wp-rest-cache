@@ -1,6 +1,4 @@
 <div class="wrap">
-    <h1>WP REST Cache</h1>
-
     <div class="postbox-container">
         <form method="post" action="options.php" class="postbox" style="margin: 10px">
 

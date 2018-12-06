@@ -78,10 +78,29 @@ class Admin {
      * Add a new menu item under Settings.
      */
     public function create_menu() {
-        add_submenu_page( 'options-general.php', 'WP REST Cache', 'WP REST Cache', 'administrator', 'wp-rest-cache', [
+        $hook = add_submenu_page( 'options-general.php', 'WP REST Cache', 'WP REST Cache', 'administrator', 'wp-rest-cache', [
             $this,
             'settings_page'
         ] );
+
+        add_action( "load-$hook", [ $this, 'add_screen_options' ] );
+    }
+
+    public function add_screen_options() {
+        $args = [
+            'label'   => __( 'Caches', 'wp-rest-cache' ),
+            'default' => Includes\API_Caches_Table::ITEMS_PER_PAGE,
+            'option'  => 'caches_per_page'
+        ];
+        add_screen_option( 'per_page', $args );
+    }
+
+    public function set_screen_option( $status, $option, $value ) {
+        if ( 'caches_per_page' == $option ) {
+            return $value;
+        }
+
+        return $status;
     }
 
     /**
@@ -95,7 +114,12 @@ class Admin {
      * Display the plugin settings page.
      */
     public function settings_page() {
-        require_once( __DIR__ . '/partials/settings-page.php' );
+        $sub = filter_input( INPUT_GET, 'sub', FILTER_SANITIZE_STRING );
+        if ( ! strlen( $sub ) ) {
+            $sub = 'settings';
+        }
+        require_once( __DIR__ . '/partials/header.php' );
+        require_once( __DIR__ . '/partials/sub-' . $sub . '.php' );
     }
 
     /**

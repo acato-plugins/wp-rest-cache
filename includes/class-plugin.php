@@ -91,9 +91,8 @@ class Plugin {
         add_action( 'admin_init', [ $plugin_admin, 'check_muplugin_existence' ] );
         add_action( 'admin_init', [ $plugin_admin, 'handle_actions' ] );
         add_action( 'admin_notices', [ $plugin_admin, 'display_notices' ] );
-
         add_action( 'wp_before_admin_bar_render', [ $plugin_admin, 'admin_bar_item' ], 999 );
-
+        add_filter( 'set-screen-option', [ $plugin_admin, 'set_screen_option' ], 10, 3 );
     }
 
     /**

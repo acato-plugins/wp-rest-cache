@@ -39,6 +39,8 @@ class Caching {
      */
     const TABLE_RELATIONS = 'wrc_relations';
 
+    const ITEMS_PER_PAGE = 10;
+
     /**
      * The singleton instance of this class.
      *
@@ -168,7 +170,7 @@ class Caching {
                 )
             );
         } else {
-            $this->update_cache_expiration( $cache_id, date( 'Y-m-d' ) );
+            $this->update_cache_expiration( $cache_id, date( 'Y-m-d H:i:s', 0 ) );
         }
     }
 
@@ -398,6 +400,19 @@ class Caching {
         return $wpdb->insert_id;
     }
 
+    private function get_cache_row( $cache_key ) {
+        global $wpdb;
+
+        return $wpdb->get_row(
+            $wpdb->prepare(
+                'SELECT *
+                FROM `'.$this->db_table_caches.'`
+                WHERE `cache_key` = %s',
+                $cache_key
+            )
+        );
+    }
+
     /**
      * Update the expiration date/time for a specific cache.
      *
@@ -568,6 +583,104 @@ class Caching {
         }
 
         return false;
+    }
+
+    public function get_api_data( $api_type, $per_page, $page_number ) {
+        global $wpdb;
+
+        $page         = $page_number - 1;
+        $prepare_args = [];
+
+        $where = $this->get_where_clause( $api_type, $prepare_args );
+
+        $order = $this->get_orderby_clause();
+
+        $prepare_args[] = ( $page * $per_page );
+        $prepare_args[] = ( ( $page + 1 ) * $per_page );
+
+        $sql     =
+            'SELECT * 
+            FROM `' . $this->db_table_caches . '`
+            WHERE ' . $where . '
+            ORDER BY ' . $order . '
+            LIMIT %d, %d';
+        $results = $wpdb->get_results(
+            $wpdb->prepare(
+                $sql,
+                $prepare_args
+            ),
+            ARRAY_A
+        );
+        foreach ( $results as &$result ) {
+            $result['is_active'] = ( get_transient( $this->transient_key( $result['cache_key'] ) ) !== false );
+            if ( ! $result['is_active'] ) {
+                if ( strtotime( $result['expiration'] ) === 0 ) {
+                    $result['expiration'] = __( 'Flushed', 'wp-rest-cache' );
+                } else {
+                    $result['expiration'] = __( 'Expired', 'wp-rest-cache' );
+                }
+            }
+        }
+
+        return $results;
+    }
+
+    public function get_record_count( $api_type ) {
+        global $wpdb;
+
+        $prepare_args = [];
+        $where        = $this->get_where_clause( $api_type, $prepare_args );
+
+        $sql =
+            'SELECT COUNT(*)
+            FROM `' . $this->db_table_caches . '`
+            WHERE ' . $where;
+
+        return $wpdb->get_var(
+            $wpdb->prepare( $sql, $prepare_args )
+        );
+    }
+
+    private function get_where_clause( $api_type, &$prepare_args ) {
+        $where          = '`cache_type` = %s';
+        $prepare_args[] = $api_type;
+
+        if ( isset( $_POST['s'] ) ) {
+            $search         = filter_input( INPUT_POST, 's', FILTER_SANITIZE_STRING );
+            $where          .= ' AND ( `request_uri` LIKE %s OR `object_type` LIKE %s )';
+            $prepare_args[] = '%' . $search . '%';
+            $prepare_args[] = '%' . $search . '%';
+        }
+
+        return $where;
+    }
+
+    private function get_orderby_clause() {
+        $order = '`cache_id` DESC';
+
+        if ( isset( $_GET['orderby'] ) && in_array( $_GET['orderby'], [
+                'request_uri',
+                'object_type',
+                'cache_hits',
+                'cache_key',
+                'expiration'
+            ] ) ) {
+            $order = '`' . $_GET['orderby'] . '` ' . ( isset( $_GET['order'] ) && $_GET['order'] == 'desc' ? 'DESC' : 'ASC' );
+        }
+
+        return $order;
+    }
+
+    public function get_cache_data( $cache_key ) {
+        $cache = [];
+        $cache['row'] = $this->get_cache_row($cache_key);
+        if(!$cache['row']) {
+            return null;
+        }
+
+        $cache['data'] = get_transient( $this->transient_key( $cache_key ) );
+
+        return $cache;
     }
 
     /**
