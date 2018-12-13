@@ -132,7 +132,7 @@ class Caching {
                 $this->register_endpoint_cache( $cache_key, $value, $uri );
                 break;
             case 'item':
-                $this->register_item_cache( $cache_key, $object_type );
+                $this->register_item_cache( $cache_key, $object_type, $value );
                 break;
         }
     }
@@ -406,7 +406,7 @@ class Caching {
         return $wpdb->get_row(
             $wpdb->prepare(
                 'SELECT *
-                FROM `'.$this->db_table_caches.'`
+                FROM `' . $this->db_table_caches . '`
                 WHERE `cache_key` = %s',
                 $cache_key
             )
@@ -507,8 +507,9 @@ class Caching {
      *
      * @param   string $cache_key The cache key.
      * @param   string $object_type The object type of the cached item.
+     * @param   mixed $data The cached data.
      */
-    private function register_item_cache( $cache_key, $object_type ) {
+    private function register_item_cache( $cache_key, $object_type, $data ) {
         $cache_id = $this->get_cache_row_id( $cache_key );
 
         if ( is_null( $cache_id ) ) {
@@ -521,9 +522,11 @@ class Caching {
         } else {
             $this->update_cache_expiration( $cache_id );
         }
-        $object_id = filter_var( $cache_key, FILTER_SANITIZE_NUMBER_INT );
 
-        $this->insert_cache_relation( $cache_id, $object_id, $object_type );
+        // force data to be an array
+        $data = json_decode( json_encode( $data->data ), true );
+
+        $this->process_recursive_cache_relations( $cache_id, $data );
     }
 
     /**
@@ -540,12 +543,21 @@ class Caching {
         if ( array_key_exists( 'id', $record ) && array_key_exists( 'post_type', $record ) ) {
             $this->insert_cache_relation( $cache_id, $record['id'], $record['post_type'] );
         } else if ( array_key_exists( 'taxonomy', $record ) ) {
-            if ( array_key_exists( 'id', $record ) ) {
+            if (
+                array_key_exists( 'id', $record )
+                && array_key_exists( 'name', $record )
+                && array_key_exists( 'slug', $record )
+            ) {
                 $this->insert_cache_relation( $cache_id, $record['id'], $record['taxonomy'] );
             } else if ( array_key_exists( 'term_id', $record ) ) {
                 $this->insert_cache_relation( $cache_id, $record['term_id'], $record['taxonomy'] );
             }
-        } else if ( array_key_exists( 'id', $record ) && array_key_exists( 'type', $record ) ) {
+        } else if (
+            array_key_exists( 'id', $record )
+            && array_key_exists( 'type', $record )
+            && array_key_exists( 'title', $record )
+            && array_key_exists( 'author', $record )
+        ) {
             $this->insert_cache_relation( $cache_id, $record['id'], $record['type'] );
         }
 
@@ -672,9 +684,9 @@ class Caching {
     }
 
     public function get_cache_data( $cache_key ) {
-        $cache = [];
-        $cache['row'] = $this->get_cache_row($cache_key);
-        if(!$cache['row']) {
+        $cache        = [];
+        $cache['row'] = $this->get_cache_row( $cache_key );
+        if ( ! $cache['row'] ) {
             return null;
         }
 
