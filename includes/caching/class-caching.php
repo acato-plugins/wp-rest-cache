@@ -342,7 +342,7 @@ class Caching {
      *
      * @param   string $object_type The type of the object.
      */
-    private function delete_object_type_caches( $object_type ) {
+    public function delete_object_type_caches( $object_type ) {
         $caches = $this->get_object_type_caches( $object_type );
         if ( $caches ) {
             foreach ( $caches as $cache ) {
@@ -495,12 +495,7 @@ class Caching {
     private function register_endpoint_cache( $cache_key, $data, $uri ) {
         $cache_id = $this->get_cache_row_id( $cache_key );
 
-        $object_type = $this->determine_object_type( $data );
-        if ( $object_type === false ) {
-            // Something is wrong, do not register
-            // @TODO: Maybe we should register? otherwise cache clearing isn't possible
-            return;
-        }
+        $object_type = apply_filters( 'wp_rest_cache/determine_object_type', $this->determine_object_type( $data ), $cache_key, $data, $uri );
 
         if ( is_null( $cache_id ) ) {
             $cache_id = $this->insert_cache_row( $cache_key, 'endpoint', $uri, $object_type, $this->is_single );
@@ -525,11 +520,6 @@ class Caching {
         $cache_id = $this->get_cache_row_id( $cache_key );
 
         if ( is_null( $cache_id ) ) {
-            if ( ! strlen( $object_type ) ) {
-                // Something is wrong, do not register
-                // @TODO: Maybe we should register? otherwise cache clearing isn't possible
-                return;
-            }
             $cache_id = $this->insert_cache_row( $cache_key, 'item', '', $object_type );
         } else {
             $this->update_cache_expiration( $cache_id );
@@ -606,7 +596,7 @@ class Caching {
             }
         }
 
-        return false;
+        return 'unknown';
     }
 
     public function get_api_data( $api_type, $per_page, $page_number ) {
