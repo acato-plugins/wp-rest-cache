@@ -403,14 +403,26 @@ class Caching {
     private function get_cache_row( $cache_key ) {
         global $wpdb;
 
-        return $wpdb->get_row(
+        $result = $wpdb->get_row(
             $wpdb->prepare(
                 'SELECT *
                 FROM `' . $this->db_table_caches . '`
                 WHERE `cache_key` = %s',
                 $cache_key
-            )
+            ),
+            ARRAY_A
         );
+
+        $result['is_active'] = ( get_transient( $this->transient_key( $result['cache_key'] ) ) !== false );
+        if ( ! $result['is_active'] ) {
+            if ( strtotime( $result['expiration'] ) === 0 ) {
+                $result['expiration'] = __( 'Flushed', 'wp-rest-cache' );
+            } else {
+                $result['expiration'] = __( 'Expired', 'wp-rest-cache' );
+            }
+        }
+
+        return $result;
     }
 
     /**

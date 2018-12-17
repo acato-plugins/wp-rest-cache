@@ -12,7 +12,13 @@ class API_Caches_Table extends \WP_List_Table {
 
     public function __construct( $api_type ) {
         if ( ! in_array( $api_type, [ 'item', 'endpoint' ] ) ) {
-            throw new \Exception( sprintf( __( 'Invalid API type: %s', 'wp-rest-cache' ), $api_type ) );
+            throw new \Exception(
+                sprintf(
+                /* translators: %s: api-type */
+                    __( 'Invalid API type: %s', 'wp-rest-cache' ),
+                    $api_type
+                )
+            );
         }
 
         self::$api_type = $api_type;
@@ -62,7 +68,7 @@ class API_Caches_Table extends \WP_List_Table {
             $item['cache_key']
         );
 
-        $actions                 = [];
+        $actions                  = [];
         $actions['cache-details'] = sprintf(
             '<a href="?page=%s&sub=%s&cache_key=%s">%s</a>',
             esc_attr( $_GET['page'] ),

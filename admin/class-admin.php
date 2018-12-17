@@ -192,7 +192,8 @@ class Admin {
                 $this->add_notice(
                     'warning',
                     sprintf(
-                        __( 'You are not getting the best caching result! <br/>Please copy %s to %s', 'wp-rest-cache' ),
+                        /* translators: %1$s: source-directory, %2$s: target-directory */
+                        __( 'You are not getting the best caching result! <br/>Please copy %1$s to %2$s', 'wp-rest-cache' ),
                         $from,
                         $to
                     ),
@@ -210,7 +211,7 @@ class Admin {
                 foreach ( $messages as $message ) {
                     ?>
                     <div
-                            class="notice notice-<?php echo $type; ?> <?php echo $message['dismissible'] ? 'is-dismissible' : ''; ?>">
+                        class="notice notice-<?php echo $type; ?> <?php echo $message['dismissible'] ? 'is-dismissible' : ''; ?>">
                         <p><strong>WP REST Cache:</strong> <?php echo $message['message']; ?></p>
                     </div>
                     <?php
