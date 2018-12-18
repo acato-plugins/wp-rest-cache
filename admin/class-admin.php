@@ -86,6 +86,9 @@ class Admin {
         add_action( "load-$hook", [ $this, 'add_screen_options' ] );
     }
 
+    /**
+     * Add screen options to the WP Admin
+     */
     public function add_screen_options() {
         $args = [
             'label'   => __( 'Caches', 'wp-rest-cache' ),
@@ -95,12 +98,21 @@ class Admin {
         add_screen_option( 'per_page', $args );
     }
 
-    public function set_screen_option( $status, $option, $value ) {
+    /**
+     * Set the caches_per_pages screen option.
+     *
+     * @param   bool|int $option_value Screen option value. Default false to skip.
+     * @param   string $option The option name.
+     * @param   int $value The number of rows to use.
+     *
+     * @return int
+     */
+    public function set_screen_option( $option_value, $option, $value ) {
         if ( 'caches_per_page' == $option ) {
             return $value;
         }
 
-        return $status;
+        return $option_value;
     }
 
     /**
@@ -192,7 +204,7 @@ class Admin {
                 $this->add_notice(
                     'warning',
                     sprintf(
-                        /* translators: %1$s: source-directory, %2$s: target-directory */
+                    /* translators: %1$s: source-directory, %2$s: target-directory */
                         __( 'You are not getting the best caching result! <br/>Please copy %1$s to %2$s', 'wp-rest-cache' ),
                         $from,
                         $to

@@ -11,7 +11,7 @@
  * Plugin Name:     WP REST Cache
  * Plugin URI:
  * Description:     Adds caching to the WP REST API
- * Version:         2018.4.1
+ * Version:         2018.4.2
  * Author:          Corne Guijt & Richard Korthuis - Acato
  * Author URI:      http://www.acato.nl
  * Text Domain:     wp-rest-cache

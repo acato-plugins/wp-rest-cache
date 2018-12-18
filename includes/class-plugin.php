@@ -54,7 +54,7 @@ class Plugin {
      */
     public function __construct() {
         $this->plugin_name = 'wp-rest-cache';
-        $this->version     = '2018.4.1';
+        $this->version     = '2018.4.2';
 
         $this->set_locale();
         $this->define_admin_hooks();
@@ -103,6 +103,8 @@ class Plugin {
 
         add_action( 'init', [ $endpoint_api, 'save_options' ] );
         add_action( 'rest_api_init', [ $endpoint_api, 'save_options' ] );
+        add_filter( 'wp_rest_cache/allowed_endpoints', [ $endpoint_api, 'add_wordpress_endpoints' ] );
+        add_filter( 'wp_rest_cache/determine_object_type', [ $endpoint_api, 'determine_object_type' ], 10, 4 );
 
         $item_api = new API\Item_Api();
 
@@ -124,9 +126,24 @@ class Plugin {
 
         add_action( 'save_post', [ $caching, 'save_post' ], 999, 3 );
         add_action( 'delete_post', [ $caching, 'delete_post' ] );
+
         add_action( 'created_term', [ $caching, 'created_term' ], 999, 3 );
         add_action( 'edited_term', [ $caching, 'edited_term' ], 999, 3 );
         add_action( 'delete_term', [ $caching, 'delete_term' ], 10, 5 );
+
+        add_action( 'profile_update', [ $caching, 'profile_update' ], 999, 2 );
+        add_action( 'user_register', [ $caching, 'user_register' ], 999, 1 );
+        add_action( 'deleted_user', [ $caching, 'deleted_user' ] );
+
+        // @TODO: Check if these actions are sufficient
+        add_action( 'edit_comment', [ $caching, 'delete_comment_type_related_caches' ], 999, 2 );
+        add_action( 'deleted_comment', [ $caching, 'delete_comment_related_caches' ], 10, 2 );
+        add_action( 'trashed_comment', [ $caching, 'delete_comment_related_caches' ], 10, 2 );
+        add_action( 'untrashed_comment', [ $caching, 'delete_comment_type_related_caches' ], 999, 2 );
+        add_action( 'spammed_comment', [ $caching, 'delete_comment_related_caches' ], 10, 2 );
+        add_action( 'unspammed_comment', [ $caching, 'delete_comment_type_related_caches' ], 999, 2 );
+        add_action( 'wp_insert_comment', [ $caching, 'delete_comment_type_related_caches' ], 999, 2 );
+        add_action( 'comment_post', [ $caching, 'delete_comment_type_related_caches' ], 999, 2 );
     }
 
     /**
