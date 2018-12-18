@@ -2,15 +2,15 @@
 # This file is distributed under the same license as the WP REST Cache plugin.
 msgid ""
 msgstr ""
-"Project-Id-Version: WP REST Cache 2018.4.1\n"
+"Project-Id-Version: WP REST Cache 2018.4.2\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/wp-rest-cache\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2018-12-13T17:21:32+01:00\n"
-"PO-Revision-Date: 2018-12-13T17:21:32+01:00\n"
+"POT-Creation-Date: 2018-12-18T14:03:57+01:00\n"
+"PO-Revision-Date: 2018-12-18T14:03:57+01:00\n"
 "X-Generator: WP-CLI 2.0.1\n"
 "X-Domain: wp-rest-cache\n"
 
@@ -30,24 +30,24 @@ msgstr ""
 msgid "http://www.acato.nl"
 msgstr ""
 
-#: admin/class-admin.php:91
+#: admin/class-admin.php:94
 msgid "Caches"
 msgstr ""
 
-#: admin/class-admin.php:133
+#: admin/class-admin.php:145
 msgid "Clear REST cache"
 msgstr ""
 
-#: admin/class-admin.php:156
+#: admin/class-admin.php:168
 msgid "The cache has been successfully cleared"
 msgstr ""
 
-#: admin/class-admin.php:158
+#: admin/class-admin.php:170
 msgid "There were no items cached"
 msgstr ""
 
 #. translators: %1$s: source-directory, %2$s: target-directory
-#: admin/class-admin.php:196
+#: admin/class-admin.php:208
 msgid "You are not getting the best caching result! <br/>Please copy %1$s to %2$s"
 msgstr ""
 
@@ -94,35 +94,46 @@ msgstr ""
 
 #: admin/includes/class-api-caches-table.php:107
 #: admin/includes/class-api-caches-table.php:108
+#: admin/partials/sub-cache-details.php:49
+#: admin/partials/sub-cache-details.php:50
 msgid "Cache is ready to be served."
 msgstr ""
 
 #: admin/includes/class-api-caches-table.php:114
 #: admin/includes/class-api-caches-table.php:115
+#: admin/partials/sub-cache-details.php:56
+#: admin/partials/sub-cache-details.php:57
+#: admin/partials/sub-cache-details.php:73
 msgid "Cache is expired or flushed."
 msgstr ""
 
 #: admin/includes/class-api-caches-table.php:132
+#: admin/partials/sub-cache-details.php:20
 msgid "Cache Key"
 msgstr ""
 
 #: admin/includes/class-api-caches-table.php:133
+#: admin/partials/sub-cache-details.php:28
 msgid "Request URI"
 msgstr ""
 
 #: admin/includes/class-api-caches-table.php:134
+#: admin/partials/sub-cache-details.php:32
 msgid "Object Type"
 msgstr ""
 
 #: admin/includes/class-api-caches-table.php:135
+#: admin/partials/sub-cache-details.php:36
 msgid "Expiration"
 msgstr ""
 
 #: admin/includes/class-api-caches-table.php:136
+#: admin/partials/sub-cache-details.php:40
 msgid "# Cache Hits"
 msgstr ""
 
 #: admin/includes/class-api-caches-table.php:137
+#: admin/partials/sub-cache-details.php:44
 msgid "Active"
 msgstr ""
 
@@ -140,21 +151,31 @@ msgid "Cache details"
 msgstr ""
 
 #: admin/partials/sub-cache-details.php:12
-msgid "Cache data"
+msgid "Cache info"
 msgstr ""
 
 #: admin/partials/sub-cache-details.php:16
 msgid "Sorry the cache could not be found."
 msgstr ""
 
+#: admin/partials/sub-cache-details.php:24
+msgid "Cache Type"
+msgstr ""
+
+#: admin/partials/sub-cache-details.php:69
+msgid "Cache data"
+msgstr ""
+
 #: admin/partials/sub-settings.php:17
 msgid "Time until expiration in seconds from now. (Default = 1 year = 3153600 seconds)"
 msgstr ""
 
-#: includes/caching/class-caching.php:630
+#: includes/caching/class-caching.php:484
+#: includes/caching/class-caching.php:717
 msgid "Flushed"
 msgstr ""
 
-#: includes/caching/class-caching.php:632
+#: includes/caching/class-caching.php:486
+#: includes/caching/class-caching.php:719
 msgid "Expired"
 msgstr ""

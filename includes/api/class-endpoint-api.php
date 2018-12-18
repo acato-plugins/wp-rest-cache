@@ -53,6 +53,16 @@ class Endpoint_Api {
         'Access-Control-Allow-Headers'  => 'Authorization, Content-Type'
     );
 
+    private $wordpress_endpoints = array(
+        'wp/v2' => array(
+            'statuses',
+            'taxonomies',
+            'types',
+            'users',
+            'comments'
+        )
+    );
+
     /**
      * Initialize the class and set its properties.
      */
@@ -194,7 +204,7 @@ class Endpoint_Api {
                     $header = sprintf( '%s: %s', $key, $value );
                     header( $header );
                 }
-                rest_send_cors_headers('');
+                rest_send_cors_headers( '' );
 
                 echo $data;
                 exit;
@@ -224,5 +234,49 @@ class Endpoint_Api {
         if ( $original_rest_prefix != $rest_prefix ) {
             update_option( 'wp_rest_cache_rest_prefix', $rest_prefix );
         }
+    }
+
+    /**
+     * Add the default WordPress endpoints to the allowed endpoints for caching.
+     *
+     * @param   $allowed_endpoints The endpoints that are allowed to be cache.
+     *
+     * @return  mixed An array of endpoints that are allowed to be cache.
+     */
+    public function add_wordpress_endpoints( $allowed_endpoints ) {
+        foreach ( $this->wordpress_endpoints as $rest_base => $endpoints ) {
+            foreach($endpoints as $endpoint) {
+                if(!isset($allowed_endpoints[$rest_base]) || !in_array($endpoint, $allowed_endpoints[$rest_base])) {
+                    $allowed_endpoints[$rest_base][] = $endpoint;
+                }
+            }
+        }
+        return $allowed_endpoints;
+    }
+
+    /**
+     * Determine the object type for caches of WordPress endpoints (if it has not yet been automatically determined).
+     *
+     * @param   string $object_type The automatically determined object type ('unknown' if it couldn't be deterrmined).
+     * @param   string $cache_key The cache key.
+     * @param   mixed $data The cached data.
+     * @param   string $uri The requested URI.
+     *
+     * @return  string The determined object type.
+     */
+    public function determine_object_type( $object_type, $cache_key, $data, $uri ) {
+        if ( $object_type !== 'unknown' ) {
+            return $object_type;
+        }
+
+        foreach($this->wordpress_endpoints as $rest_base => $endpoints) {
+            foreach($endpoints as $endpoint) {
+                if(strpos($uri, $rest_base . '/' . $endpoint) !== false) {
+                    return $endpoint;
+                }
+            }
+        }
+
+        return $object_type;
     }
 }

@@ -39,8 +39,6 @@ class Caching {
      */
     const TABLE_RELATIONS = 'wrc_relations';
 
-    const ITEMS_PER_PAGE = 10;
-
     /**
      * The singleton instance of this class.
      *
@@ -260,11 +258,70 @@ class Caching {
      * @param   int $tt_id Term taxonomy ID.
      * @param   string $taxonomy Taxonomy slug.
      * @param   mixed $deleted_term Copy of the already-deleted term, in the form specified by the parent function.
-     *              WP_Error otherwise.
+     *              \WP_Error otherwise.
      * @param   array $object_ids List of term object IDs.
      */
     public function delete_term( $term, $tt_id, $taxonomy, $deleted_term, $object_ids ) {
         $this->delete_related_caches( $term, $taxonomy, true );
+    }
+
+    /**
+     * Fired upon WordPress 'profile_update' hook. Delete all related caches for this user.
+     *
+     * @param   int $user_id User ID.
+     * @param   \WP_User $old_user_data Object containing user's data prior to update.
+     */
+    public function profile_update( $user_id, $old_user_data ) {
+        $this->delete_related_caches( $user_id, 'user' );
+    }
+
+    /**
+     * Fired upon WordPress 'user_register' hook. Delete all non-single endpoint caches for users.
+     *
+     * @param   int $user_id User ID.
+     */
+    public function user_register( $user_id ) {
+        $this->delete_object_type_caches( 'users' );
+    }
+
+    /**
+     * Fired upon WordPress 'deleted_user' hook. Delete all related caches for this user, including all single cache
+     * statistics.
+     *
+     * @param   int $user_id User ID.
+     */
+    public function deleted_user( $user_id ) {
+        $this->delete_related_caches( $user_id, 'user', true );
+    }
+
+    /**
+     * Fired upon WordPress 'deleted_comment', 'trashed_comment' and 'spammed_comment' hooks. Delete all related caches
+     * for this comment, including all single cache statistics if comment is deleted.
+     *
+     * @param   int $comment_id Comment ID.
+     * @param   \WP_Comment $comment The comment for which the hook was triggered.
+     */
+    public function delete_comment_related_caches( $comment_id, $comment ) {
+        switch( current_filter() ) {
+            case 'deleted_comment':
+                $force_single_delete = true;
+                break;
+            default:
+                $force_single_delete = false;
+                break;
+        }
+        $this->delete_related_caches( $comment_id, 'comment', $force_single_delete );
+    }
+
+    /**
+     * Fired upon WordPress 'edit_comment', 'untrashed_comment', 'unspammed_comment', 'wp_insert_comment' and
+     * 'comment_post' hooks. Delete all non-single endpoint caches for comments.
+     *
+     * @param   int $comment_id Comment ID.
+     * @param   \WP_Comment $comment The comment for which the hook was triggered.
+     */
+    public function delete_comment_type_related_caches( $comment_id, $comment ) {
+        $this->delete_object_type_caches( 'comment' );
     }
 
     /**
@@ -400,6 +457,13 @@ class Caching {
         return $wpdb->insert_id;
     }
 
+    /**
+     * Get the cache row data for a single cache.
+     *
+     * @param   string $cache_key The cache key.
+     *
+     * @return  array The cache row data.
+     */
     private function get_cache_row( $cache_key ) {
         global $wpdb;
 
@@ -508,6 +572,8 @@ class Caching {
         $data['data'] = json_decode( json_encode( $data['data'] ), true );
 
         $this->process_recursive_cache_relations( $cache_id, $data['data'] );
+
+        do_action( 'wp_rest_cache/process_cache_relations', $cache_id, $data );
     }
 
     /**
@@ -558,10 +624,19 @@ class Caching {
         } else if (
             array_key_exists( 'id', $record )
             && array_key_exists( 'type', $record )
-            && array_key_exists( 'title', $record )
             && array_key_exists( 'author', $record )
         ) {
             $this->insert_cache_relation( $cache_id, $record['id'], $record['type'] );
+        } else if (
+            array_key_exists( 'id', $record )
+            && array_key_exists( 'slug', $record )
+            && array_key_exists( '_links', $record )
+        ) {
+            if ( isset( $record['_links']['collection'][0]['href'] ) ) {
+                if ( substr( $record['_links']['collection'][0]['href'], - 12 ) == '/wp/v2/users' ) {
+                    $this->insert_cache_relation( $cache_id, $record['id'], 'user' );
+                }
+            }
         }
 
         foreach ( $record as $field => $value ) {
@@ -600,6 +675,15 @@ class Caching {
         return 'unknown';
     }
 
+    /**
+     * Get an array of cache data for a specific API type.
+     *
+     * @param   string $api_type The type of the API for which the data is retrieved (endpoint|item).
+     * @param   int $per_page Number of items to return per page.
+     * @param   int $page_number The requested page.
+     *
+     * @return  array An array containing the requested cache data.
+     */
     public function get_api_data( $api_type, $per_page, $page_number ) {
         global $wpdb;
 
@@ -640,6 +724,13 @@ class Caching {
         return $results;
     }
 
+    /**
+     * Get the number of records for the requested API type.
+     *
+     * @param   string $api_type The type of the API for which the data is retrieved (endpoint|item).
+     *
+     * @return  int The number of records.
+     */
     public function get_record_count( $api_type ) {
         global $wpdb;
 
@@ -651,11 +742,19 @@ class Caching {
             FROM `' . $this->db_table_caches . '`
             WHERE ' . $where;
 
-        return $wpdb->get_var(
+        return (int) $wpdb->get_var(
             $wpdb->prepare( $sql, $prepare_args )
         );
     }
 
+    /**
+     * Build the where clause for the query that retrieves the cache data for a specific API type.
+     *
+     * @param   string $api_type The type of the API for which the data is retrieved (endpoint|item).
+     * @param   array $prepare_args A reference to an array containing the arguments for the prepare statement.
+     *
+     * @return  string The where clause.
+     */
     private function get_where_clause( $api_type, &$prepare_args ) {
         $where          = '`cache_type` = %s';
         $prepare_args[] = $api_type;
@@ -670,6 +769,11 @@ class Caching {
         return $where;
     }
 
+    /**
+     * Build the order by clause for the query.
+     *
+     * @return  string The order by clause.
+     */
     private function get_orderby_clause() {
         $order = '`cache_id` DESC';
 
@@ -686,6 +790,13 @@ class Caching {
         return $order;
     }
 
+    /**
+     * Get the cache data for a specific cache. Used for the details-page in the backend, so no cache hit is triggered.
+     *
+     * @param   string $cache_key The cache key.
+     *
+     * @return  array|null An array of cache data, or null if the cache row could not be found.
+     */
     public function get_cache_data( $cache_key ) {
         $cache        = [];
         $cache['row'] = $this->get_cache_row( $cache_key );
