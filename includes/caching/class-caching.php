@@ -363,7 +363,7 @@ class Caching {
 
         return $wpdb->get_var(
             $wpdb->prepare(
-                'SELECT `cache_id` FROM `' . $this->db_table_caches . '` WHERE `cache_key` = %s',
+                'SELECT `cache_id` FROM `' . $this->db_table_caches . '` WHERE `cache_key` = %s LIMIT 1',
                 $cache_key
             )
         );
@@ -407,7 +407,8 @@ class Caching {
             $wpdb->prepare(
                 'SELECT *
                 FROM `' . $this->db_table_caches . '`
-                WHERE `cache_key` = %s',
+                WHERE `cache_key` = %s
+                LIMIT 1',
                 $cache_key
             ),
             ARRAY_A
