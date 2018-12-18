@@ -245,12 +245,13 @@ class Endpoint_Api {
      */
     public function add_wordpress_endpoints( $allowed_endpoints ) {
         foreach ( $this->wordpress_endpoints as $rest_base => $endpoints ) {
-            foreach($endpoints as $endpoint) {
-                if(!isset($allowed_endpoints[$rest_base]) || !in_array($endpoint, $allowed_endpoints[$rest_base])) {
-                    $allowed_endpoints[$rest_base][] = $endpoint;
+            foreach ( $endpoints as $endpoint ) {
+                if ( ! isset( $allowed_endpoints[ $rest_base ] ) || ! in_array( $endpoint, $allowed_endpoints[ $rest_base ] ) ) {
+                    $allowed_endpoints[ $rest_base ][] = $endpoint;
                 }
             }
         }
+
         return $allowed_endpoints;
     }
 
@@ -269,9 +270,9 @@ class Endpoint_Api {
             return $object_type;
         }
 
-        foreach($this->wordpress_endpoints as $rest_base => $endpoints) {
-            foreach($endpoints as $endpoint) {
-                if(strpos($uri, $rest_base . '/' . $endpoint) !== false) {
+        foreach ( $this->wordpress_endpoints as $rest_base => $endpoints ) {
+            foreach ( $endpoints as $endpoint ) {
+                if ( strpos( $uri, $rest_base . '/' . $endpoint ) !== false ) {
                     return $endpoint;
                 }
             }

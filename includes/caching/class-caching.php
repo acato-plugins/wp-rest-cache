@@ -302,7 +302,7 @@ class Caching {
      * @param   \WP_Comment $comment The comment for which the hook was triggered.
      */
     public function delete_comment_related_caches( $comment_id, $comment ) {
-        switch( current_filter() ) {
+        switch ( current_filter() ) {
             case 'deleted_comment':
                 $force_single_delete = true;
                 break;
