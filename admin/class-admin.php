@@ -78,10 +78,29 @@ class Admin {
      * Add a new menu item under Settings.
      */
     public function create_menu() {
-        add_submenu_page( 'options-general.php', 'WP REST Cache', 'WP REST Cache', 'administrator', 'wp-rest-cache', [
+        $hook = add_submenu_page( 'options-general.php', 'WP REST Cache', 'WP REST Cache', 'administrator', 'wp-rest-cache', [
             $this,
             'settings_page'
         ] );
+
+        add_action( "load-$hook", [ $this, 'add_screen_options' ] );
+    }
+
+    public function add_screen_options() {
+        $args = [
+            'label'   => __( 'Caches', 'wp-rest-cache' ),
+            'default' => Includes\API_Caches_Table::ITEMS_PER_PAGE,
+            'option'  => 'caches_per_page'
+        ];
+        add_screen_option( 'per_page', $args );
+    }
+
+    public function set_screen_option( $status, $option, $value ) {
+        if ( 'caches_per_page' == $option ) {
+            return $value;
+        }
+
+        return $status;
     }
 
     /**
@@ -95,7 +114,12 @@ class Admin {
      * Display the plugin settings page.
      */
     public function settings_page() {
-        require_once( __DIR__ . '/partials/settings-page.php' );
+        $sub = filter_input( INPUT_GET, 'sub', FILTER_SANITIZE_STRING );
+        if ( ! strlen( $sub ) ) {
+            $sub = 'settings';
+        }
+        require_once( __DIR__ . '/partials/header.php' );
+        require_once( __DIR__ . '/partials/sub-' . $sub . '.php' );
     }
 
     /**
@@ -168,7 +192,8 @@ class Admin {
                 $this->add_notice(
                     'warning',
                     sprintf(
-                        __( 'You are not getting the best caching result! <br/>Please copy %s to %s', 'wp-rest-cache' ),
+                        /* translators: %1$s: source-directory, %2$s: target-directory */
+                        __( 'You are not getting the best caching result! <br/>Please copy %1$s to %2$s', 'wp-rest-cache' ),
                         $from,
                         $to
                     ),
@@ -186,7 +211,7 @@ class Admin {
                 foreach ( $messages as $message ) {
                     ?>
                     <div
-                            class="notice notice-<?php echo $type; ?> <?php echo $message['dismissible'] ? 'is-dismissible' : ''; ?>">
+                        class="notice notice-<?php echo $type; ?> <?php echo $message['dismissible'] ? 'is-dismissible' : ''; ?>">
                         <p><strong>WP REST Cache:</strong> <?php echo $message['message']; ?></p>
                     </div>
                     <?php
