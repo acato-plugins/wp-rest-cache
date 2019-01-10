@@ -23,7 +23,7 @@ class Caching {
      *
      * @var      string DB_VERSION The current version of the database tables.
      */
-    const DB_VERSION = '2018.1.0';
+    const DB_VERSION = '2018.1.1';
 
     /**
      * The table name for the table where caches are stored together with their statistics.
@@ -153,20 +153,19 @@ class Caching {
 
         $wpdb->query(
             $wpdb->prepare(
-                'DELETE FROM `' . $this->db_table_relations . '`
-                WHERE `cache_id` = %d',
-                $cache_id
-            )
-        );
+                "DELETE FROM `{$this->db_table_relations}` 
+                WHERE `cache_id` = %d",
+                $cache_id )
+        ); // WPCS: unprepared SQL OK, table names can not be escaped.
 
         if ( $force ) {
             $wpdb->query(
                 $wpdb->prepare(
-                    'DELETE FROM `' . $this->db_table_caches . '`
-                    WHERE `cache_id` = %d',
+                    "DELETE FROM `{$this->db_table_caches}`
+                    WHERE `cache_id` = %d",
                     $cache_id
                 )
-            );
+            ); // WPCS: unprepared SQL OK, table names can not be escaped.
         } else {
             $this->update_cache_expiration( $cache_id, date( 'Y-m-d H:i:s', 0 ) );
         }
@@ -183,9 +182,9 @@ class Caching {
         global $wpdb;
 
         $caches = $wpdb->get_results(
-            'SELECT `cache_key`
-            FROM `' . $this->db_table_caches . '`'
-        );
+            "SELECT `cache_key`
+            FROM `{$this->db_table_caches}`"
+        ); // WPCS: unprepared SQL OK, table names can not be escaped.
 
         if ( $caches ) {
             foreach ( $caches as $cache ) {
@@ -337,18 +336,18 @@ class Caching {
 
         return $wpdb->get_results(
             $wpdb->prepare(
-                'SELECT `c`.`cache_key`,
+                "SELECT `c`.`cache_key`,
                     `c`.`is_single`
-                FROM `' . $this->db_table_caches . '` AS `c`
-                JOIN `' . $this->db_table_relations . '` AS `r`
+                FROM `{$this->db_table_caches}` AS `c`
+                JOIN `{$this->db_table_relations}` AS `r`
                     ON `r`.`cache_id` = `c`.`cache_id`
                 WHERE `r`.`object_id` = %d
                 AND `r`.`object_type` = %s
-                GROUP BY `c`.`cache_key`',
+                GROUP BY `c`.`cache_key`",
                 $id,
                 $object_type
             )
-        );
+        ); // WPCS: unprepared SQL OK, table names can not be escaped.
     }
 
     /**
@@ -380,16 +379,16 @@ class Caching {
 
         $results = $wpdb->get_results(
             $wpdb->prepare(
-                'SELECT `cache_key`
-                    FROM `' . $this->db_table_caches . '`
+                "SELECT `cache_key`
+                    FROM `{$this->db_table_caches}`
                     WHERE `cache_type` = %s 
                     AND `object_type` = %s
-                    AND `is_single` = %d',
+                    AND `is_single` = %d",
                 'endpoint',
                 $object_type,
                 false
             )
-        );
+        ); // WPCS: unprepared SQL OK, table names can not be escaped.
 
         return $results;
     }
@@ -420,10 +419,10 @@ class Caching {
 
         return $wpdb->get_var(
             $wpdb->prepare(
-                'SELECT `cache_id` FROM `' . $this->db_table_caches . '` WHERE `cache_key` = %s LIMIT 1',
+                "SELECT `cache_id` FROM `{$this->db_table_caches}` WHERE `cache_key` = %s LIMIT 1",
                 $cache_key
             )
-        );
+        ); // WPCS: unprepared SQL OK, table names can not be escaped.
     }
 
     /**
@@ -469,14 +468,14 @@ class Caching {
 
         $result = $wpdb->get_row(
             $wpdb->prepare(
-                'SELECT *
-                FROM `' . $this->db_table_caches . '`
+                "SELECT *
+                FROM `{$this->db_table_caches}`
                 WHERE `cache_key` = %s
-                LIMIT 1',
+                LIMIT 1",
                 $cache_key
             ),
             ARRAY_A
-        );
+        ); // WPCS: unprepared SQL OK, table names can not be escaped.
 
         $result['is_active'] = ( get_transient( $this->transient_key( $result['cache_key'] ) ) !== false );
         if ( ! $result['is_active'] ) {
@@ -543,11 +542,12 @@ class Caching {
 
         $wpdb->query(
             $wpdb->prepare(
-                'UPDATE `' . $this->db_table_caches . '`
+                "UPDATE `{$this->db_table_caches}`
                 SET `cache_hits` = `cache_hits` + 1
-                WHERE `cache_key` = %s', $cache_key
+                WHERE `cache_key` = %s",
+                $cache_key
             )
-        );
+        ); // WPCS: unprepared SQL OK, table names can not be escaped.
     }
 
     /**
@@ -569,7 +569,7 @@ class Caching {
         }
 
         // force data to be an array
-        $data['data'] = json_decode( json_encode( $data['data'] ), true );
+        $data['data'] = json_decode( wp_json_encode( $data['data'] ), true );
 
         $this->process_recursive_cache_relations( $cache_id, $data['data'] );
 
@@ -593,7 +593,7 @@ class Caching {
         }
 
         // force data to be an array
-        $data = json_decode( json_encode( $data->data ), true );
+        $data = json_decode( wp_json_encode( $data->data ), true );
 
         $this->process_recursive_cache_relations( $cache_id, $data );
     }
@@ -612,15 +612,7 @@ class Caching {
         if ( array_key_exists( 'id', $record ) && array_key_exists( 'post_type', $record ) ) {
             $this->insert_cache_relation( $cache_id, $record['id'], $record['post_type'] );
         } else if ( array_key_exists( 'taxonomy', $record ) ) {
-            if (
-                array_key_exists( 'id', $record )
-                && array_key_exists( 'name', $record )
-                && array_key_exists( 'slug', $record )
-            ) {
-                $this->insert_cache_relation( $cache_id, $record['id'], $record['taxonomy'] );
-            } else if ( array_key_exists( 'term_id', $record ) ) {
-                $this->insert_cache_relation( $cache_id, $record['term_id'], $record['taxonomy'] );
-            }
+            $this->process_taxonomy_relations( $cache_id, $record );
         } else if (
             array_key_exists( 'id', $record )
             && array_key_exists( 'type', $record )
@@ -633,7 +625,7 @@ class Caching {
             && array_key_exists( '_links', $record )
         ) {
             if ( isset( $record['_links']['collection'][0]['href'] ) ) {
-                if ( substr( $record['_links']['collection'][0]['href'], - 12 ) == '/wp/v2/users' ) {
+                if ( substr( $record['_links']['collection'][0]['href'], - 12 ) === '/wp/v2/users' ) {
                     $this->insert_cache_relation( $cache_id, $record['id'], 'user' );
                 }
             }
@@ -643,6 +635,24 @@ class Caching {
             if ( is_array( $value ) ) {
                 $this->process_recursive_cache_relations( $cache_id, $value );
             }
+        }
+    }
+
+    /**
+     * Current record is a taxonomy, process its relations.
+     *
+     * @param   int $cache_id The ID of the cache row.
+     * @param   array $record An array of data to be checked for relations.
+     */
+    private function process_taxonomy_relations( $cache_id, $record ) {
+        if (
+            array_key_exists( 'id', $record )
+            && array_key_exists( 'name', $record )
+            && array_key_exists( 'slug', $record )
+        ) {
+            $this->insert_cache_relation( $cache_id, $record['id'], $record['taxonomy'] );
+        } else if ( array_key_exists( 'term_id', $record ) ) {
+            $this->insert_cache_relation( $cache_id, $record['term_id'], $record['taxonomy'] );
         }
     }
 
@@ -698,18 +708,18 @@ class Caching {
         $prepare_args[] = ( ( $page + 1 ) * $per_page );
 
         $sql     =
-            'SELECT * 
-            FROM `' . $this->db_table_caches . '`
-            WHERE ' . $where . '
-            ORDER BY ' . $order . '
-            LIMIT %d, %d';
+            "SELECT * 
+            FROM `{$this->db_table_caches}`
+            WHERE {$where}
+            ORDER BY {$order}
+            LIMIT %d, %d";
         $results = $wpdb->get_results(
             $wpdb->prepare(
                 $sql,
                 $prepare_args
             ),
             ARRAY_A
-        );
+        ); // WPCS: unprepared SQL OK, table names can not be escaped the rest is escaped.
         foreach ( $results as &$result ) {
             $result['is_active'] = ( get_transient( $this->transient_key( $result['cache_key'] ) ) !== false );
             if ( ! $result['is_active'] ) {
@@ -738,13 +748,13 @@ class Caching {
         $where        = $this->get_where_clause( $api_type, $prepare_args );
 
         $sql =
-            'SELECT COUNT(*)
-            FROM `' . $this->db_table_caches . '`
-            WHERE ' . $where;
+            "SELECT COUNT(*)
+            FROM `{$this->db_table_caches}`
+            WHERE {$where}";
 
         return (int) $wpdb->get_var(
             $wpdb->prepare( $sql, $prepare_args )
-        );
+        ); // WPCS: unprepared SQL OK, table names can not be escaped, the rest is escaped.
     }
 
     /**
@@ -758,9 +768,9 @@ class Caching {
     private function get_where_clause( $api_type, &$prepare_args ) {
         $where          = '`cache_type` = %s';
         $prepare_args[] = $api_type;
+        $search         = filter_input( INPUT_POST, 's', FILTER_SANITIZE_STRING );
 
-        if ( isset( $_POST['s'] ) ) {
-            $search         = filter_input( INPUT_POST, 's', FILTER_SANITIZE_STRING );
+        if ( ! empty( $search ) ) {
             $where          .= ' AND ( `request_uri` LIKE %s OR `object_type` LIKE %s )';
             $prepare_args[] = '%' . $search . '%';
             $prepare_args[] = '%' . $search . '%';
@@ -776,15 +786,16 @@ class Caching {
      */
     private function get_orderby_clause() {
         $order = '`cache_id` DESC';
+        $orderby = filter_input( INPUT_GET, 'orderby', FILTER_SANITIZE_STRING );
 
-        if ( isset( $_GET['orderby'] ) && in_array( $_GET['orderby'], [
+        if ( in_array( $orderby, [
                 'request_uri',
                 'object_type',
                 'cache_hits',
                 'cache_key',
                 'expiration'
-            ] ) ) {
-            $order = '`' . $_GET['orderby'] . '` ' . ( isset( $_GET['order'] ) && $_GET['order'] == 'desc' ? 'DESC' : 'ASC' );
+            ], true ) ) {
+            $order = '`' . $orderby . '` ' . ( filter_input( INPUT_GET, 'order', FILTER_SANITIZE_STRING ) === 'desc' ? 'DESC' : 'ASC' );
         }
 
         return $order;
@@ -806,16 +817,36 @@ class Caching {
 
         $cache['data'] = get_transient( $this->transient_key( $cache_key ) );
 
+        // force data to be an array
+        $cache['data'] = json_decode( wp_json_encode( $cache['data'] ), true );
+
         return $cache;
     }
 
     /**
      * Get the cache timeout as set in the plugin Settings.
      *
-     * @return  int Timeout in seconds.
+     * @param   boolean $calculated If the returned value should be calculated using the interval.
+     *
+     * @return  int Timeout (in seconds if calculated).
      */
-    public function get_timeout() {
-        return get_option( 'wp_rest_cache_timeout', YEAR_IN_SECONDS );
+    public function get_timeout( $calculated = true ) {
+        $timeout = get_option( 'wp_rest_cache_timeout', 1 );
+        if ( $calculated ) {
+            $timeout_interval = $this->get_timeout_interval();
+            $timeout          = $timeout * $timeout_interval;
+        }
+
+        return $timeout;
+    }
+
+    /**
+     * Get the cache timeout interval, default is 1 year.
+     *
+     * @return int Timeout interval in seconds.
+     */
+    public function get_timeout_interval() {
+        return get_option( 'wp_rest_cache_timeout_interval', YEAR_IN_SECONDS );
     }
 
     /**
@@ -838,7 +869,7 @@ class Caching {
             require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
 
             $sql_caches =
-                'CREATE TABLE `' . $this->db_table_caches . '` (
+                "CREATE TABLE `{$this->db_table_caches}` (
                 `cache_id` BIGINT(20) NOT NULL AUTO_INCREMENT,
                 `cache_key` VARCHAR(181) NOT NULL,
                 `cache_type` VARCHAR(10) NOT NULL,
@@ -848,19 +879,22 @@ class Caching {
                 `is_single` TINYINT(1) NOT NULL,
                 `expiration` DATETIME NOT NULL,
                 PRIMARY KEY (`cache_id`),
-                UNIQUE INDEX `cache_key` (`cache_key`)
-                )';
+                UNIQUE INDEX `cache_key` (`cache_key`),
+                INDEX `cache_type` (`cache_type`),
+                INDEX `non_single_caches` (`cache_type`, `object_type`, `is_single`)
+                )";
 
             dbDelta( $sql_caches );
 
             $sql_relations =
-                'CREATE TABLE `' . $this->db_table_relations . '` (
+                "CREATE TABLE `{$this->db_table_relations}` (
 	            `cache_id` BIGINT(20) NOT NULL,
 	            `object_id` BIGINT(20) NOT NULL,
 	            `object_type` VARCHAR(200) NOT NULL,
 	            PRIMARY KEY (`cache_id`, `object_id`),
-	            INDEX `cache_id` (`cache_id`)
-                )';
+	            INDEX `cache_id` (`cache_id`),
+	            INDEX `object` (`object_id`, `object_type`)
+                )";
 
             dbDelta( $sql_relations );
 

@@ -64,19 +64,13 @@ class Endpoint_Api {
     );
 
     /**
-     * Initialize the class and set its properties.
-     */
-    public function __construct() {
-    }
-
-    /**
      * Get the requested URI and create the cache key.
      *
      * @return  string The request URI.
      */
     public function build_request_uri() {
         $request_uri  = filter_input( INPUT_SERVER, 'REQUEST_URI', FILTER_SANITIZE_URL );
-        $uri_parts    = parse_url( $request_uri );
+        $uri_parts    = wp_parse_url( $request_uri );
         $request_path = rtrim( $uri_parts['path'], '/' );
 
         if ( isset( $uri_parts['query'] ) && ! empty( $uri_parts['query'] ) ) {
@@ -145,11 +139,6 @@ class Endpoint_Api {
      * @return bool True if no caching should be applied, false if caching can be applied.
      */
     public function skip_caching() {
-        // Don't run if we are calling to cache the request (see later in the code)
-        if ( isset( $_GET['wp-rest-cache'] ) && (string) $_GET['wp-rest-cache'] === '1' ) {
-            return true;
-        }
-
         // Only cache GET-requests
         if ( 'GET' !== filter_input( INPUT_SERVER, 'REQUEST_METHOD', FILTER_SANITIZE_STRING ) ) {
             return true;
@@ -206,7 +195,7 @@ class Endpoint_Api {
                 }
                 rest_send_cors_headers( '' );
 
-                echo $data;
+                echo $data; // WPCS: XSS ok. No escaping needed anymore.
                 exit;
             }
         }
@@ -225,13 +214,13 @@ class Endpoint_Api {
     public function save_options() {
         $original_allowed_endpoints = get_option( 'wp_rest_cache_allowed_endpoints', [] );
         $allowed_endpoints          = apply_filters( 'wp_rest_cache/allowed_endpoints', $original_allowed_endpoints );
-        if ( $original_allowed_endpoints != $allowed_endpoints ) {
+        if ( $original_allowed_endpoints !== $allowed_endpoints ) {
             update_option( 'wp_rest_cache_allowed_endpoints', $allowed_endpoints );
         }
 
         $original_rest_prefix = get_option( 'wp_rest_cache_rest_prefix' );
         $rest_prefix          = rest_get_url_prefix();
-        if ( $original_rest_prefix != $rest_prefix ) {
+        if ( $original_rest_prefix !== $rest_prefix ) {
             update_option( 'wp_rest_cache_rest_prefix', $rest_prefix );
         }
     }
@@ -239,14 +228,14 @@ class Endpoint_Api {
     /**
      * Add the default WordPress endpoints to the allowed endpoints for caching.
      *
-     * @param   $allowed_endpoints The endpoints that are allowed to be cache.
+     * @param   array $allowed_endpoints The endpoints that are allowed to be cache.
      *
      * @return  mixed An array of endpoints that are allowed to be cache.
      */
-    public function add_wordpress_endpoints( $allowed_endpoints ) {
+    public function add_wordpress_endpoints( array $allowed_endpoints ) {
         foreach ( $this->wordpress_endpoints as $rest_base => $endpoints ) {
             foreach ( $endpoints as $endpoint ) {
-                if ( ! isset( $allowed_endpoints[ $rest_base ] ) || ! in_array( $endpoint, $allowed_endpoints[ $rest_base ] ) ) {
+                if ( ! isset( $allowed_endpoints[ $rest_base ] ) || ! in_array( $endpoint, $allowed_endpoints[ $rest_base ], true ) ) {
                     $allowed_endpoints[ $rest_base ][] = $endpoint;
                 }
             }

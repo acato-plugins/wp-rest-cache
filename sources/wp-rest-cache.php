@@ -21,6 +21,6 @@ include_once( ABSPATH . 'wp-admin/includes/plugin.php' );
 if ( is_plugin_active( 'wp-rest-cache/wp-rest-cache.php' ) ) {
     require_once WP_PLUGIN_DIR . '/wp-rest-cache/wp-rest-cache.php';
 
-    $api = new \WP_Rest_Cache_Plugin\Includes\API\Endpoint_Api();
-    $api->get_api_cache();
+    $wp_rest_cache_api = new \WP_Rest_Cache_Plugin\Includes\API\Endpoint_Api();
+    $wp_rest_cache_api->get_api_cache();
 }

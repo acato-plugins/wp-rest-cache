@@ -28,7 +28,7 @@ trait Controller_Trait {
         parent::__construct( $item );
 
         $allowed_endpoints = get_option( 'wp_rest_cache_allowed_endpoints', [] );
-        if ( ! isset( $allowed_endpoints[ $this->namespace ] ) || ! in_array( $this->rest_base, $allowed_endpoints[ $this->namespace ] ) ) {
+        if ( ! isset( $allowed_endpoints[ $this->namespace ] ) || ! in_array( $this->rest_base, $allowed_endpoints[ $this->namespace ], true ) ) {
             $allowed_endpoints[ $this->namespace ][] = $this->rest_base;
             update_option( 'wp_rest_cache_allowed_endpoints', $allowed_endpoints );
         }
