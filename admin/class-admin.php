@@ -108,7 +108,7 @@ class Admin {
      * @return int
      */
     public function set_screen_option( $option_value, $option, $value ) {
-        if ( 'caches_per_page' == $option ) {
+        if ( 'caches_per_page' === $option ) {
             return $value;
         }
 
@@ -120,6 +120,7 @@ class Admin {
      */
     public function register_settings() {
         register_setting( 'wp-rest-cache-settings', 'wp_rest_cache_timeout' );
+        register_setting( 'wp-rest-cache-settings', 'wp_rest_cache_timeout_interval' );
     }
 
     /**
@@ -137,7 +138,7 @@ class Admin {
     /**
      * Add a 'Clear REST cache' button to the wp-admin top bar.
      */
-    function admin_bar_item() {
+    public function admin_bar_item() {
         global $wp_admin_bar;
 
         $args = [
@@ -162,8 +163,8 @@ class Admin {
      * Handle the correct actions. I.e. clear the cache if the clear cache url is visited.
      */
     public function handle_actions() {
-        if ( isset( $_REQUEST['rest_cache_nonce'] ) && wp_verify_nonce( $_REQUEST['rest_cache_nonce'], 'rest_cache_options' ) ) {
-            if ( isset( $_GET['clear'] ) && 1 == $_GET['clear'] ) {
+        if ( isset( $_REQUEST['rest_cache_nonce'] ) && wp_verify_nonce( sanitize_key( $_REQUEST['rest_cache_nonce'] ), 'rest_cache_options' ) ) {
+            if ( isset( $_GET['clear'] ) && 1 === $_GET['clear'] ) {
                 if ( \WP_Rest_Cache_Plugin\Includes\Caching\Caching::get_instance()->clear_caches() ) {
                     $this->add_notice( 'success', __( 'The cache has been successfully cleared', 'wp-rest-cache' ) );
                 } else {
@@ -223,8 +224,8 @@ class Admin {
                 foreach ( $messages as $message ) {
                     ?>
                     <div
-                        class="notice notice-<?php echo $type; ?> <?php echo $message['dismissible'] ? 'is-dismissible' : ''; ?>">
-                        <p><strong>WP REST Cache:</strong> <?php echo $message['message']; ?></p>
+                        class="notice notice-<?php echo esc_attr( $type ); ?> <?php echo $message['dismissible'] ? 'is-dismissible' : ''; ?>">
+                        <p><strong>WP REST Cache:</strong> <?php echo esc_html( $message['message'] ); ?></p>
                     </div>
                     <?php
                 }

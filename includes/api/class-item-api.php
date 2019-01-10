@@ -42,7 +42,7 @@ class Item_Api {
             return $args;
         }
 
-        if ( $restController == \WP_REST_Attachments_Controller::class ) {
+        if ( $restController === \WP_REST_Attachments_Controller::class ) {
             $args['rest_controller_class'] = \WP_Rest_Cache_Plugin\Includes\Controller\Attachment_Controller::class;
         } else {
             $args['rest_controller_class'] = \WP_Rest_Cache_Plugin\Includes\Controller\Post_Controller::class;
@@ -121,14 +121,14 @@ class Item_Api {
         }
         switch ( $type ) {
             case 'taxonomy':
-                return $class_name == \WP_REST_Terms_Controller::class
-                       || $class_name == \WP_Rest_Cache_Plugin\Includes\Controller\Term_Controller::class;
+                return $class_name === \WP_REST_Terms_Controller::class
+                       || $class_name === \WP_Rest_Cache_Plugin\Includes\Controller\Term_Controller::class;
             case 'post_type':
             default:
-                return $class_name == \WP_REST_Posts_Controller::class
-                       || $class_name == \WP_Rest_Cache_Plugin\Includes\Controller\Post_Controller::class
-                       || $class_name == \WP_REST_Attachments_Controller::class
-                       || $class_name == \WP_Rest_Cache_Plugin\Includes\Controller\Attachment_Controller::class;
+                return $class_name === \WP_REST_Posts_Controller::class
+                       || $class_name === \WP_Rest_Cache_Plugin\Includes\Controller\Post_Controller::class
+                       || $class_name === \WP_REST_Attachments_Controller::class
+                       || $class_name === \WP_Rest_Cache_Plugin\Includes\Controller\Attachment_Controller::class;
         }
     }
 }
