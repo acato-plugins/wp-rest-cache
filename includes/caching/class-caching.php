@@ -560,6 +560,18 @@ class Caching {
     private function register_endpoint_cache( $cache_key, $data, $uri ) {
         $cache_id = $this->get_cache_row_id( $cache_key );
 
+        /**
+         * Determine object type of cache.
+         *
+         * Allows external determination of object type of current cache.
+         *
+         * @since   2018.4.2
+         *
+         * @param   string Object type
+         * @param   string $cache_key Cache key
+         * @param   mixed $data The data that is to be cached
+         * @param   string $uri The requested URI
+         */
         $object_type = apply_filters( 'wp_rest_cache/determine_object_type', $this->determine_object_type( $data ), $cache_key, $data, $uri );
 
         if ( is_null( $cache_id ) ) {
@@ -573,6 +585,16 @@ class Caching {
 
         $this->process_recursive_cache_relations( $cache_id, $data['data'] );
 
+        /**
+         * Process cache relations.
+         *
+         * Allows external processing of cache relations.
+         *
+         * @since   2018.4.2
+         *
+         * @param   int $cache_id The row id of the current cache.
+         * @param   mixed $data The data that is to be cached.
+         */
         do_action( 'wp_rest_cache/process_cache_relations', $cache_id, $data );
     }
 
@@ -616,7 +638,7 @@ class Caching {
         } else if (
             array_key_exists( 'id', $record )
             && array_key_exists( 'type', $record )
-            && array_key_exists( 'author', $record )
+            && array_key_exists( 'slug', $record )
         ) {
             $this->insert_cache_relation( $cache_id, $record['id'], $record['type'] );
         } else if (

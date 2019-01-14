@@ -213,6 +213,16 @@ class Endpoint_Api {
      */
     public function save_options() {
         $original_allowed_endpoints = get_option( 'wp_rest_cache_allowed_endpoints', [] );
+
+        /**
+         * Override cache-enabled endpoints.
+         *
+         * Allows to override the endpoints that will be cached by the WP REST Cache plugin.
+         *
+         * @since   2018.2.0
+         *
+         * @param   array $original_allowed_endpoints An array of endpoints that are allowed to be cached.
+         */
         $allowed_endpoints          = apply_filters( 'wp_rest_cache/allowed_endpoints', $original_allowed_endpoints );
         if ( $original_allowed_endpoints !== $allowed_endpoints ) {
             update_option( 'wp_rest_cache_allowed_endpoints', $allowed_endpoints );
