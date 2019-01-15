@@ -59,7 +59,7 @@ class API_Caches_Table extends \WP_List_Table {
 
     public function column_cache_key( $item ) {
         $page         = filter_input( INPUT_GET, 'page', FILTER_SANITIZE_STRING );
-        $sub          = filter_input( INPUT_GET, 'sub', FITLER_SANITIZE_STRING );
+        $sub          = filter_input( INPUT_GET, 'sub', FILTER_SANITIZE_STRING );
         $flush_nonce  = wp_create_nonce( 'wp_rest_cache_flush_cache' );
         $delete_nonce = wp_create_nonce( 'wp_rest_cache_delete_cache' );
         $title        = sprintf(
