@@ -156,14 +156,14 @@ class Admin {
      * @return  string The url to empty the cache.
      */
     public static function empty_cache_url() {
-        return wp_nonce_url( admin_url( 'options-general.php?page=wp-rest-cache&clear=1' ), 'rest_cache_options', 'rest_cache_nonce' );
+        return wp_nonce_url( admin_url( 'options-general.php?page=wp-rest-cache&clear=1' ), 'wp_rest_cache_options', 'wp_rest_cache_nonce' );
     }
 
     /**
      * Handle the correct actions. I.e. clear the cache if the clear cache url is visited.
      */
     public function handle_actions() {
-        if ( isset( $_REQUEST['rest_cache_nonce'] ) && wp_verify_nonce( sanitize_key( $_REQUEST['rest_cache_nonce'] ), 'rest_cache_options' ) ) {
+        if ( isset( $_REQUEST['wp_rest_cache_nonce'] ) && wp_verify_nonce( sanitize_key( $_REQUEST['wp_rest_cache_nonce'] ), 'wp_rest_cache_options' ) ) {
             if ( isset( $_GET['clear'] ) && 1 === $_GET['clear'] ) {
                 if ( \WP_Rest_Cache_Plugin\Includes\Caching\Caching::get_instance()->clear_caches() ) {
                     $this->add_notice( 'success', __( 'The cache has been successfully cleared', 'wp-rest-cache' ) );

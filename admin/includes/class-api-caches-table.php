@@ -80,7 +80,7 @@ class API_Caches_Table extends \WP_List_Table {
         );
         if ( $item['is_active'] ) {
             $actions['flush'] = sprintf(
-                '<a href="?page=%s&sub=%s&action=%s&cache_key=%s&_wpnonce=%s">%s</a>',
+                '<a href="?page=%s&sub=%s&action=%s&cache_key=%s&wp_rest_cache_nonce=%s">%s</a>',
                 esc_attr( $page ),
                 esc_attr( $sub ),
                 'flush',
@@ -90,7 +90,7 @@ class API_Caches_Table extends \WP_List_Table {
             );
         }
         $actions['delete'] = sprintf(
-            '<a href="?page=%s&sub=%s&action=%s&cache_key=%s&_wpnonce=%s">%s</a>',
+            '<a href="?page=%s&sub=%s&action=%s&cache_key=%s&wp_rest_cache_nonce=%s">%s</a>',
             esc_attr( $page ),
             esc_attr( $sub ),
             'delete',
@@ -197,7 +197,7 @@ class API_Caches_Table extends \WP_List_Table {
     }
 
     private function process_single_action( $action ) {
-        if ( ! isset( $_GET['wpnonce'] ) || ! wp_verify_nonce( sanitize_key( $_GET['wpnonce'] ), 'wp_rest_cache_' . $action . '_cache' ) ) {
+        if ( ! isset( $_GET['wp_rest_cache_nonce'] ) || ! wp_verify_nonce( sanitize_key( $_GET['wp_rest_cache_nonce'] ), 'wp_rest_cache_' . $action . '_cache' ) ) {
             die( 'No naughty business please' );
         }
         $cache_key = filter_input( INPUT_GET, 'cache_key', FILTER_SANITIZE_STRING );
