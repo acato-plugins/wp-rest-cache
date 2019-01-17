@@ -695,7 +695,7 @@ class Caching {
             }
         } else {
             $this->is_single = false;
-            if ( count( $data['data'] ) ) {
+            if ( count( $data['data'] ) && isset( $data['data'][0] ) ) {
                 if ( array_key_exists( 'type', $data['data'][0] ) ) {
                     return $data['data'][0]['type'];
                 } else if ( array_key_exists( 'taxonomy', $data['data'][0] ) ) {
