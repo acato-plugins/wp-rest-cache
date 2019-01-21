@@ -4,13 +4,14 @@ Tags: cache, wp-rest, wp-rest-api, api, rest
 Requires at least: 4.7
 Tested up to: 5.0
 Requires PHP: 5.5
-Stable tag: 2018.5.0
+Stable tag: trunk
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl.html
 
 Enable caching of the WordPress REST API and auto-flush caches upon wp-admin editing.
 
 == Description ==
+
 Are you using the WordPress REST API and are you experiencing it to be slow? This plugin will allow WordPress to cache the results of the REST API, making it much faster.
 
 This plugin offers:
@@ -21,7 +22,7 @@ This plugin offers:
 * Automated flushing of caches if (some of) its contents are edited.
 * Manual flushing of all caches.
 * Manual flushing of specific caches.
-* Statistics about how many times a cache has been retrieved.
+* A counter how many times a cache has been retrieved.
 * Specifying after what time the cache should be timed out.
 
 == Installation ==
@@ -58,13 +59,67 @@ No, the plugin will automatically flush all cache related to the page/post you j
 
 = I have created a custom post type, will the plugin cache the custom post type endpoint? =
 
-Yes, the plugin will automatically cache the endpoint of custom post types.
+Yes, the plugin will automatically cache the endpoint of custom post types. Unless you have created a custom WP_REST_Controller for it, then it will not automatically cache the endpoint.
 
 = I have created a custom taxonomy, will the plugin cache the taxonomy endpoint? =
 
-Yes, the plugin will automatically cache the endpoint of custom taxonomies.
+Yes, the plugin will automatically cache the endpoint of custom taxonomies. Unless you have created a custom WP_REST_Controller for it, then it will not automatically cache the endpoint.
 
 = I have created a custom WP REST endpoint, will the plugin cache this endpoint? =
 
-No, the plugin will not cache your custom endpoint unless you tell it to cache it using the hook `wp_rest_cache/allowed_endpoints`. Please keep in mind that once you do so the plugin will not automatically flush the cache of that endpoint if something is edited (it has no way of knowing when to flush the cache).
+No, the plugin will not cache your custom endpoint unless you tell it to cache it using the hook `wp_rest_cache/allowed_endpoints` (See 'Can I register my own endpoint for caching?'). Please keep in mind that once you do so the plugin will not automatically flush the cache of that endpoint if something is edited (it has no way of knowing when to flush the cache).
 
+= Can I register my own endpoint for caching? =
+
+Yes you can! Use the hook `wp_rest_cache/allowed_endpoints` like this:
+
+`/**
+ * Register the /wp-json/acf/v3/posts endpoint so it will be cached.
+ */
+function wprc_add_acf_posts_endpoint( $allowed_endpoints ) {
+    if ( ! isset( $allowed_endpoints[ 'acf/v3' ] ) || ! in_array( 'posts', $allowed_endpoints[ 'acf/v3' ] ) ) {
+        $allowed_endpoints[ 'acf/v3' ][] = 'posts';
+    }
+    return $allowed_endpoints;
+}
+add_filter( 'wp_rest_cache/allowed_endpoints', 'wprc_add_acf_posts_endpoint', 10, 1);`
+
+*Please note:* the WP REST Cache plugin will try to detect relations in the cached data to automatically flush the cache when related items are edited, but this detection is not flawless so your caches might not be flushed automatically.
+
+= Can I unregister an endpoint so it is no longer cached? =
+
+Yes you can! Use the hook `wp_rest_cache/allowed_endpoints` like this:
+
+`/**
+ * Unregister the /wp-json/wp/v2/comments endpoint so it will not be cached.
+ */
+function wprc_unregister_wp_comments_endpoint( $allowed_endpoints ) {
+    if ( isset( $allowed_endpoints[ 'wp/v2' ] ) && ( $key = array_search( 'comments', $allowed_endpoints[ 'wp/v2' ] ) ) !== false ) {
+        unset( $allowed_endpoints[ 'wp/v2' ][ $key ] );
+    }
+    return $allowed_endpoints;
+}
+add_filter( 'wp_rest_cache/allowed_endpoints', 'wprc_unregister_wp_comments_endpoint', 100, 1);`
+
+= On the cache overview page I see the object type is 'unknown'. Can I help the WP REST Cache plugin to detect the object type correctly? =
+
+Yes you can! Use the hook `wp_rest_cache/determine_object_type` like this:
+
+`function wprc_determine_object_type( $object_type, $cache_key, $data, $uri ) {
+    if ( $object_type !== 'unknown' || strpos( $uri, $this->namespace . '/' . $this->rest_base ) === false ) {
+        return $object_type;
+    }
+    // Do your magic here
+    $object_type = 'website';
+    // Do your magic here
+    return $object_type;
+}
+add_filter( 'wp_rest_cache/determine_object_type', 'wprc_determine_object_type', 10, 4 );`
+
+== Screenshots ==
+
+1. Settings for the WP REST Cache plugin.
+2. An overview of cached endpoint calls.
+3. An overview of cached single items.
+4. Cache details page - Cache info.
+5. Cache details page - Cache data.
