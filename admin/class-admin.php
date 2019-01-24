@@ -164,7 +164,7 @@ class Admin {
      */
     public function handle_actions() {
         if ( isset( $_REQUEST['wp_rest_cache_nonce'] ) && wp_verify_nonce( sanitize_key( $_REQUEST['wp_rest_cache_nonce'] ), 'wp_rest_cache_options' ) ) {
-            if ( isset( $_GET['clear'] ) && 1 === $_GET['clear'] ) {
+            if ( isset( $_GET['clear'] ) && '1' === $_GET['clear'] ) {
                 if ( \WP_Rest_Cache_Plugin\Includes\Caching\Caching::get_instance()->clear_caches() ) {
                     $this->add_notice( 'success', __( 'The cache has been successfully cleared', 'wp-rest-cache' ) );
                 } else {
