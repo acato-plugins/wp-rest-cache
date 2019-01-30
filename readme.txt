@@ -12,7 +12,7 @@ Enable caching of the WordPress REST API and auto-flush caches upon wp-admin edi
 
 == Description ==
 
-Are you using the WordPress REST API and are you experiencing it to be slow? This plugin will allow WordPress to cache the responses of the REST API, making it much faster.
+Are you facing speed issues, using the WordPress REST API? This plugin will allow WordPress to cache the responses of the REST API, making it much faster.
 
 This plugin offers:
 
