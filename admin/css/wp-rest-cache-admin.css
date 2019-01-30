@@ -1,4 +1,4 @@
-/**
- * All of the CSS for your admin-specific functionality should be
- * included in this file.
- */
+#wpadminbar #wp-admin-bar-wp-rest-cache-clear .ab-icon:before {
+    content: '\f182';
+    top: 3px;
+}

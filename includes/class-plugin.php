@@ -54,7 +54,7 @@ class Plugin {
      */
     public function __construct() {
         $this->plugin_name = 'wp-rest-cache';
-        $this->version     = '2019.1.1';
+        $this->version     = '2019.1.2';
 
         $this->set_locale();
         $this->define_admin_hooks();
@@ -84,7 +84,6 @@ class Plugin {
         $plugin_admin = new \WP_Rest_Cache_Plugin\Admin\Admin( $this->get_plugin_name(), $this->get_version() );
 
         add_action( 'admin_enqueue_scripts', array( $plugin_admin, 'enqueue_styles' ) );
-        add_action( 'admin_enqueue_scripts', array( $plugin_admin, 'enqueue_scripts' ) );
         // create custom plugin settings menu
         add_action( 'admin_menu', [ $plugin_admin, 'create_menu' ] );
         add_action( 'admin_init', [ $plugin_admin, 'register_settings' ] );
@@ -93,6 +92,10 @@ class Plugin {
         add_action( 'admin_notices', [ $plugin_admin, 'display_notices' ] );
         add_action( 'wp_before_admin_bar_render', [ $plugin_admin, 'admin_bar_item' ], 999 );
         add_filter( 'set-screen-option', [ $plugin_admin, 'set_screen_option' ], 10, 3 );
+        add_filter( 'plugin_action_links_' . trailingslashit( dirname( plugin_basename( __DIR__ ) ) ) . 'wp-rest-cache.php', [
+            $plugin_admin,
+            'add_plugin_settings_link'
+        ] );
     }
 
     /**

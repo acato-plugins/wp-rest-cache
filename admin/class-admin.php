@@ -68,13 +68,6 @@ class Admin {
     }
 
     /**
-     * Register the JavaScript for the admin area.
-     */
-    public function enqueue_scripts() {
-        wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/wp-rest-cache-admin.js', [ 'jquery' ], $this->version, false );
-    }
-
-    /**
      * Add a new menu item under Settings.
      */
     public function create_menu() {
@@ -116,6 +109,21 @@ class Admin {
     }
 
     /**
+     * Add a settings link to the plugin on the Plugin admin screen.
+     *
+     * @param   array $links An array of plugin action links.
+     *
+     * @return  array An array of plugin action links.
+     */
+    public function add_plugin_settings_link( $links ) {
+        $links[] = '<a href="' .
+                   admin_url( 'options-general.php?page=wp-rest-cache' ) . '">' .
+                   __( 'Settings', 'wp-rest-cache' ) . '</a>';
+
+        return $links;
+    }
+
+    /**
      * Register plugin specific settings.
      */
     public function register_settings() {
@@ -143,7 +151,7 @@ class Admin {
 
         $args = [
             'id'    => 'wp-rest-cache-clear',
-            'title' => __( 'Clear REST cache', 'wp-rest-cache' ),
+            'title' => '<span class="ab-icon"></span>' . __( 'Clear REST cache', 'wp-rest-cache' ),
             'href'  => self::empty_cache_url(),
         ];
 
