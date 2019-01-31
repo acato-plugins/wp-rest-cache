@@ -228,6 +228,22 @@ class Caching {
     }
 
     /**
+     * Fired upon WordPress 'transition_post_status' hook. Delete all non-single endpoint caches for this post type if
+     * the new or the old status is 'publish'.
+     *
+     * @param   string $new_status The new status of the post.
+     * @param   string $old_status The old status of the post
+     * @param   \WP_Post $post The post which status has been transitioned.
+     */
+    public function transition_post_status( $new_status, $old_status, $post ) {
+        if ( $new_status != 'publish' && $old_status != 'publish' ) {
+            return;
+        }
+
+        $this->delete_object_type_caches( $post->post_type );
+    }
+
+    /**
      * Fired upon WordPress 'created_term' hook. Delete all non-single endpoint caches for this taxonomy.
      *
      * @param   int $term_id Term ID.
