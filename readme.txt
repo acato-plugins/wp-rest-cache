@@ -1,5 +1,5 @@
 === WP REST Cache ===
-Contributors: rockfire
+Contributors: rockfire, yoeridekker
 Tags: cache, wp-rest, wp-rest-api, api, rest
 Requires at least: 4.7
 Tested up to: 5.0
