@@ -123,3 +123,14 @@ add_filter( 'wp_rest_cache/determine_object_type', 'wprc_determine_object_type',
 3. An overview of cached single items.
 4. Cache details page - Cache info.
 5. Cache details page - Cache data.
+
+== Changelog ==
+= 2019.1.3 =
+Release Date: February 13th, 2019
+
+Added support for correctly flushing caches of scheduled posts.
+
+= 2019.1.2 =
+Release Date: January 31st, 2019
+
+First public version.
