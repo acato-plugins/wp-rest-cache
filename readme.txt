@@ -24,6 +24,7 @@ This plugin offers:
 * Manual flushing of specific caches.
 * A counter how many times a cache has been retrieved.
 * Specifying after what time the cache should be timed out.
+* Registering custom endpoints for caching.
 
 == Installation ==
 
@@ -67,7 +68,7 @@ Yes, the plugin will automatically cache the endpoint of custom taxonomies. Unle
 
 = I have created a custom WP REST endpoint, will the plugin cache this endpoint? =
 
-No, the plugin will not cache your custom endpoint unless you tell it to cache it using the hook `wp_rest_cache/allowed_endpoints` (See 'Can I register my own endpoint for caching?'). Please keep in mind that once you do so the plugin will not automatically flush the cache of that endpoint if something is edited (it has no way of knowing when to flush the cache).
+No, the plugin will not cache your custom endpoint unless you tell it to cache it using the hook `wp_rest_cache/allowed_endpoints` (See 'Can I register my own endpoint for caching?'). Please keep in mind that once you do so the plugin will not automatically flush the cache of that endpoint if something is edited (it has no way of knowing when to flush the cache). It will however try to determine the relations and for the determined relations it will flush the cache automatically once the relation is edited.
 
 = Can I register my own endpoint for caching? =
 
@@ -125,6 +126,7 @@ add_filter( 'wp_rest_cache/determine_object_type', 'wprc_determine_object_type',
 5. Cache details page - Cache data.
 
 == Changelog ==
+
 = 2019.1.3 =
 Release Date: February 13th, 2019
 
