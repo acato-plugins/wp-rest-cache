@@ -654,7 +654,7 @@ class Caching {
         } else if (
             array_key_exists( 'id', $record )
             && array_key_exists( 'type', $record )
-            && array_key_exists( 'slug', $record )
+            && ( array_key_exists( 'slug', $record ) || array_key_exists( 'status', $record ) )
         ) {
             $this->insert_cache_relation( $cache_id, $record['id'], $record['type'] );
         } else if (

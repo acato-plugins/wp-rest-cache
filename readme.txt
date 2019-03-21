@@ -1,8 +1,8 @@
 === WP REST Cache ===
-Contributors: rockfire, yoeridekker
+Contributors: acato, rockfire, yoeridekker
 Tags: cache, wp-rest, wp-rest-api, api, rest
 Requires at least: 4.7
-Tested up to: 5.0
+Tested up to: 5.1
 Requires PHP: 5.5
 Stable tag: trunk
 License: GPLv3
@@ -126,6 +126,11 @@ add_filter( 'wp_rest_cache/determine_object_type', 'wprc_determine_object_type',
 5. Cache details page - Cache data.
 
 == Changelog ==
+
+= 2019.1.4 =
+Release Date: March 21st, 2019
+
+Bugfix: bug in saving relations for comments endpoint prevented the cache for comments to be flushed automatically.
 
 = 2019.1.3 =
 Release Date: February 13th, 2019
