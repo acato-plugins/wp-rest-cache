@@ -189,7 +189,30 @@ class Endpoint_Api {
             $last_error = json_last_error();
 
             if ( $last_error === JSON_ERROR_NONE ) {
-                foreach ( $cache['headers'] as $key => $value ) {
+                /**
+                 * Filter the cache headers.
+                 *
+                 * Allow to filter the cache headers before they are send with the cache response.
+                 *
+                 * @since   2019.1.5
+                 *
+                 * @param   array $headers An array of all headers for this cache response.
+                 * @param   string $request_uri The requested URI.
+                 */
+                $headers = apply_filters( 'wp_rest_cache/cache_headers', $cache['headers'], $this->request_uri );
+                foreach ( $headers as $key => $value ) {
+                    /**
+                     * Filter the cache header.
+                     *
+                     * Allow to change the cache header value.
+                     *
+                     * @since   2019.1.5
+                     *
+                     * @param   string $value The value for the cache header.
+                     * @param   string $key The cache header field name.
+                     * @param   string $request_uri The requested URI.
+                     */
+                    $value  = apply_filters( 'wp_rest_cache/cache_header', $value, $key, $this->request_uri );
                     $header = sprintf( '%s: %s', $key, $value );
                     header( $header );
                 }
@@ -223,7 +246,7 @@ class Endpoint_Api {
          *
          * @param   array $original_allowed_endpoints An array of endpoints that are allowed to be cached.
          */
-        $allowed_endpoints          = apply_filters( 'wp_rest_cache/allowed_endpoints', $original_allowed_endpoints );
+        $allowed_endpoints = apply_filters( 'wp_rest_cache/allowed_endpoints', $original_allowed_endpoints );
         if ( $original_allowed_endpoints !== $allowed_endpoints ) {
             update_option( 'wp_rest_cache_allowed_endpoints', $allowed_endpoints );
         }

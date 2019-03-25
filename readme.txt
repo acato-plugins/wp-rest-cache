@@ -127,6 +127,11 @@ add_filter( 'wp_rest_cache/determine_object_type', 'wprc_determine_object_type',
 
 == Changelog ==
 
+= 2019.1.5 =
+Release Date: March 25th, 2019
+
+Added filters for response header manipulation.
+
 = 2019.1.4 =
 Release Date: March 21st, 2019
 

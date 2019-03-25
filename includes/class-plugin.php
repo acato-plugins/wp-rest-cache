@@ -54,7 +54,7 @@ class Plugin {
      */
     public function __construct() {
         $this->plugin_name = 'wp-rest-cache';
-        $this->version     = '2019.1.4';
+        $this->version     = '2019.1.5';
 
         $this->set_locale();
         $this->define_admin_hooks();
