@@ -96,8 +96,31 @@ class Endpoint_Api {
     public function save_cache_headers( $served, \WP_HTTP_Response $result, \WP_REST_Request $request, \WP_REST_Server $server ) {
         $headers = $result->get_headers();
 
+        /**
+         * Filter the cache headers.
+         *
+         * Allow to filter the cache headers before they are send with the cache response.
+         *
+         * @since   2019.1.5
+         *
+         * @param   array $headers An array of all headers for this cache response.
+         * @param   string $request_uri The requested URI.
+         */
+        $headers = apply_filters( 'wp_rest_cache/cache_headers', $headers, $this->request_uri );
         if ( isset( $headers ) && ! empty( $headers ) ) {
             foreach ( $headers as $key => $value ) {
+                /**
+                 * Filter the cache header.
+                 *
+                 * Allow to change the cache header value.
+                 *
+                 * @since   2019.1.5
+                 *
+                 * @param   string $value The value for the cache header.
+                 * @param   string $key The cache header field name.
+                 * @param   string $request_uri The requested URI.
+                 */
+                $value  = apply_filters( 'wp_rest_cache/cache_header', $value, $key, $this->request_uri );
                 $this->response_headers[ $key ] = $value;
             }
         }
@@ -189,30 +212,7 @@ class Endpoint_Api {
             $last_error = json_last_error();
 
             if ( $last_error === JSON_ERROR_NONE ) {
-                /**
-                 * Filter the cache headers.
-                 *
-                 * Allow to filter the cache headers before they are send with the cache response.
-                 *
-                 * @since   2019.1.5
-                 *
-                 * @param   array $headers An array of all headers for this cache response.
-                 * @param   string $request_uri The requested URI.
-                 */
-                $headers = apply_filters( 'wp_rest_cache/cache_headers', $cache['headers'], $this->request_uri );
-                foreach ( $headers as $key => $value ) {
-                    /**
-                     * Filter the cache header.
-                     *
-                     * Allow to change the cache header value.
-                     *
-                     * @since   2019.1.5
-                     *
-                     * @param   string $value The value for the cache header.
-                     * @param   string $key The cache header field name.
-                     * @param   string $request_uri The requested URI.
-                     */
-                    $value  = apply_filters( 'wp_rest_cache/cache_header', $value, $key, $this->request_uri );
+                foreach ( $cache['headers'] as $key => $value ) {
                     $header = sprintf( '%s: %s', $key, $value );
                     header( $header );
                 }
