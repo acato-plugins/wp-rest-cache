@@ -702,6 +702,9 @@ class Caching {
      * @return  bool|string The object type, or false if it could not be determined.
      */
     private function determine_object_type( $data ) {
+        // force data to be an array
+        $data['data'] = json_decode( wp_json_encode( $data['data'] ), true );
+
         if ( array_key_exists( 'id', $data['data'] ) ) {
             $this->is_single = true;
             if ( array_key_exists( 'type', $data['data'] ) ) {
