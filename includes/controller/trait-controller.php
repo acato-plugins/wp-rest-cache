@@ -27,10 +27,10 @@ trait Controller_Trait {
     public function __construct( $item ) {
         parent::__construct( $item );
 
-        $allowed_endpoints = get_option( 'wp_rest_cache_allowed_endpoints', [] );
+        $allowed_endpoints = get_option( 'wp_rest_cache_item_allowed_endpoints', [] );
         if ( ! isset( $allowed_endpoints[ $this->namespace ] ) || ! in_array( $this->rest_base, $allowed_endpoints[ $this->namespace ], true ) ) {
             $allowed_endpoints[ $this->namespace ][] = $this->rest_base;
-            update_option( 'wp_rest_cache_allowed_endpoints', $allowed_endpoints );
+            update_option( 'wp_rest_cache_item_allowed_endpoints', $allowed_endpoints );
         }
     }
 
