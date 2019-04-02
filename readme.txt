@@ -127,10 +127,17 @@ add_filter( 'wp_rest_cache/determine_object_type', 'wprc_determine_object_type',
 
 == Changelog ==
 
+= 2019.2.0 =
+Release Date: April 2nd, 2019
+
+Feature: Added function to programatically flush cache records by endpoint path.
+Bugfix: Fix correct filtering of allowed endpoints.
+Bugfix: Fix fatal error with object in stead of array in cache.
+
 = 2019.1.6 =
 Release Date: March 25th, 2019
 
-Added filters for response header manipulation.
+Feature: Added filters for response header manipulation.
 
 = 2019.1.4 =
 Release Date: March 21st, 2019
@@ -140,7 +147,7 @@ Bugfix: bug in saving relations for comments endpoint prevented the cache for co
 = 2019.1.3 =
 Release Date: February 13th, 2019
 
-Added support for correctly flushing caches of scheduled posts.
+Feature: Added support for correctly flushing caches of scheduled posts.
 
 = 2019.1.2 =
 Release Date: January 31st, 2019
