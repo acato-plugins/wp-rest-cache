@@ -40,6 +40,29 @@ class Caching {
     const TABLE_RELATIONS = 'wrc_relations';
 
     /**
+     * Delete caches by an endpoint path matching only this exact same endpoint path (and query params).
+     *
+     * @var     string FLUSH_STRICT
+     */
+    const FLUSH_STRICT = 'strict';
+
+    /**
+     * Delete caches by an endpoint path matching the exact same endpoint path with any query params that might have
+     * been used.
+     *
+     * @var     string FLUSH_PARAMS
+     */
+    const FLUSH_PARAMS = 'params';
+
+    /**
+     * Delete caches by an endpoint path matching any cache that was called starting with the endpoint path (ignoring
+     * any query params or subpaths following the given path).
+     *
+     * @var     string FLUSH_LOOSE
+     */
+    const FLUSH_LOOSE = 'loose';
+
+    /**
      * The singleton instance of this class.
      *
      * @access   private
@@ -169,6 +192,71 @@ class Caching {
         } else {
             $this->update_cache_expiration( $cache_id, date( 'Y-m-d H:i:s', 0 ) );
         }
+    }
+
+    /**
+     * Delete caches by endpoint path.
+     *
+     * Delete caches by an endpoint path either strict (\WP_Rest_Cache_Plugin\Includes\Caching\Caching::FLUSH_STRICT)
+     * matching only this exact same endpoint path (and query params), params (\WP_Rest_Cache_Plugin\Includes\Caching\Caching::FLUSH_PARAMS)
+     * matching the exact same endpoint path with any query params that might have been used, or loose
+     * (\WP_Rest_Cache_Plugin\Includes\Caching\Caching::FLUSH_LOOSE) matching any cache that was called starting with
+     * the endpoint path (ignoring any query params or subpaths following the given path).
+     *
+     * @param string $endpoint The endpoint path to match.
+     * @param string $strictness The match type. (Can be either \WP_Rest_Cache_Plugin\Includes\Caching\Caching::FLUSH_STRICT,
+     * \WP_Rest_Cache_Plugin\Includes\Caching\Caching::FLUSH_PARAMS or \WP_Rest_Cache_Plugin\Includes\Caching\Caching::FLUSH_LOOSE)
+     * @param bool $force Should the caches be deleted ($force = true) or just flushed ($force = false).
+     *
+     * @return bool|\WP_Error
+     */
+    public function delete_cache_by_endpoint( $endpoint, $strictness = self::FLUSH_STRICT, $force = false ) {
+        global $wpdb;
+
+        $uri_parts    = wp_parse_url( $endpoint );
+        $request_path = rtrim( $uri_parts['path'], '/' );
+
+        if ( $strictness === self::FLUSH_STRICT && isset( $uri_parts['query'] ) && ! empty( $uri_parts['query'] ) ) {
+            parse_str( $uri_parts['query'], $params );
+            ksort( $params );
+            $request_path .= '?' . http_build_query( $params );
+        }
+
+        $sql = "SELECT `cache_key`
+        FROM `{$this->db_table_caches}`
+        WHERE ";
+        switch ( $strictness ) {
+            case self::FLUSH_STRICT:
+                $sql              .= " `request_uri` = %s ";
+                $prepare_params[] = $request_path;
+                break;
+            case self::FLUSH_PARAMS:
+                $sql              .= " `request_uri` LIKE %s ";
+                $prepare_params[] = $request_path . '?%';
+                break;
+            case self::FLUSH_LOOSE:
+                $sql              .= " `request_uri` LIKE %s ";
+                $prepare_params[] = $request_path . '%';
+                break;
+            default:
+                return new \WP_Error( 'wp_rest_cache_invalid_strictness', __( 'Invalid strictness', 'wp-rest-cache' ) );
+                break;
+        }
+
+        $caches = $wpdb->get_results( $wpdb->prepare(
+            $sql,
+            $prepare_params
+        ) );
+
+        if ( $caches ) {
+            foreach ( $caches as $cache ) {
+                $this->delete_cache( $cache->cache_key, $force );
+            }
+
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -826,16 +914,16 @@ class Caching {
      * @return  string The order by clause.
      */
     private function get_orderby_clause() {
-        $order = '`cache_id` DESC';
+        $order   = '`cache_id` DESC';
         $orderby = filter_input( INPUT_GET, 'orderby', FILTER_SANITIZE_STRING );
 
         if ( in_array( $orderby, [
-                'request_uri',
-                'object_type',
-                'cache_hits',
-                'cache_key',
-                'expiration'
-            ], true ) ) {
+            'request_uri',
+            'object_type',
+            'cache_hits',
+            'cache_key',
+            'expiration'
+        ], true ) ) {
             $order = '`' . $orderby . '` ' . ( filter_input( INPUT_GET, 'order', FILTER_SANITIZE_STRING ) === 'desc' ? 'DESC' : 'ASC' );
         }
 
