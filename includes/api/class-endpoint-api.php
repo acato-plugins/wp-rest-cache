@@ -246,7 +246,7 @@ class Endpoint_Api {
          *
          * @param   array $original_allowed_endpoints An array of endpoints that are allowed to be cached.
          */
-        $allowed_endpoints = apply_filters( 'wp_rest_cache/allowed_endpoints', $original_allowed_endpoints );
+        $allowed_endpoints = apply_filters( 'wp_rest_cache/allowed_endpoints', [] );
         if ( $original_allowed_endpoints !== $allowed_endpoints ) {
             update_option( 'wp_rest_cache_allowed_endpoints', $allowed_endpoints );
         }
