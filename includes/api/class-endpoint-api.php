@@ -167,6 +167,11 @@ class Endpoint_Api {
             return true;
         }
 
+        // Parameter to skip caching
+        if( true === filter_has_var( INPUT_GET, 'skip_cache' ) ) {
+            return true;
+        }
+
         // Make sure we only apply to allowed api calls
         $rest_prefix = sprintf( '/%s/', get_option( 'wp_rest_cache_rest_prefix', 'wp-json' ) );
         if ( strpos( $this->request_uri, $rest_prefix ) === false ) {

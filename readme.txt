@@ -1,6 +1,6 @@
 === WP REST Cache ===
 Contributors: acato, rockfire, yoeridekker
-Tags: cache, wp-rest, wp-rest-api, api, rest
+Tags: cache, wp-rest, wp-rest-api, api, rest, rest cache, rest api cache
 Requires at least: 4.7
 Tested up to: 5.1
 Requires PHP: 5.5
