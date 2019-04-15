@@ -102,6 +102,10 @@ function wprc_unregister_wp_comments_endpoint( $allowed_endpoints ) {
 }
 add_filter( 'wp_rest_cache/allowed_endpoints', 'wprc_unregister_wp_comments_endpoint', 100, 1);`
 
+= Can I force a call to the REST API to not use caching? =
+
+Yes you can! Add the GET-parameter `skip_cache=1` to your call and no caching will be used.
+
 = On the cache overview page I see the object type is 'unknown'. Can I help the WP REST Cache plugin to detect the object type correctly? =
 
 Yes you can! Use the hook `wp_rest_cache/determine_object_type` like this:
@@ -126,6 +130,10 @@ add_filter( 'wp_rest_cache/determine_object_type', 'wprc_determine_object_type',
 5. Cache details page - Cache data.
 
 == Changelog ==
+
+= 2019.2.1 =
+Release Date: April 15th, 2019
+Feature: Added option to skip cache using a parameter.
 
 = 2019.2.0 =
 Release Date: April 2nd, 2019
