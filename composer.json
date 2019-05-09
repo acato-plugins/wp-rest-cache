@@ -1,7 +1,4 @@
 {
 	"name": "acato/wp-rest-cache",
-	"type": "wordpress-plugin",
-    "require-dev": {
-        "bjornjohansen/wp-pre-commit-hook": "*"
-    }
+	"type": "wordpress-plugin"
 }
