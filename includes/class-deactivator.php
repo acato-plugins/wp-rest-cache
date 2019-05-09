@@ -28,8 +28,25 @@ class Deactivator {
 	public static function deactivate() {
 		Caching\Caching::get_instance()->clear_caches( true );
 		if ( file_exists( WPMU_PLUGIN_DIR . '/wp-rest-cache.php' ) ) {
-			// @TODO: If multisite only delete if not active on ANY subsite
-			unlink( WPMU_PLUGIN_DIR . '/wp-rest-cache.php' );
+			$active = false;
+			if ( is_multisite() ) {
+				$current_blog_id = get_current_blog_id();
+				$site_ids        = get_sites( [ 'fields' => 'ids' ] );
+				foreach ( $site_ids as $site_id ) {
+					if ( $current_blog_id === $site_id ) {
+						continue;
+					}
+					switch_to_blog( $site_id );
+					$active = is_plugin_active( 'wp-rest-cache/wp-rest-cache.php' );
+					restore_current_blog();
+					if ( $active ) {
+						break;
+					}
+				}
+			}
+			if ( ! $active ) {
+				unlink( WPMU_PLUGIN_DIR . '/wp-rest-cache.php' );
+			}
 		}
 	}
 }
