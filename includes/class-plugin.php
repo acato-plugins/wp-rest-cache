@@ -142,7 +142,7 @@ class Plugin {
 		add_action( 'profile_update', [ $caching, 'profile_update' ], 999, 2 );
 		add_action( 'user_register', [ $caching, 'user_register' ], 999, 1 );
 		add_action( 'deleted_user', [ $caching, 'deleted_user' ] );
-    
+
 		add_action( 'edit_comment', [ $caching, 'delete_comment_type_related_caches' ], 999, 2 );
 		add_action( 'deleted_comment', [ $caching, 'delete_comment_related_caches' ], 10, 2 );
 		add_action( 'trashed_comment', [ $caching, 'delete_comment_related_caches' ], 10, 2 );
