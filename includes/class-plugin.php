@@ -1,19 +1,19 @@
 <?php
-
 /**
  * The file that defines the core plugin class
  *
  * A class definition that includes attributes and functions used across both the
  * public-facing side of the site and the admin area.
  *
- * @link:       http://www.acato.nl
- * @since       2018.1
+ * @link: http://www.acato.nl
+ * @since 2018.1
  *
- * @package     WP_Rest_Cache_Plugin
- * @subpackage  WP_Rest_Cache_Plugin/Includes
+ * @package    WP_Rest_Cache_Plugin
+ * @subpackage WP_Rest_Cache_Plugin/Includes
  */
 
 namespace WP_Rest_Cache_Plugin\Includes;
+
 /**
  * The core plugin class.
  *
@@ -23,149 +23,152 @@ namespace WP_Rest_Cache_Plugin\Includes;
  * Also maintains the unique identifier of this plugin as well as the current
  * version of the plugin.
  *
- * @package     WP_Rest_Cache_Plugin
- * @subpackage  WP_Rest_Cache_Plugin/Includes
- * @author:     Richard Korthuis - Acato <richardkorthuis@acato.nl>
+ * @package    WP_Rest_Cache_Plugin
+ * @subpackage WP_Rest_Cache_Plugin/Includes
+ * @author:    Richard Korthuis - Acato <richardkorthuis@acato.nl>
  */
 class Plugin {
 
-    /**
-     * The unique identifier of this plugin.
-     *
-     * @access   protected
-     * @var      string $plugin_name The string used to uniquely identify this plugin.
-     */
-    protected $plugin_name;
 
-    /**
-     * The current version of the plugin.
-     *
-     * @access   protected
-     * @var      string $version The current version of the plugin.
-     */
-    protected $version;
+	/**
+	 * The unique identifier of this plugin.
+	 *
+	 * @access protected
+	 * @var    string $plugin_name The string used to uniquely identify this plugin.
+	 */
+	protected $plugin_name;
 
-    /**
-     * Define the core functionality of the plugin.
-     *
-     * Set the plugin name and the plugin version that can be used throughout the plugin.
-     * Load the dependencies, define the locale, and set the hooks for the admin area and
-     * the public-facing side of the site.
-     */
-    public function __construct() {
-        $this->plugin_name = 'wp-rest-cache';
-        $this->version     = '2019.2.1';
+	/**
+	 * The current version of the plugin.
+	 *
+	 * @access protected
+	 * @var    string $version The current version of the plugin.
+	 */
+	protected $version;
 
-        $this->set_locale();
-        $this->define_admin_hooks();
-        $this->define_api_hooks();
-        $this->define_caching_hooks();
-    }
+	/**
+	 * Define the core functionality of the plugin.
+	 *
+	 * Set the plugin name and the plugin version that can be used throughout the plugin.
+	 * Load the dependencies, define the locale, and set the hooks for the admin area and
+	 * the public-facing side of the site.
+	 */
+	public function __construct() {
+		$this->plugin_name = 'wp-rest-cache';
+		$this->version     = '2019.2.1';
 
-    /**
-     * Define the locale for this plugin for internationalization.
-     *
-     * Uses the WP_Rest_Cache_Plugin\Includes\I18n class in order to set the domain and to register the hook
-     * with WordPress.
-     */
-    private function set_locale() {
+		$this->set_locale();
+		$this->define_admin_hooks();
+		$this->define_api_hooks();
+		$this->define_caching_hooks();
+	}
 
-        $plugin_i18n = new I18n();
+	/**
+	 * Define the locale for this plugin for internationalization.
+	 *
+	 * Uses the WP_Rest_Cache_Plugin\Includes\I18n class in order to set the domain and to register the hook
+	 * with WordPress.
+	 */
+	private function set_locale() {
 
-        add_action( 'plugins_loaded', [ $plugin_i18n, 'load_plugin_textdomain' ] );
+		$plugin_i18n = new I18n();
 
-    }
+		add_action( 'plugins_loaded', [ $plugin_i18n, 'load_plugin_textdomain' ] );
 
-    /**
-     * Register all of the hooks related to the admin area functionality of the plugin.
-     */
-    private function define_admin_hooks() {
+	}
 
-        $plugin_admin = new \WP_Rest_Cache_Plugin\Admin\Admin( $this->get_plugin_name(), $this->get_version() );
+	/**
+	 * Register all of the hooks related to the admin area functionality of the plugin.
+	 */
+	private function define_admin_hooks() {
 
-        add_action( 'admin_enqueue_scripts', array( $plugin_admin, 'enqueue_styles' ) );
-        // create custom plugin settings menu
-        add_action( 'admin_menu', [ $plugin_admin, 'create_menu' ] );
-        add_action( 'admin_init', [ $plugin_admin, 'register_settings' ] );
-        add_action( 'admin_init', [ $plugin_admin, 'check_muplugin_existence' ] );
-        add_action( 'admin_init', [ $plugin_admin, 'handle_actions' ] );
-        add_action( 'admin_notices', [ $plugin_admin, 'display_notices' ] );
-        add_action( 'wp_before_admin_bar_render', [ $plugin_admin, 'admin_bar_item' ], 999 );
-        add_filter( 'set-screen-option', [ $plugin_admin, 'set_screen_option' ], 10, 3 );
-        add_filter( 'plugin_action_links_' . trailingslashit( dirname( plugin_basename( __DIR__ ) ) ) . 'wp-rest-cache.php', [
-            $plugin_admin,
-            'add_plugin_settings_link'
-        ] );
-    }
+		$plugin_admin = new \WP_Rest_Cache_Plugin\Admin\Admin( $this->get_plugin_name(), $this->get_version() );
 
-    /**
-     * Register all of the hooks related to the api functionality of the plugin.
-     */
-    private function define_api_hooks() {
-        $endpoint_api = new API\Endpoint_Api();
+		add_action( 'admin_enqueue_scripts', array( $plugin_admin, 'enqueue_styles' ) );
+		// Create custom plugin settings menu.
+		add_action( 'admin_menu', [ $plugin_admin, 'create_menu' ] );
+		add_action( 'admin_init', [ $plugin_admin, 'register_settings' ] );
+		add_action( 'admin_init', [ $plugin_admin, 'check_muplugin_existence' ] );
+		add_action( 'admin_init', [ $plugin_admin, 'handle_actions' ] );
+		add_action( 'admin_notices', [ $plugin_admin, 'display_notices' ] );
+		add_action( 'wp_before_admin_bar_render', [ $plugin_admin, 'admin_bar_item' ], 999 );
+		add_filter( 'set-screen-option', [ $plugin_admin, 'set_screen_option' ], 10, 3 );
+		add_filter(
+			'plugin_action_links_' . trailingslashit( dirname( plugin_basename( __DIR__ ) ) ) . 'wp-rest-cache.php',
+			[
+				$plugin_admin,
+				'add_plugin_settings_link',
+			]
+		);
+	}
 
-        add_action( 'init', [ $endpoint_api, 'save_options' ] );
-        add_action( 'rest_api_init', [ $endpoint_api, 'save_options' ] );
-        add_filter( 'wp_rest_cache/allowed_endpoints', [ $endpoint_api, 'add_wordpress_endpoints' ] );
-        add_filter( 'wp_rest_cache/determine_object_type', [ $endpoint_api, 'determine_object_type' ], 10, 4 );
+	/**
+	 * Register all of the hooks related to the api functionality of the plugin.
+	 */
+	private function define_api_hooks() {
+		$endpoint_api = new API\Endpoint_Api();
 
-        $item_api = new API\Item_Api();
+		add_action( 'init', [ $endpoint_api, 'save_options' ] );
+		add_action( 'rest_api_init', [ $endpoint_api, 'save_options' ] );
+		add_filter( 'wp_rest_cache/allowed_endpoints', [ $endpoint_api, 'add_wordpress_endpoints' ] );
+		add_filter( 'wp_rest_cache/determine_object_type', [ $endpoint_api, 'determine_object_type' ], 10, 4 );
 
-        add_filter( 'register_post_type_args', [ $item_api, 'set_post_type_rest_controller' ], 10, 2 );
-        add_filter( 'register_taxonomy_args', [ $item_api, 'set_taxonomy_rest_controller' ], 10, 2 );
+		$item_api = new API\Item_Api();
 
-        add_action( 'save_post', [ $item_api, 'save_post' ], 1000, 3 );
-        add_action( 'created_term', [ $item_api, 'edited_term' ], 1000, 3 );
-        add_action( 'edited_term', [ $item_api, 'edited_term' ], 1000, 3 );
-    }
+		add_filter( 'register_post_type_args', [ $item_api, 'set_post_type_rest_controller' ], 10, 2 );
+		add_filter( 'register_taxonomy_args', [ $item_api, 'set_taxonomy_rest_controller' ], 10, 2 );
 
-    /**
-     * Register all of the hooks related to the caching functionality of the plugin.
-     */
-    private function define_caching_hooks() {
-        $caching = Caching\Caching::get_instance();
+		add_action( 'save_post', [ $item_api, 'save_post' ], 1000, 3 );
+		add_action( 'created_term', [ $item_api, 'edited_term' ], 1000, 3 );
+		add_action( 'edited_term', [ $item_api, 'edited_term' ], 1000, 3 );
+	}
 
-        add_action( 'init', [ $caching, 'update_database_structure' ] );
+	/**
+	 * Register all of the hooks related to the caching functionality of the plugin.
+	 */
+	private function define_caching_hooks() {
+		$caching = Caching\Caching::get_instance();
 
-        add_action( 'save_post', [ $caching, 'save_post' ], 999, 3 );
-        add_action( 'delete_post', [ $caching, 'delete_post' ] );
-        add_action( 'transition_post_status', [ $caching, 'transition_post_status' ], 10, 3 );
+		add_action( 'init', [ $caching, 'update_database_structure' ] );
 
-        add_action( 'created_term', [ $caching, 'created_term' ], 999, 3 );
-        add_action( 'edited_term', [ $caching, 'edited_term' ], 999, 3 );
-        add_action( 'delete_term', [ $caching, 'delete_term' ], 10, 5 );
+		add_action( 'save_post', [ $caching, 'save_post' ], 999, 3 );
+		add_action( 'delete_post', [ $caching, 'delete_post' ] );
+		add_action( 'transition_post_status', [ $caching, 'transition_post_status' ], 10, 3 );
 
-        add_action( 'profile_update', [ $caching, 'profile_update' ], 999, 2 );
-        add_action( 'user_register', [ $caching, 'user_register' ], 999, 1 );
-        add_action( 'deleted_user', [ $caching, 'deleted_user' ] );
+		add_action( 'created_term', [ $caching, 'created_term' ], 999, 3 );
+		add_action( 'edited_term', [ $caching, 'edited_term' ], 999, 3 );
+		add_action( 'delete_term', [ $caching, 'delete_term' ], 10, 5 );
 
-        // @TODO: Check if these actions are sufficient
-        add_action( 'edit_comment', [ $caching, 'delete_comment_type_related_caches' ], 999, 2 );
-        add_action( 'deleted_comment', [ $caching, 'delete_comment_related_caches' ], 10, 2 );
-        add_action( 'trashed_comment', [ $caching, 'delete_comment_related_caches' ], 10, 2 );
-        add_action( 'untrashed_comment', [ $caching, 'delete_comment_type_related_caches' ], 999, 2 );
-        add_action( 'spammed_comment', [ $caching, 'delete_comment_related_caches' ], 10, 2 );
-        add_action( 'unspammed_comment', [ $caching, 'delete_comment_type_related_caches' ], 999, 2 );
-        add_action( 'wp_insert_comment', [ $caching, 'delete_comment_type_related_caches' ], 999, 2 );
-        add_action( 'comment_post', [ $caching, 'delete_comment_type_related_caches' ], 999, 2 );
-    }
+		add_action( 'profile_update', [ $caching, 'profile_update' ], 999, 2 );
+		add_action( 'user_register', [ $caching, 'user_register' ], 999, 1 );
+		add_action( 'deleted_user', [ $caching, 'deleted_user' ] );
 
-    /**
-     * The name of the plugin used to uniquely identify it within the context of
-     * WordPress and to define internationalization functionality.
-     *
-     * @return    string    The name of the plugin.
-     */
-    public function get_plugin_name() {
-        return $this->plugin_name;
-    }
+		add_action( 'edit_comment', [ $caching, 'delete_comment_type_related_caches' ], 999, 2 );
+		add_action( 'deleted_comment', [ $caching, 'delete_comment_related_caches' ], 10, 2 );
+		add_action( 'trashed_comment', [ $caching, 'delete_comment_related_caches' ], 10, 2 );
+		add_action( 'untrashed_comment', [ $caching, 'delete_comment_type_related_caches' ], 999, 2 );
+		add_action( 'spammed_comment', [ $caching, 'delete_comment_related_caches' ], 10, 2 );
+		add_action( 'unspammed_comment', [ $caching, 'delete_comment_type_related_caches' ], 999, 2 );
+		add_action( 'wp_insert_comment', [ $caching, 'delete_comment_type_related_caches' ], 999, 2 );
+		add_action( 'comment_post', [ $caching, 'delete_comment_type_related_caches' ], 999, 2 );
+	}
 
-    /**
-     * Retrieve the version number of the plugin.
-     *
-     * @return    string    The version number of the plugin.
-     */
-    public function get_version() {
-        return $this->version;
-    }
+	/**
+	 * The name of the plugin used to uniquely identify it within the context of
+	 * WordPress and to define internationalization functionality.
+	 *
+	 * @return string    The name of the plugin.
+	 */
+	public function get_plugin_name() {
+		return $this->plugin_name;
+	}
+
+	/**
+	 * Retrieve the version number of the plugin.
+	 *
+	 * @return string    The version number of the plugin.
+	 */
+	public function get_version() {
+		return $this->version;
+	}
 }
