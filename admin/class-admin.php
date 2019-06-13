@@ -52,7 +52,7 @@ class Admin {
 	 * Initialize the class and set its properties.
 	 *
 	 * @param string $plugin_name The name of this plugin.
-	 * @param string $version     The version of this plugin.
+	 * @param string $version The version of this plugin.
 	 */
 	public function __construct( $plugin_name, $version ) {
 		$this->plugin_name = $plugin_name;
@@ -102,8 +102,8 @@ class Admin {
 	 * Set the caches_per_pages screen option.
 	 *
 	 * @param bool|int $option_value Screen option value. Default false to skip.
-	 * @param string   $option       The option name.
-	 * @param int      $value        The number of rows to use.
+	 * @param string   $option The option name.
+	 * @param int      $value The number of rows to use.
 	 *
 	 * @return int
 	 */
@@ -136,6 +136,9 @@ class Admin {
 	public function register_settings() {
 		register_setting( 'wp-rest-cache-settings', 'wp_rest_cache_timeout' );
 		register_setting( 'wp-rest-cache-settings', 'wp_rest_cache_timeout_interval' );
+		register_setting( 'wp-rest-cache-settings', 'wp_rest_cache_regenerate' );
+		register_setting( 'wp-rest-cache-settings', 'wp_rest_cache_regenerate_interval' );
+		register_setting( 'wp-rest-cache-settings', 'wp_rest_cache_regenerate_number' );
 	}
 
 	/**
@@ -192,8 +195,8 @@ class Admin {
 	/**
 	 * Add a notice to the wp-admin.
 	 *
-	 * @param string $type        The type of message (error|warning|success|info).
-	 * @param string $message     The message to display.
+	 * @param string $type The type of message (error|warning|success|info).
+	 * @param string $message The message to display.
 	 * @param bool   $dismissible Should the message be dismissible.
 	 */
 	protected function add_notice( $type, $message, $dismissible = true ) {
@@ -249,6 +252,36 @@ class Admin {
 					<?php
 				}
 			}
+		}
+	}
+
+	/**
+	 * Unschedule or schedule the cron based on the regenerate setting.
+	 *
+	 * @param mixed  $old_value The old option value.
+	 * @param mixed  $value The new option value.
+	 * @param string $option Option name.
+	 */
+	public function regenerate_updated( $old_value, $value, $option ) {
+		if ( '1' === $value ) {
+			$wp_rest_cache_regenerate_interval = \WP_Rest_Cache_Plugin\Includes\Caching\Caching::get_instance()->get_regenerate_interval();
+			wp_schedule_event( time(), $wp_rest_cache_regenerate_interval, 'wp_rest_cache_regenerate_cron' );
+		} else {
+			wp_clear_scheduled_hook( 'wp_rest_cache_regenerate_cron' );
+		}
+	}
+
+	/**
+	 * Update regenerate interval based on new setting.
+	 *
+	 * @param mixed  $old_value The old option value.
+	 * @param mixed  $value The new option value.
+	 * @param string $option Option name.
+	 */
+	public function regenerate_interval_updated( $old_value, $value, $option ) {
+		if ( \WP_Rest_Cache_Plugin\Includes\Caching\Caching::get_instance()->should_regenerate() ) {
+			wp_clear_scheduled_hook( 'wp_rest_cache_regenerate_cron' );
+			wp_schedule_event( time(), $value, 'wp_rest_cache_regenerate_cron' );
 		}
 	}
 }

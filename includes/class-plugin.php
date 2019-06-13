@@ -100,6 +100,16 @@ class Plugin {
 				'add_plugin_settings_link',
 			]
 		);
+		add_action( 'update_option_wp_rest_cache_regenerate', [ $plugin_admin, 'regenerate_updated' ], 10, 3 );
+		add_action(
+			'update_option_wp_rest_cache_regenerate_interval',
+			[
+				$plugin_admin,
+				'regenerate_interval_updated',
+			],
+			10,
+			3
+		);
 	}
 
 	/**
@@ -151,6 +161,8 @@ class Plugin {
 		add_action( 'unspammed_comment', [ $caching, 'delete_comment_type_related_caches' ], 999, 2 );
 		add_action( 'wp_insert_comment', [ $caching, 'delete_comment_type_related_caches' ], 999, 2 );
 		add_action( 'comment_post', [ $caching, 'delete_comment_type_related_caches' ], 999, 2 );
+
+		add_action( 'wp_rest_cache_regenerate_cron', [ $caching, 'regenerate_expired_caches' ] );
 	}
 
 	/**

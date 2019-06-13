@@ -19,11 +19,15 @@
 			<?php do_settings_sections( 'wp-rest-cache-settings' ); ?>
 			<?php $wp_rest_cache_timeout = \WP_Rest_Cache_Plugin\Includes\Caching\Caching::get_instance()->get_timeout( false ); ?>
 			<?php $wp_rest_cache_timeout_interval = \WP_Rest_Cache_Plugin\Includes\Caching\Caching::get_instance()->get_timeout_interval(); ?>
+			<?php $wp_rest_cache_regenerate = \WP_Rest_Cache_Plugin\Includes\Caching\Caching::get_instance()->should_regenerate(); ?>
+			<?php $wp_rest_cache_regenerate_interval = \WP_Rest_Cache_Plugin\Includes\Caching\Caching::get_instance()->get_regenerate_interval(); ?>
+			<?php $wp_rest_cache_regenerate_number = \WP_Rest_Cache_Plugin\Includes\Caching\Caching::get_instance()->get_regenerate_number(); ?>
+			<?php $wp_rest_cache_schedules = wp_get_schedules(); ?>
 
 			<table class="form-table" style="margin: 0 12px">
 				<tbody>
 				<tr>
-					<th>Cache timeout</th>
+					<th><?php esc_html_e( 'Cache timeout', 'wp-rest-cache' ); ?></th>
 					<td>
 						<input type="number" min="1" name="wp_rest_cache_timeout" class="small-text"
 							value="<?php echo esc_attr( $wp_rest_cache_timeout ); ?>">
@@ -56,6 +60,38 @@
 						</select>
 						<p class="description"
 							id="wp_rest_cache_timeout-description"><?php esc_html_e( 'Time until expiration of cache. (Default = 1 year)', 'wp-rest-cache' ); ?></p>
+					</td>
+				</tr>
+				<tr>
+					<th><?php esc_html_e( 'Enable cache regeneration', 'wp-rest-cache' ); ?></th>
+					<td>
+						<input type="checkbox" value="1"
+							name="wp_rest_cache_regenerate" <?php echo $wp_rest_cache_regenerate ? 'checked="checked"' : ''; ?>>
+						<p class="description"
+							id="wp_rest_cache_regenerate-description"><?php esc_html_e( 'Will enable a cron that regenerates expired or flushed caches.', 'wp-rest-cache' ); ?></p>
+					</td>
+				</tr>
+				<tr>
+					<th><?php esc_html_e( 'Regeneration interval', 'wp-rest-cache' ); ?></th>
+					<td>
+						<select name="wp_rest_cache_regenerate_interval" id="wp_rest_cache_regenerate_interval"
+							style="vertical-align: initial">
+							<?php foreach ( $wp_rest_cache_schedules as $wp_rest_cache_key => $wp_rest_cache_schedule ) : ?>
+								<option value="<?php echo esc_attr( $wp_rest_cache_key ); ?>"
+									<?php selected( $wp_rest_cache_regenerate_interval, $wp_rest_cache_key ); ?>>
+									<?php echo esc_html( $wp_rest_cache_schedule['display'] ); ?>
+								</option>
+							<?php endforeach; ?>
+						</select>
+					</td>
+				</tr>
+				<tr>
+					<th><?php esc_html_e( 'Max number regenerate caches', 'wp-rest-cache' ); ?></th>
+					<td>
+						<input type="number" min="1" name="wp_rest_cache_regenerate_number" class="small-text"
+							value="<?php echo esc_attr( $wp_rest_cache_regenerate_number ); ?>">
+						<p class="description"
+							id="wp_rest_cache_regenerate_number-description"><?php esc_html_e( 'How many caches should be regenerated at maximum per interval? Increasing this number will increase the load on your server when the regeneration process is running.', 'wp-rest-cache' ); ?></p>
 					</td>
 				</tr>
 				</tbody>
