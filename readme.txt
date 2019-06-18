@@ -2,7 +2,7 @@
 Contributors: acato, rockfire, yoeridekker
 Tags: cache, wp-rest, wp-rest-api, api, rest, rest cache, rest api cache
 Requires at least: 4.7
-Tested up to: 5.1
+Tested up to: 5.2
 Requires PHP: 5.5
 Stable tag: trunk
 License: GPLv3
@@ -25,6 +25,7 @@ This plugin offers:
 * A counter how many times a cache has been retrieved.
 * Specifying after what time the cache should be timed out.
 * Registering custom endpoints for caching.
+* Automatic cache regeneration.
 
 == Installation ==
 
@@ -121,6 +122,10 @@ Yes you can! Use the hook `wp_rest_cache/determine_object_type` like this:
 }
 add_filter( 'wp_rest_cache/determine_object_type', 'wprc_determine_object_type', 10, 4 );`
 
+= Can expired caches be automatically regenerated? =
+
+Yes they can!  Go to Settings > WP REST Cache, on the Settings tab you can check `Enable cache regeneration`, this will activate a cron job which will check if there are any expired (or flushed) caches and regenerate them. Using the `Regeneration interval` you can determine how often this regeneration process should run. The `Max number regenerate caches` limits the number of regenerated caches per regeneration process, this is so your server doesn't get flooded with the regeneration calls.
+
 == Screenshots ==
 
 1. Settings for the WP REST Cache plugin.
@@ -131,8 +136,16 @@ add_filter( 'wp_rest_cache/determine_object_type', 'wprc_determine_object_type',
 
 == Changelog ==
 
+= 2019.3.0 =
+Release Date: June 18th, 2019
+
+Improvement: Meet WordPress Coding Standards.
+Feature: Added expired caches regeneration cron.
+Bugfix: Added fallback check for Memcache(d). Memcache(d) treats a transient timeout > 30 days as a timestamp.
+
 = 2019.2.1 =
 Release Date: April 15th, 2019
+
 Feature: Added option to skip cache using a parameter.
 
 = 2019.2.0 =
