@@ -89,6 +89,7 @@ class Plugin {
 		add_action( 'admin_menu', [ $plugin_admin, 'create_menu' ] );
 		add_action( 'admin_init', [ $plugin_admin, 'register_settings' ] );
 		add_action( 'admin_init', [ $plugin_admin, 'check_muplugin_existence' ] );
+		add_action( 'admin_init', [ $plugin_admin, 'check_memcache_ext_object_caching' ] );
 		add_action( 'admin_init', [ $plugin_admin, 'handle_actions' ] );
 		add_action( 'admin_notices', [ $plugin_admin, 'display_notices' ] );
 		add_action( 'wp_before_admin_bar_render', [ $plugin_admin, 'admin_bar_item' ], 999 );

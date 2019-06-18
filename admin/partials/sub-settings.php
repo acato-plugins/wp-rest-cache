@@ -23,6 +23,7 @@
 			<?php $wp_rest_cache_regenerate_interval = \WP_Rest_Cache_Plugin\Includes\Caching\Caching::get_instance()->get_regenerate_interval(); ?>
 			<?php $wp_rest_cache_regenerate_number = \WP_Rest_Cache_Plugin\Includes\Caching\Caching::get_instance()->get_regenerate_number(); ?>
 			<?php $wp_rest_cache_schedules = wp_get_schedules(); ?>
+			<?php $wp_rest_cache_memcache_used = \WP_Rest_Cache_Plugin\Includes\Caching\Caching::get_instance()->get_memcache_used(); ?>
 
 			<table class="form-table" style="margin: 0 12px">
 				<tbody>
@@ -30,9 +31,9 @@
 					<th><?php esc_html_e( 'Cache timeout', 'wp-rest-cache' ); ?></th>
 					<td>
 						<input type="number" min="1" name="wp_rest_cache_timeout" class="small-text"
-							value="<?php echo esc_attr( $wp_rest_cache_timeout ); ?>">
+								value="<?php echo esc_attr( $wp_rest_cache_timeout ); ?>">
 						<select name="wp_rest_cache_timeout_interval" id="wp_rest_cache_timeout_interval"
-							style="vertical-align: initial">
+								style="vertical-align: initial">
 							<option value="<?php echo esc_attr( MINUTE_IN_SECONDS ); ?>"
 								<?php selected( $wp_rest_cache_timeout_interval, MINUTE_IN_SECONDS ); ?>>
 								<?php esc_html_e( 'Minute(s)', 'wp-rest-cache' ); ?>
@@ -94,6 +95,20 @@
 							id="wp_rest_cache_regenerate_number-description"><?php esc_html_e( 'How many caches should be regenerated at maximum per interval? Increasing this number will increase the load on your server when the regeneration process is running.', 'wp-rest-cache' ); ?></p>
 					</td>
 				</tr>
+				<?php
+				if ( wp_using_ext_object_cache()
+					&& ( class_exists( 'Memcache' ) || class_exists( 'Memcached' ) ) ) :
+					?>
+					<tr>
+						<th><?php esc_html_e( 'Memcache(d) used', 'wp-rest-cache' ); ?></th>
+						<td>
+							<input type="checkbox" value="1"
+								name="wp_rest_cache_memcache_used" <?php echo $wp_rest_cache_memcache_used ? 'checked="checked"' : ''; ?>>
+							<p class="description"
+								id="wp_rest_cache_memcache_used-description"><?php esc_html_e( 'Are you using Memcache(d) as external object caching?', 'wp-rest-cache' ); ?></p>
+						</td>
+					</tr>
+				<?php endif; ?>
 				</tbody>
 				<tfoot>
 				<tr>

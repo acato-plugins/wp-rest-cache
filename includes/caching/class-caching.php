@@ -361,6 +361,7 @@ class Caching {
 	 * @param string $taxonomy Taxonomy slug.
 	 * @param mixed  $deleted_term Copy of the already-deleted term, in the form specified by the parent function.
 	 *                               \WP_Error otherwise.
+	 *                              \WP_Error otherwise.
 	 * @param array  $object_ids List of term object IDs.
 	 */
 	public function delete_term( $term, $tt_id, $taxonomy, $deleted_term, $object_ids ) {
@@ -539,6 +540,11 @@ class Caching {
 	private function insert_cache_row( $cache_key, $cache_type, $uri, $object_type, $is_single = true ) {
 		global $wpdb;
 
+		$expiration = self::get_timeout();
+		if ( ! self::get_memcache_used() ) {
+			$expiration += time();
+		}
+
 		$wpdb->insert(
 			$this->db_table_caches,
 			[
@@ -548,7 +554,7 @@ class Caching {
 				'object_type' => $object_type,
 				'cache_hits'  => 1,
 				'is_single'   => $is_single,
-				'expiration'  => date( 'Y-m-d H:i:s', time() + self::get_timeout() ),
+				'expiration'  => date( 'Y-m-d H:i:s', $expiration ),
 			],
 			[ '%s', '%s', '%s', '%s', '%d', '%d', '%s' ]
 		);
@@ -597,7 +603,11 @@ class Caching {
 		global $wpdb;
 
 		if ( is_null( $expiration ) ) {
-			$expiration = date( 'Y-m-d H:i:s', time() + self::get_timeout() );
+			$expiration = self::get_timeout();
+			if ( ! self::get_memcache_used() ) {
+				$expiration += time();
+			}
+			$expiration = date( 'Y-m-d H:i:s', $expiration );
 		}
 
 		$wpdb->update(
@@ -953,6 +963,9 @@ class Caching {
 		if ( $calculated ) {
 			$timeout_interval = $this->get_timeout_interval();
 			$timeout          = $timeout * $timeout_interval;
+			if ( $this->get_memcache_used() ) {
+				$timeout += time();
+			}
 		}
 
 		return $timeout;
@@ -1027,6 +1040,15 @@ class Caching {
 				}
 			}
 		}
+	}
+
+	/**
+	 * Get whether Memcache(d) is being used as external object cache.
+	 *
+	 * @return bool Whether Memcache(d) is being used.
+	 */
+	public function get_memcache_used() {
+		return '1' === get_option( 'wp_rest_cache_memcache_used', false );
 	}
 
 	/**

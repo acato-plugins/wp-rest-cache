@@ -124,8 +124,8 @@ class Admin {
 	 */
 	public function add_plugin_settings_link( $links ) {
 		$links[] = '<a href="' .
-			admin_url( 'options-general.php?page=wp-rest-cache' ) . '">' .
-			__( 'Settings', 'wp-rest-cache' ) . '</a>';
+					admin_url( 'options-general.php?page=wp-rest-cache' ) . '">' .
+					__( 'Settings', 'wp-rest-cache' ) . '</a>';
 
 		return $links;
 	}
@@ -139,6 +139,7 @@ class Admin {
 		register_setting( 'wp-rest-cache-settings', 'wp_rest_cache_regenerate' );
 		register_setting( 'wp-rest-cache-settings', 'wp_rest_cache_regenerate_interval' );
 		register_setting( 'wp-rest-cache-settings', 'wp_rest_cache_regenerate_number' );
+		register_setting( 'wp-rest-cache-settings', 'wp_rest_cache_memcache_used' );
 	}
 
 	/**
@@ -189,6 +190,18 @@ class Admin {
 					$this->add_notice( 'error', __( 'There were no items cached', 'wp-rest-cache' ) );
 				}
 			}
+		} elseif ( isset( $_GET['wp_rest_cache_dismiss'] )
+			&& check_admin_referer( 'wp-rest-cache-dismiss-notice-' . filter_input( INPUT_GET, 'wp_rest_cache_dismiss' ) )
+		) {
+			$user_id           = get_current_user_id();
+			$dismissed_notices = get_user_meta( $user_id, 'wp_rest_cache_dismissed_notices', true );
+			if ( ! is_array( $dismissed_notices ) ) {
+				$dismissed_notices = [];
+			}
+			if ( ! in_array( filter_input( INPUT_GET, 'wp_rest_cache_dismiss' ), $dismissed_notices, true ) ) {
+				$dismissed_notices[] = filter_input( INPUT_GET, 'wp_rest_cache_dismiss' );
+				update_user_meta( $user_id, 'wp_rest_cache_dismissed_notices', $dismissed_notices );
+			}
 		}
 	}
 
@@ -197,7 +210,7 @@ class Admin {
 	 *
 	 * @param string $type The type of message (error|warning|success|info).
 	 * @param string $message The message to display.
-	 * @param bool   $dismissible Should the message be dismissible.
+	 * @param mixed  $dismissible Boolean, should the message be dismissible or 'permanent' for permanently dismissible notice.
 	 */
 	protected function add_notice( $type, $message, $dismissible = true ) {
 		$this->notices[ $type ][] = [
@@ -238,18 +251,47 @@ class Admin {
 	}
 
 	/**
+	 * Check if external object caching is being used, if so display a warning for needed Memcache(d) settings.
+	 */
+	public function check_memcache_ext_object_caching() {
+		if ( wp_using_ext_object_cache()
+			&& ( class_exists( 'Memcache' ) || class_exists( 'Memcached' ) )
+			&& ! \WP_Rest_Cache_Plugin\Includes\Caching\Caching::get_instance()->get_memcache_used() ) {
+			$this->add_notice(
+				'warning',
+				__( 'We have detected you are using external object caching. If you are using Memcache(d) as external object cache, please make sure you visit this plugin\'s settings page and check the `Using Memcache(d)` checkbox.', 'wp-rest-cache' ),
+				'permanent'
+			);
+		}
+	}
+
+	/**
 	 * Display notices (if any) on the Admin dashboard
 	 */
 	public function display_notices() {
 		if ( count( $this->notices ) ) {
+			$user_id           = get_current_user_id();
+			$dismissed_notices = get_user_meta( $user_id, 'wp_rest_cache_dismissed_notices', true );
 			foreach ( $this->notices as $type => $messages ) {
 				foreach ( $messages as $message ) {
-					?>
-					<div
-						class="notice notice-<?php echo esc_attr( $type ); ?> <?php echo $message['dismissible'] ? 'is-dismissible' : ''; ?>">
-						<p><strong>WP REST Cache:</strong> <?php echo esc_html( $message['message'] ); ?></p>
-					</div>
-					<?php
+					if ( ! is_array( $dismissed_notices ) || ! in_array( esc_attr( md5( $message['message'] ) ), $dismissed_notices, true ) ) {
+						?>
+						<div
+							class="notice notice-<?php echo esc_attr( $type ); ?> <?php echo ( true === $message['dismissible'] ) ? 'is-dismissible' : ''; ?>">
+							<p><strong>WP REST Cache:</strong> <?php echo esc_html( $message['message'] ); ?>
+								<?php if ( 'permanent' === $message['dismissible'] ) : ?>
+									<?php
+									$url = wp_nonce_url(
+										'?wp_rest_cache_dismiss=' . esc_attr( md5( $message['message'] ) ),
+										'wp-rest-cache-dismiss-notice-' . esc_attr( md5( $message['message'] ) )
+									);
+									?>
+									<a class="button"
+										href="<?php echo esc_attr( $url ); ?>"><?php echo esc_html_e( 'Hide this message', 'wp-rest-cache' ); ?></a>
+								<?php endif; ?></p>
+						</div>
+						<?php
+					}
 				}
 			}
 		}
