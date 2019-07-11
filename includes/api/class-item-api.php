@@ -12,9 +12,9 @@
 namespace WP_Rest_Cache_Plugin\Includes\API;
 
 /**
- * API for item caching.
+ * API for (custom) post type and (custom) taxonomy caching.
  *
- * Caches single items (result of prepare_item_for_response) and handles the update if single items are updated.
+ * Make sure (custom) post types and (custom) taxonomies are automatically cached.
  *
  * @package    WP_Rest_Cache_Plugin
  * @subpackage WP_Rest_Cache_Plugin/Includes/API
@@ -53,25 +53,6 @@ class Item_Api {
 	}
 
 	/**
-	 * Fired upon post update (WordPress hook 'save_post'). Make sure the item cache is updated.
-	 *
-	 * @param int      $post_id The ID of the post that is being updated.
-	 * @param \WP_Post $post    The post object of the post that is being updated.
-	 * @param bool     $update  True if it is an updated post, false if it is a new post.
-	 */
-	public function save_post( $post_id, \WP_Post $post, $update ) {
-		$post_type = get_post_types( [ 'name' => $post->post_type ], 'objects' )[ $post->post_type ];
-		if ( ! $this->should_use_custom_class( $post_type->rest_controller_class, 'post_type' )
-			|| wp_is_post_revision( $post )
-		) {
-			return;
-		}
-
-		$controller = new \WP_Rest_Cache_Plugin\Includes\Controller\Post_Controller( $post->post_type );
-		$controller->update_item_cache( $post );
-	}
-
-	/**
 	 * Hook into the registering of a taxonomy and replace the REST Controller with an extension (if allowed).
 	 *
 	 * @param array  $args     Array of arguments for registering a taxonomy.
@@ -88,25 +69,6 @@ class Item_Api {
 		$args['rest_controller_class'] = \WP_Rest_Cache_Plugin\Includes\Controller\Term_Controller::class;
 
 		return $args;
-	}
-
-	/**
-	 * Fired upon term creation / update (WordPress hooks 'created_term' and 'edited_term'). Make sure the item cache
-	 * is updated.
-	 *
-	 * @param int    $term_id  The term_id of the term that is being updated.
-	 * @param int    $tt_id    The term taxonomy id.
-	 * @param string $taxonomy The taxonomy of the term that is being updated.
-	 */
-	public function edited_term( $term_id, $tt_id, $taxonomy ) {
-		$term       = get_term( $term_id, $taxonomy );
-		$tax_object = get_taxonomies( [ 'name' => $term->taxonomy ], 'objects' )[ $term->taxonomy ];
-		if ( ! $this->should_use_custom_class( $tax_object->rest_controller_class, 'taxonomy' ) ) {
-			return;
-		}
-
-		$controller = new \WP_Rest_Cache_Plugin\Includes\Controller\Term_Controller( $term->taxonomy );
-		$controller->update_item_cache( $term );
 	}
 
 	/**

@@ -128,10 +128,6 @@ class Plugin {
 
 		add_filter( 'register_post_type_args', [ $item_api, 'set_post_type_rest_controller' ], 10, 2 );
 		add_filter( 'register_taxonomy_args', [ $item_api, 'set_taxonomy_rest_controller' ], 10, 2 );
-
-		add_action( 'save_post', [ $item_api, 'save_post' ], 1000, 3 );
-		add_action( 'created_term', [ $item_api, 'edited_term' ], 1000, 3 );
-		add_action( 'edited_term', [ $item_api, 'edited_term' ], 1000, 3 );
 	}
 
 	/**
