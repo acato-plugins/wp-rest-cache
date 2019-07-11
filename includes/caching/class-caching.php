@@ -25,7 +25,7 @@ class Caching {
 	 *
 	 * @var string DB_VERSION The current version of the database tables.
 	 */
-	const DB_VERSION = '2018.1.1';
+	const DB_VERSION = '2018.4.0';
 
 	/**
 	 * The table name for the table where caches are stored together with their statistics.
@@ -1067,7 +1067,9 @@ class Caching {
 	 */
 	public function update_database_structure() {
 
-		if ( get_option( 'wp_rest_cache_database_version' ) !== self::DB_VERSION ) {
+		$version = get_option( 'wp_rest_cache_database_version' );
+
+		if ( self::DB_VERSION !== $version ) {
 			include_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
 			$sql_caches =
@@ -1101,6 +1103,23 @@ class Caching {
 			dbDelta( $sql_relations );
 
 			update_option( 'wp_rest_cache_database_version', self::DB_VERSION );
+		}
+
+		if ( version_compare( '2019.4.0', $version, '>' ) ) {
+			$this->upgrade_2019_4_0();
+		}
+	}
+
+	/**
+	 * Delete deprecated item api caches.
+	 */
+	private function upgrade_2019_4_0() {
+		$nr_of_item_caches = $this->get_record_count( 'item' );
+		for ( $count = 0; $count * 100 < $nr_of_item_caches; $count ++ ) {
+			$item_caches = $this->get_api_data( 'item', 100, $count + 1 );
+			foreach ( $item_caches as $item_cache ) {
+				$this->delete_cache( $item_cache['cache_key'], true );
+			}
 		}
 	}
 }
