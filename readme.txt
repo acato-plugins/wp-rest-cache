@@ -157,6 +157,14 @@ add_filter('wp_rest_cache/cacheable_request_headers', 'wprc_add_cacheable_reques
 
 == Changelog ==
 
+= 2019.4.0 =
+Release Date: July 12th, 2019
+
+Feature: Added option to differentiate between caches based upon certain request headers.
+Feature: Added option to hide the 'Clear cache' button in the wp-admin bar.
+Bugfix: Fix for when WordPress is installed in a subdirectory.
+Bugfix: Remove Item Caching, it was causing more problems and complexity than it was improving performance.
+
 = 2019.3.0 =
 Release Date: June 18th, 2019
 
