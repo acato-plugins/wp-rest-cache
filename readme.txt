@@ -126,6 +126,15 @@ add_filter( 'wp_rest_cache/determine_object_type', 'wprc_determine_object_type',
 
 Yes they can!  Go to Settings > WP REST Cache, on the Settings tab you can check `Enable cache regeneration`, this will activate a cron job which will check if there are any expired (or flushed) caches and regenerate them. Using the `Regeneration interval` you can determine how often this regeneration process should run. The `Max number regenerate caches` limits the number of regenerated caches per regeneration process, this is so your server doesn't get flooded with the regeneration calls.
 
+= Can I hide the 'Clear REST cache' in the wp-admin bar? =
+
+Yes you can! Use the hook `wp_rest_cache/display_clear_cache_button` like this:
+
+`function wprc_hide_clear_cache_button( $show ) {
+    return true;
+}
+add_filter('wp_rest_cache/display_clear_cache_button', 'wprc_hide_clear_cache_button', 10, 1);`
+
 == Screenshots ==
 
 1. Settings for the WP REST Cache plugin.
