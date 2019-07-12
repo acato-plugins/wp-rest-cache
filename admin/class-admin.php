@@ -140,6 +140,7 @@ class Admin {
 		register_setting( 'wp-rest-cache-settings', 'wp_rest_cache_regenerate_interval' );
 		register_setting( 'wp-rest-cache-settings', 'wp_rest_cache_regenerate_number' );
 		register_setting( 'wp-rest-cache-settings', 'wp_rest_cache_memcache_used' );
+		register_setting( 'wp-rest-cache-settings', 'wp_rest_cache_global_cacheable_request_headers' );
 	}
 
 	/**

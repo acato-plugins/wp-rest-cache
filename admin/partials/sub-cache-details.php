@@ -81,6 +81,16 @@
 							</p>
 						</div>
 					</div>
+					<?php if ( $wp_rest_cache['row']['request_headers'] ) : ?>
+						<div class="postbox">
+							<h3 class="hndle"><?php esc_html_e( 'Cached request headers', 'wp-rest-cache' ); ?></h3>
+							<div class="inside">
+								<p>
+								<pre><?php echo esc_html( wp_json_encode( json_decode( $wp_rest_cache['row']['request_headers'], true ), JSON_PRETTY_PRINT ) ); ?></pre>
+								</p>
+							</div>
+						</div>
+					<?php endif; ?>
 					<div class="postbox">
 						<h3 class="hndle"><?php esc_html_e( 'Cache data', 'wp-rest-cache' ); ?></h3>
 						<div class="inside">

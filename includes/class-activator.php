@@ -32,6 +32,9 @@ class Activator {
 		if ( ! get_option( 'wp_rest_cache_rest_prefix' ) ) {
 			add_option( 'wp_rest_cache_rest_prefix', rest_get_url_prefix(), '', false );
 		}
+		if ( ! get_option( 'wp_rest_cache_cacheable_request_headers' ) ) {
+			add_option( 'wp_rest_cache_cacheable_request_headers', [], '', false );
+		}
 
 		self::create_mu_plugin();
 	}

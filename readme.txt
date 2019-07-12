@@ -135,6 +135,18 @@ Yes you can! Use the hook `wp_rest_cache/display_clear_cache_button` like this:
 }
 add_filter('wp_rest_cache/display_clear_cache_button', 'wprc_hide_clear_cache_button', 10, 1);`
 
+= Can I differentiate between caches based upon request headers? =
+
+Yes you can! There are two options for this:
+1. Go to Settings > WP REST Cache and add `Global cacheable request headers`. This is a comma seperated list. These headers will be used for ALL endpoints.
+2. Use the hook `wp_rest_cache/cacheable_request_headers` to specify per endpoint which request headers should be used. Like this:
+
+`function wprc_add_cacheable_request_headers( $cacheable_headers ) {
+    $cacheable_headers['wp/v2/posts'] = 'LANG';
+    return $cacheable_headers;
+}
+add_filter('wp_rest_cache/cacheable_request_headers', 'wprc_add_cacheable_request_headers', 10, 1);`
+
 == Screenshots ==
 
 1. Settings for the WP REST Cache plugin.
