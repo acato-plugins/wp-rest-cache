@@ -226,13 +226,14 @@ class API_Caches_Table extends \WP_List_Table {
 	 */
 	public function get_columns() {
 		$columns = [
-			'cb'          => '<input type="checkbox" />',
-			'cache_key'   => __( 'Cache Key', 'wp-rest-cache' ),
-			'request_uri' => __( 'Request URI', 'wp-rest-cache' ),
-			'object_type' => __( 'Object Type', 'wp-rest-cache' ),
-			'expiration'  => __( 'Expiration', 'wp-rest-cache' ),
-			'cache_hits'  => __( '# Cache Hits', 'wp-rest-cache' ),
-			'is_active'   => __( 'Active', 'wp-rest-cache' ),
+			'cb'              => '<input type="checkbox" />',
+			'cache_key'       => __( 'Cache Key', 'wp-rest-cache' ),
+			'request_uri'     => __( 'Request URI', 'wp-rest-cache' ),
+			'request_headers' => __( 'Request Headers', 'wp-rest-cache' ),
+			'object_type'     => __( 'Object Type', 'wp-rest-cache' ),
+			'expiration'      => __( 'Expiration', 'wp-rest-cache' ),
+			'cache_hits'      => __( '# Cache Hits', 'wp-rest-cache' ),
+			'is_active'       => __( 'Active', 'wp-rest-cache' ),
 		];
 
 		return $columns;

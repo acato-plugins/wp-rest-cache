@@ -55,6 +55,14 @@ class Endpoint_Api {
 	);
 
 	/**
+	 * The request headers that need to be used to distinguish separate caches.
+	 *
+	 * @access private
+	 * @var    array $request_headers The request headers.
+	 */
+	private $request_headers = array();
+
+	/**
 	 * The default WordPress REST endpoints, that can be cached.
 	 *
 	 * @access private
@@ -71,12 +79,14 @@ class Endpoint_Api {
 	);
 
 	/**
-	 * Get the requested URI and create the cache key.
+	 * Get the requested URI.
 	 *
 	 * @return string The request URI.
 	 */
-	public function build_request_uri() {
-		$request_uri  = filter_input( INPUT_SERVER, 'REQUEST_URI', FILTER_SANITIZE_URL );
+	private function build_request_uri() {
+		$request_uri = filter_input( INPUT_SERVER, 'REQUEST_URI', FILTER_SANITIZE_URL );
+		// Remove home_url from request_uri for uri's with WordPress in a subdir (like /wp).
+		$request_uri  = str_replace( get_home_url(), '', $request_uri );
 		$uri_parts    = wp_parse_url( $request_uri );
 		$request_path = rtrim( $uri_parts['path'], '/' );
 
@@ -87,9 +97,58 @@ class Endpoint_Api {
 		}
 
 		$this->request_uri = $request_path;
-		$this->cache_key   = md5( $this->request_uri );
 
 		return $request_path;
+	}
+
+	/**
+	 * Create an array of cacheable request headers based upon settings and hooks.
+	 */
+	private function set_cacheable_request_headers() {
+		$request = new \WP_REST_Request();
+		$server  = new \WP_REST_Server();
+		$request->set_headers( $server->get_headers( wp_unslash( $_SERVER ) ) );
+
+		$cacheable_headers = \WP_Rest_Cache_Plugin\Includes\Caching\Caching::get_instance()->get_global_cacheable_request_headers();
+		$cacheable_headers = explode( ',', $cacheable_headers );
+		if ( count( $cacheable_headers ) ) {
+			foreach ( $cacheable_headers as $header ) {
+				if ( strlen( $header ) ) {
+					$this->request_headers[ $header ] = $request->get_header( $header );
+				}
+			}
+		}
+
+		$rest_prefix               = sprintf( '/%s/', get_option( 'wp_rest_cache_rest_prefix', 'wp-json' ) );
+		$cacheable_request_headers = get_option( 'wp_rest_cache_cacheable_request_headers', [] );
+		if ( count( $cacheable_request_headers ) ) {
+			foreach ( $cacheable_request_headers as $endpoint => $cacheable_headers ) {
+				if ( false === strpos( $this->request_uri, $rest_prefix . $endpoint ) ) {
+					continue;
+				}
+
+				$cacheable_headers = explode( ',', $cacheable_headers );
+				if ( count( $cacheable_headers ) ) {
+					foreach ( $cacheable_headers as $header ) {
+						if ( strlen( $header ) ) {
+							$this->request_headers[ $header ] = $request->get_header( $header );
+						}
+					}
+				}
+			}
+		}
+
+		ksort( $this->request_headers );
+	}
+
+	/**
+	 * Build the cache key. A hashed combination of request uri and cacheable request headers.
+	 */
+	private function build_cache_key() {
+		$this->build_request_uri();
+		$this->set_cacheable_request_headers();
+
+		$this->cache_key = md5( $this->request_uri . wp_json_encode( $this->request_headers ) );
 	}
 
 	/**
@@ -152,7 +211,7 @@ class Endpoint_Api {
 			'data'    => $result,
 			'headers' => $this->response_headers,
 		);
-		\WP_Rest_Cache_Plugin\Includes\Caching\Caching::get_instance()->set_cache( $this->cache_key, $data, 'endpoint', $this->request_uri );
+		\WP_Rest_Cache_Plugin\Includes\Caching\Caching::get_instance()->set_cache( $this->cache_key, $data, 'endpoint', $this->request_uri, '', $this->request_headers );
 
 		return $result;
 	}
@@ -204,7 +263,7 @@ class Endpoint_Api {
 	 */
 	public function get_api_cache() {
 
-		$this->build_request_uri();
+		$this->build_cache_key();
 
 		if ( $this->skip_caching() ) {
 			return;
@@ -262,6 +321,22 @@ class Endpoint_Api {
 		$rest_prefix          = rest_get_url_prefix();
 		if ( $original_rest_prefix !== $rest_prefix ) {
 			update_option( 'wp_rest_cache_rest_prefix', $rest_prefix );
+		}
+
+		$original_cacheable_request_headers = get_option( 'wp_rest_cache_cacheable_request_headers', [] );
+
+		/**
+		 * Filter cacheable request headers.
+		 *
+		 * Allow to set cacheable request headers per endpoint in the format [ '/wp/v2/posts' => 'HEADER_1,HEADER_2' ].
+		 *
+		 * @since 2019.4.0
+		 *
+		 * @param array $original_cacheable_request_headers An array of endpoints and
+		 */
+		$cacheable_request_headers = apply_filters( 'wp_rest_cache/cacheable_request_headers', $original_cacheable_request_headers );
+		if ( $original_cacheable_request_headers !== $cacheable_request_headers ) {
+			update_option( 'wp_rest_cache_cacheable_request_headers', $cacheable_request_headers );
 		}
 	}
 

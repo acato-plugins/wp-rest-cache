@@ -24,6 +24,7 @@
 			<?php $wp_rest_cache_regenerate_number = \WP_Rest_Cache_Plugin\Includes\Caching\Caching::get_instance()->get_regenerate_number(); ?>
 			<?php $wp_rest_cache_schedules = wp_get_schedules(); ?>
 			<?php $wp_rest_cache_memcache_used = \WP_Rest_Cache_Plugin\Includes\Caching\Caching::get_instance()->get_memcache_used(); ?>
+			<?php $wp_rest_cache_global_cacheable_request_headers = \WP_Rest_Cache_Plugin\Includes\Caching\Caching::get_instance()->get_global_cacheable_request_headers(); ?>
 
 			<table class="form-table" style="margin: 0 12px">
 				<tbody>
@@ -61,6 +62,15 @@
 						</select>
 						<p class="description"
 							id="wp_rest_cache_timeout-description"><?php esc_html_e( 'Time until expiration of cache. (Default = 1 year)', 'wp-rest-cache' ); ?></p>
+					</td>
+				</tr>
+				<tr>
+					<th><?php esc_html_e( 'Global cacheable request headers', 'wp-rest-cache' ); ?></th>
+					<td>
+						<input type="text" value="<?php echo esc_attr( $wp_rest_cache_global_cacheable_request_headers ); ?>"
+							name="wp_rest_cache_global_cacheable_request_headers">
+						<p class="description"
+							id="wp_rest_cache_global_cacheable_request_headers-description"><?php esc_html_e( 'Which request headers should be cached (and used to distinguish separate caches). This can be a comma separated list of headers. If you want to use headers for only certain REST calls please see the FAQ.', 'wp-rest-cache' ); ?></p>
 					</td>
 				</tr>
 				<tr>
