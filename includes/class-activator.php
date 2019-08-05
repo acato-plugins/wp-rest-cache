@@ -47,7 +47,8 @@ class Activator {
 		if ( 'direct' !== $access_type ) {
 			return;
 		}
-		$request_uri = filter_input( INPUT_SERVER, 'REQUEST_URI', FILTER_SANITIZE_URL );
+		// No filter_input, see https://stackoverflow.com/questions/25232975/php-filter-inputinput-server-request-method-returns-null/36205923.
+		$request_uri = filter_var( $_SERVER['REQUEST_URI'], FILTER_SANITIZE_URL );
 		$url         = get_home_url() . $request_uri;
 		$creds       = request_filesystem_credentials( $url );
 		if ( ! WP_Filesystem( $creds ) ) {
