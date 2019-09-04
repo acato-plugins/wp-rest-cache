@@ -11,6 +11,8 @@
 
 namespace WP_Rest_Cache_Plugin\Admin;
 
+use WP_Rest_Cache_Plugin\Includes\Caching\Caching;
+
 /**
  * The admin-specific functionality of the plugin.
  *
@@ -65,6 +67,20 @@ class Admin {
 	 */
 	public function enqueue_styles() {
 		wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'css/wp-rest-cache-admin.css', [], $this->version, 'all' );
+		if ( 'wp-rest-cache' === filter_input( INPUT_GET, 'page', FILTER_SANITIZE_STRING )
+			&& 'clear-cache' === filter_input( INPUT_GET, 'sub', FILTER_SANITIZE_STRING ) ) {
+			wp_enqueue_style( 'jquery-ui-progressbar', plugin_dir_url( __FILE__ ) . 'css/jquery-ui.css', [], $this->version, 'all' );
+		}
+	}
+
+	/**
+	 * Register the scripts for the admin area.
+	 */
+	public function enqueue_scripts() {
+		if ( 'wp-rest-cache' === filter_input( INPUT_GET, 'page', FILTER_SANITIZE_STRING )
+			&& 'clear-cache' === filter_input( INPUT_GET, 'sub', FILTER_SANITIZE_STRING ) ) {
+			wp_enqueue_script( 'jquery-ui-progressbar' );
+		}
 	}
 
 	/**
@@ -188,22 +204,14 @@ class Admin {
 	 * @return string The url to empty the cache.
 	 */
 	public static function empty_cache_url() {
-		return wp_nonce_url( admin_url( 'options-general.php?page=wp-rest-cache&clear=1' ), 'wp_rest_cache_options', 'wp_rest_cache_nonce' );
+		return wp_nonce_url( admin_url( 'options-general.php?page=wp-rest-cache&sub=clear-cache' ), 'wp_rest_cache_options', 'wp_rest_cache_nonce' );
 	}
 
 	/**
-	 * Handle the correct actions. I.e. clear the cache if the clear cache url is visited.
+	 * Handle the correct actions. I.e. dismiss a notice.
 	 */
 	public function handle_actions() {
-		if ( isset( $_REQUEST['wp_rest_cache_nonce'] ) && wp_verify_nonce( sanitize_key( $_REQUEST['wp_rest_cache_nonce'] ), 'wp_rest_cache_options' ) ) {
-			if ( isset( $_GET['clear'] ) && '1' === $_GET['clear'] ) {
-				if ( \WP_Rest_Cache_Plugin\Includes\Caching\Caching::get_instance()->clear_caches() ) {
-					$this->add_notice( 'success', __( 'The cache has been successfully cleared', 'wp-rest-cache' ) );
-				} else {
-					$this->add_notice( 'error', __( 'There were no items cached', 'wp-rest-cache' ) );
-				}
-			}
-		} elseif ( isset( $_GET['wp_rest_cache_dismiss'] )
+		if ( isset( $_GET['wp_rest_cache_dismiss'] )
 			&& check_admin_referer( 'wp-rest-cache-dismiss-notice-' . filter_input( INPUT_GET, 'wp_rest_cache_dismiss' ) )
 		) {
 			$user_id           = get_current_user_id();
@@ -269,7 +277,7 @@ class Admin {
 	public function check_memcache_ext_object_caching() {
 		if ( wp_using_ext_object_cache()
 			&& ( class_exists( 'Memcache' ) || class_exists( 'Memcached' ) )
-			&& ! \WP_Rest_Cache_Plugin\Includes\Caching\Caching::get_instance()->get_memcache_used() ) {
+			&& ! Caching::get_instance()->get_memcache_used() ) {
 			$this->add_notice(
 				'warning',
 				__( 'We have detected you are using external object caching. If you are using Memcache(d) as external object cache, please make sure you visit this plugin\'s settings page and check the `Using Memcache(d)` checkbox.', 'wp-rest-cache' ),
@@ -319,7 +327,7 @@ class Admin {
 	 */
 	public function regenerate_updated( $old_value, $value, $option ) {
 		if ( '1' === $value ) {
-			$wp_rest_cache_regenerate_interval = \WP_Rest_Cache_Plugin\Includes\Caching\Caching::get_instance()->get_regenerate_interval();
+			$wp_rest_cache_regenerate_interval = Caching::get_instance()->get_regenerate_interval();
 			wp_schedule_event( time(), $wp_rest_cache_regenerate_interval, 'wp_rest_cache_regenerate_cron' );
 		} else {
 			wp_clear_scheduled_hook( 'wp_rest_cache_regenerate_cron' );
@@ -334,9 +342,36 @@ class Admin {
 	 * @param string $option Option name.
 	 */
 	public function regenerate_interval_updated( $old_value, $value, $option ) {
-		if ( \WP_Rest_Cache_Plugin\Includes\Caching\Caching::get_instance()->should_regenerate() ) {
+		if ( Caching::get_instance()->should_regenerate() ) {
 			wp_clear_scheduled_hook( 'wp_rest_cache_regenerate_cron' );
 			wp_schedule_event( time(), $value, 'wp_rest_cache_regenerate_cron' );
 		}
+	}
+
+	/**
+	 * Flush caches in batches. Used through an ajax call from the 'Clear REST Cache' button.
+	 */
+	public function flush_caches() {
+		check_ajax_referer( 'wp_rest_cache_clear_cache_ajax', 'wp_rest_cache_nonce' );
+
+		$caching          = Caching::get_instance();
+		$number_of_caches = $caching->get_record_count( 'endpoint' );
+		$page             = filter_input( INPUT_POST, 'page', FILTER_VALIDATE_INT );
+		$per_page         = get_option( 'posts_per_page' );
+
+		$caches = $caching->get_api_data( 'endpoint', $per_page, $page );
+		foreach ( $caches as $cache ) {
+			if ( ! $cache['is_active'] ) {
+				continue;
+			}
+			$caching->delete_cache( $cache['cache_key'], false );
+		}
+
+		$result = [
+			'percentage' => min( floor( ( ( $page * $per_page ) / $number_of_caches ) * 100 ), 100 ),
+		];
+
+		echo wp_json_encode( $result );
+		exit;
 	}
 }
