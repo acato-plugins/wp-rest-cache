@@ -544,7 +544,7 @@ class Caching {
 
 		$expiration = self::get_timeout();
 		if ( ! self::get_memcache_used() ) {
-			$expiration += time();
+			$expiration += current_time( 'timestamp' );
 		}
 
 		$wpdb->insert(
@@ -557,7 +557,7 @@ class Caching {
 				'object_type'     => $object_type,
 				'cache_hits'      => 1,
 				'is_single'       => $is_single,
-				'expiration'      => date( 'Y-m-d H:i:s', $expiration ),
+				'expiration'      => date_i18n( 'Y-m-d H:i:s', $expiration ),
 			],
 			[ '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s' ]
 		);
@@ -608,9 +608,9 @@ class Caching {
 		if ( is_null( $expiration ) ) {
 			$expiration = self::get_timeout();
 			if ( ! self::get_memcache_used() ) {
-				$expiration += time();
+				$expiration += current_time( 'timestamp' );
 			}
-			$expiration = date( 'Y-m-d H:i:s', $expiration );
+			$expiration = date_i18n( 'Y-m-d H:i:s', $expiration );
 		}
 
 		$wpdb->update(
