@@ -157,6 +157,14 @@ add_filter('wp_rest_cache/cacheable_request_headers', 'wprc_add_cacheable_reques
 
 == Changelog ==
 
+= 2019.4.1 =
+Release Date: September 5th, 2019
+
+Feature: Flush caches with progressbar and through ajax call to prevent timeout.
+Bugfix: Expiration date was displayed incorrectly.
+Bugfix: Do not cache empty result set.
+Bugfix: Do not use filter_input with INPUT_SERVER, it will break when  fastcgi is used (see https://stackoverflow.com/questions/25232975/php-filter-inputinput-server-request-method-returns-null/36205923).
+
 = 2019.4.0 =
 Release Date: July 12th, 2019
 
