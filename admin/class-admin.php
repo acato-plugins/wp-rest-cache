@@ -364,7 +364,8 @@ class Admin {
 			if ( ! $cache['is_active'] ) {
 				continue;
 			}
-			$caching->delete_cache( $cache['cache_key'], false );
+			$force = ( 'unknown' === $cache['object_type'] );
+			$caching->delete_cache( $cache['cache_key'], $force );
 		}
 
 		$result = [

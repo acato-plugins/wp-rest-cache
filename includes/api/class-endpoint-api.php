@@ -208,6 +208,11 @@ class Endpoint_Api {
 			return $result;
 		}
 
+		// Do not cache if empty result set.
+		if ( empty( $result ) ) {
+			return $result;
+		}
+
 		$data = array(
 			'data'    => $result,
 			'headers' => $this->response_headers,
