@@ -312,7 +312,7 @@ class Endpoint_Api {
 		$origin = get_http_origin();
 
 		if ( $origin ) {
-			// Requests from file:// and data: URLs send "Origin: null"
+			// Requests from file:// and data: URLs send "Origin: null".
 			if ( 'null' !== $origin ) {
 				$origin = esc_url_raw( $origin );
 			}
