@@ -25,7 +25,7 @@ class Caching {
 	 *
 	 * @var string DB_VERSION The current version of the database tables.
 	 */
-	const DB_VERSION = '2019.4.0';
+	const DB_VERSION = '2019.4.3';
 
 	/**
 	 * The table name for the table where caches are stored together with their statistics.
@@ -150,7 +150,6 @@ class Caching {
 	 * @param array  $request_headers An array of cacheable request headers.
 	 */
 	public function set_cache( $cache_key, $value, $type, $uri = '', $object_type = '', $request_headers = [] ) {
-		set_transient( $this->transient_key( $cache_key ), $value, $this->get_timeout() );
 		switch ( $type ) {
 			case 'endpoint':
 				$this->register_endpoint_cache( $cache_key, $value, $uri, $request_headers );
@@ -159,6 +158,7 @@ class Caching {
 				$this->register_item_cache( $cache_key, $object_type, $value );
 				break;
 		}
+		set_transient( $this->transient_key( $cache_key ), $value, $this->get_timeout() );
 	}
 
 	/**
@@ -431,8 +431,8 @@ class Caching {
 	/**
 	 * Get all related caches for an object ID and object type.
 	 *
-	 * @param int    $id The ID of the object.
-	 * @param string $object_type The type of the object.
+	 * @param int|string $id The ID of the object.
+	 * @param string     $object_type The type of the object.
 	 *
 	 * @return array|null|object An array of objects containing all related caches.
 	 */
@@ -445,7 +445,7 @@ class Caching {
                 FROM `{$this->db_table_caches}` AS `c`
                 JOIN `{$this->db_table_relations}` AS `r`
                     ON `r`.`cache_id` = `c`.`cache_id`
-                WHERE `r`.`object_id` = %d
+                WHERE `r`.`object_id` = %s
                 AND `r`.`object_type` = %s
                 GROUP BY `c`.`cache_key`";
 
@@ -461,7 +461,7 @@ class Caching {
 	 * @param string $object_type The type of the object.
 	 * @param bool   $force_single_delete Whether to delete cache statistics for single endpoint caches.
 	 */
-	private function delete_related_caches( $id, $object_type, $force_single_delete = false ) {
+	public function delete_related_caches( $id, $object_type, $force_single_delete = false ) {
 		$caches = $this->get_related_caches( $id, $object_type );
 		if ( $caches ) {
 			foreach ( $caches as $cache ) {
@@ -625,11 +625,11 @@ class Caching {
 	/**
 	 * Insert a cache relation into the database.
 	 *
-	 * @param int    $cache_id The ID of the cache row.
-	 * @param int    $object_id The ID of the related object.
-	 * @param string $object_type The object type of the relation.
+	 * @param int        $cache_id The ID of the cache row.
+	 * @param int|string $object_id The ID of the related object.
+	 * @param string     $object_type The object type of the relation.
 	 */
-	private function insert_cache_relation( $cache_id, $object_id, $object_type ) {
+	public function insert_cache_relation( $cache_id, $object_id, $object_type ) {
 		global $wpdb;
 
 		$wpdb->replace(
@@ -639,7 +639,7 @@ class Caching {
 				'object_id'   => $object_id,
 				'object_type' => $object_type,
 			],
-			[ '%d', '%d', '%s' ]
+			[ '%d', '%s', '%s' ]
 		);
 	}
 
@@ -685,6 +685,19 @@ class Caching {
 		 */
 		$object_type = apply_filters( 'wp_rest_cache/determine_object_type', $this->determine_object_type( $data ), $cache_key, $data, $uri );
 
+		/**
+		 * Determine if the cache contains a single item or is a collection of items.
+		 *
+		 * Allows external determination of single item status of current cache.
+		 *
+		 * @since 2019.4.3
+		 *
+		 * @param boolean Whether the cache contains a single item (true) or a collection of items (false)
+		 * @param mixed $data The data that is to be cached
+		 * @param string $uri The requested URI
+		 */
+		$this->is_single = apply_filters( 'wp_rest_cache/is_single_item', $this->is_single, $data, $uri );
+
 		if ( is_null( $cache_id ) ) {
 			$cache_id = $this->insert_cache_row( $cache_key, 'endpoint', $uri, $object_type, $this->is_single, $request_headers );
 		} else {
@@ -705,8 +718,10 @@ class Caching {
 		 *
 		 * @param int $cache_id The row id of the current cache.
 		 * @param mixed $data The data that is to be cached.
+		 * @param string $object_type Object type.
+		 * @param string $uri The requested URI.
 		 */
-		do_action( 'wp_rest_cache/process_cache_relations', $cache_id, $data );
+		do_action( 'wp_rest_cache/process_cache_relations', $cache_id, $data, $object_type, $uri );
 	}
 
 	/**
@@ -791,7 +806,7 @@ class Caching {
 	 *
 	 * @param array $data The cached data.
 	 *
-	 * @return bool|string The object type, or false if it could not be determined.
+	 * @return string The object type, or 'unknown' if it could not be determined.
 	 */
 	private function determine_object_type( $data ) {
 		// Force data to be an array.
@@ -1108,7 +1123,7 @@ class Caching {
 			$sql_relations =
 				"CREATE TABLE `{$this->db_table_relations}` (
 	            `cache_id` BIGINT(20) NOT NULL,
-	            `object_id` BIGINT(20) NOT NULL,
+	            `object_id` VARCHAR(255) NOT NULL,
 	            `object_type` VARCHAR(200) NOT NULL,
 	            PRIMARY KEY (`cache_id`, `object_id`),
 	            INDEX `cache_id` (`cache_id`),
