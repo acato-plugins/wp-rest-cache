@@ -288,7 +288,7 @@ class Endpoint_Api {
 					$header = sprintf( '%s: %s', $key, $value );
 					header( $header );
 				}
-				rest_send_cors_headers( '' );
+				$this->rest_send_cors_headers( '' );
 
 				echo $data; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 				exit;
@@ -300,6 +300,31 @@ class Endpoint_Api {
 
 		// Catch the result after serving.
 		add_filter( 'rest_pre_echo_response', [ $this, 'save_cache' ], 1000, 3 );
+	}
+
+	/**
+	 * Sends Cross-Origin Resource Sharing headers with API requests.
+	 *
+	 * @param mixed $value Response data.
+	 * @return mixed Response data.
+	 */
+	private function rest_send_cors_headers( $value ) {
+		$origin = get_http_origin();
+
+		if ( $origin ) {
+			// Requests from file:// and data: URLs send "Origin: null"
+			if ( 'null' !== $origin ) {
+				$origin = esc_url_raw( $origin );
+			}
+			header( 'Access-Control-Allow-Origin: ' . $origin );
+			header( 'Access-Control-Allow-Methods: OPTIONS, GET, POST, PUT, PATCH, DELETE' );
+			header( 'Access-Control-Allow-Credentials: true' );
+			header( 'Vary: Origin', false );
+		} elseif ( ! headers_sent() && 'GET' === $_SERVER['REQUEST_METHOD'] ) {
+			header( 'Vary: Origin' );
+		}
+
+		return $value;
 	}
 
 	/**

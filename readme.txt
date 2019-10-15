@@ -157,6 +157,10 @@ add_filter('wp_rest_cache/cacheable_request_headers', 'wprc_add_cacheable_reques
 
 == Changelog ==
 
+= 2019.4.2 =
+Release Date: October 15th, 2019
+Bugfix: Prevent fatal error after WordPress security update.
+
 = 2019.4.1 =
 Release Date: September 5th, 2019
 
