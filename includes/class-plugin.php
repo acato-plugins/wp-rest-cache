@@ -162,6 +162,7 @@ class Plugin {
 		add_action( 'comment_post', [ $caching, 'delete_comment_type_related_caches' ], 999, 2 );
 
 		add_action( 'wp_rest_cache_regenerate_cron', [ $caching, 'regenerate_expired_caches' ] );
+		add_action( 'wp_rest_cache_cleanup_deleted_caches', [ $caching, 'cleanup_deleted_caches' ] );
 	}
 
 	/**
