@@ -25,7 +25,7 @@ class Caching {
 	 *
 	 * @var string DB_VERSION The current version of the database tables.
 	 */
-	const DB_VERSION = '2019.6.0';
+	const DB_VERSION = '2019.4.3';
 
 	/**
 	 * The table name for the table where caches are stored together with their statistics.
