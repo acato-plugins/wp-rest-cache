@@ -147,6 +147,16 @@ Yes you can! There are two options for this:
 }
 add_filter('wp_rest_cache/cacheable_request_headers', 'wprc_add_cacheable_request_headers', 10, 1);`
 
+= Can I change which users can change the settings and flush caches? =
+
+Yes you can! Use the hook `wp_rest_cache/settings_capability` like this:
+
+`function wprc_change_settings_capability( $capability ) {
+    // Change the capability to users who can edit posts.
+    return 'edit_posts';
+}
+add_filter('wp_rest_cache/settings_capability', 'wprc_change_settings_capability', 10, 1);`
+
 == Screenshots ==
 
 1. Settings for the WP REST Cache plugin.
