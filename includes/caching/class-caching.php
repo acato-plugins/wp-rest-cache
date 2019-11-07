@@ -437,8 +437,8 @@ class Caching {
 	 * endpoint caches.
 	 *
 	 * @param int|string $id The ID of the object.
-	 * @param string $object_type The type of the object.
-	 * @param bool   $force_single_delete Whether to delete cache statistics for single endpoint caches.
+	 * @param string     $object_type The type of the object.
+	 * @param bool       $force_single_delete Whether to delete cache statistics for single endpoint caches.
 	 */
 	public function delete_related_caches( $id, $object_type, $force_single_delete = false ) {
 		global $wpdb;
@@ -970,8 +970,7 @@ class Caching {
 
 		if ( $cache['row']['is_active'] ) {
 			$cache['data'] = get_transient( $this->transient_key( $cache_key ) );
-		}
-		else {
+		} else {
 			$cache['data'] = false;
 		}
 
