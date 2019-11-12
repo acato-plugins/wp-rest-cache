@@ -137,7 +137,11 @@ class Caching {
 		}
 		$cache = get_transient( $this->transient_key( $cache_key ) );
 		if ( $cache ) {
-			$this->register_cache_hit( $cache_key );
+			$hit = $this->register_cache_hit( $cache_key );
+			if ( $hit === false || $hit === 0 ) {
+				// Weird situation where there is a transient but nothing in the cache tables. Return no cache.
+				$cache = false;
+			}
 		}
 
 		return $cache;
@@ -652,6 +656,8 @@ class Caching {
 	 * Register a cache hit in the database.
 	 *
 	 * @param string $cache_key The cache key.
+	 *
+	 * @return int|boolean Number of rows affected. Boolean false on error
 	 */
 	private function register_cache_hit( $cache_key ) {
 		global $wpdb;
@@ -662,7 +668,7 @@ class Caching {
                 WHERE `cache_key` = %s";
 
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		$wpdb->query( $wpdb->prepare( $sql, $cache_key ) );
+		return $wpdb->query( $wpdb->prepare( $sql, $cache_key ) );
 	}
 
 	/**
