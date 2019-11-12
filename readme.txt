@@ -167,8 +167,15 @@ add_filter('wp_rest_cache/settings_capability', 'wprc_change_settings_capability
 
 == Changelog ==
 
+= 2019.4.3 =
+Release Date: November 12th, 2019
+
+Feature: Added filter for Settings page capability.
+Bugfix: Problem with non-existing tables after multisite duplication.
+
 = 2019.4.2 =
 Release Date: October 15th, 2019
+
 Bugfix: Prevent fatal error after WordPress security update.
 
 = 2019.4.1 =
