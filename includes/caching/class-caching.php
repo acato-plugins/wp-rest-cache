@@ -138,7 +138,7 @@ class Caching {
 		$cache = get_transient( $this->transient_key( $cache_key ) );
 		if ( $cache ) {
 			$hit = $this->register_cache_hit( $cache_key );
-			if ( $hit === false || $hit === 0 ) {
+			if ( false === $hit || 0 === $hit ) {
 				// Weird situation where there is a transient but nothing in the cache tables. Return no cache.
 				$cache = false;
 			}
@@ -1139,10 +1139,14 @@ class Caching {
 	 * Update the database structure needed for saving caches and their relations and statistics.
 	 */
 	public function update_database_structure() {
+		global $wpdb;
 
 		$version = get_option( 'wp_rest_cache_database_version' );
 
-		if ( self::DB_VERSION !== $version ) {
+		$query = $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $this->db_table_caches ) );
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		if ( self::DB_VERSION !== $version || $this->db_table_caches !== $wpdb->get_var( $query ) ) {
 			include_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
 			$sql_caches =
@@ -1164,6 +1168,15 @@ class Caching {
                 )";
 
 			dbDelta( $sql_caches );
+
+			update_option( 'wp_rest_cache_database_version', self::DB_VERSION );
+		}
+
+		$query = $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $this->db_table_relations ) );
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		if ( self::DB_VERSION !== $version || $this->db_table_caches !== $wpdb->get_var( $query ) ) {
+			include_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
 			$sql_relations =
 				"CREATE TABLE `{$this->db_table_relations}` (
