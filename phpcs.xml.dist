@@ -21,6 +21,7 @@
         <exclude name="WordPress.WhiteSpace.ControlStructureSpacing"/>
         <exclude name="WordPress.Security.EscapeOutput"/>
         -->
+        <exclude name="Generic.Arrays.DisallowShortArraySyntax.Found"/>
     </rule>
 
     <!-- Let's also check that everything is properly documented. -->

@@ -200,7 +200,7 @@ class Caching {
 			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 			$wpdb->query( $wpdb->prepare( $sql, $cache_id ) );
 		} else {
-			$this->update_cache_expiration( $cache_id, date( 'Y-m-d H:i:s', 0 ) );
+			$this->update_cache_expiration( $cache_id, date_i18n( 'Y-m-d H:i:s', 0 ) );
 		}
 	}
 
@@ -234,7 +234,7 @@ class Caching {
 		$sql              = "UPDATE `{$this->db_table_caches}`
 		SET `expiration` = %s
         WHERE ";
-		$prepare_params[] = date( 'Y-m-d H:i:s', 0 );
+		$prepare_params[] = date_i18n( 'Y-m-d H:i:s', 0 );
 		switch ( $strictness ) {
 			case self::FLUSH_STRICT:
 				$sql             .= ' `request_uri` = %s ';
@@ -463,7 +463,7 @@ class Caching {
                 AND `r`.`object_type` = %s";
 
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		$affected_rows = $wpdb->query( $wpdb->prepare( $sql, date( 'Y-m-d H:i:s', 0 ), $id, $object_type ) );
+		$affected_rows = $wpdb->query( $wpdb->prepare( $sql, date_i18n( 'Y-m-d H:i:s', 0 ), $id, $object_type ) );
 
 		if ( 0 !== $affected_rows && false !== $affected_rows ) {
 			$this->schedule_cleanup();
@@ -486,7 +486,7 @@ class Caching {
                 AND `is_single` = %d";
 
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		$affected_rows = $wpdb->query( $wpdb->prepare( $sql, date( 'Y-m-d H:i:s', 0 ), 'endpoint', $object_type, false ) );
+		$affected_rows = $wpdb->query( $wpdb->prepare( $sql, date_i18n( 'Y-m-d H:i:s', 0 ), 'endpoint', $object_type, false ) );
 
 		if ( 0 !== $affected_rows && false !== $affected_rows ) {
 			$this->schedule_cleanup();
@@ -550,6 +550,7 @@ class Caching {
 
 		$expiration = self::get_timeout();
 		if ( ! self::get_memcache_used() ) {
+			// phpcs:ignore WordPress.DateTime.CurrentTimeTimestamp.Requested
 			$expiration += current_time( 'timestamp' );
 		}
 
@@ -614,6 +615,7 @@ class Caching {
 		if ( is_null( $expiration ) ) {
 			$expiration = self::get_timeout();
 			if ( ! self::get_memcache_used() ) {
+				// phpcs:ignore WordPress.DateTime.CurrentTimeTimestamp.Requested
 				$expiration += current_time( 'timestamp' );
 			}
 			$expiration = date_i18n( 'Y-m-d H:i:s', $expiration );
@@ -1127,7 +1129,7 @@ class Caching {
 				FROM    {$this->db_table_caches}
 				WHERE	`expiration` = %s";
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		$caches = $wpdb->get_results( $wpdb->prepare( $sql, date( 'Y-m-d H:i:s', 0 ) ) );
+		$caches = $wpdb->get_results( $wpdb->prepare( $sql, date_i18n( 'Y-m-d H:i:s', 0 ) ) );
 		if ( $caches ) {
 			foreach ( $caches as $cache ) {
 				$this->delete_cache( $cache->cache_key, $cache->deleted );
