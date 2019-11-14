@@ -480,7 +480,7 @@ class Caching {
 
 		$sql =
 			"UPDATE `{$this->db_table_caches}`
-				SET `c`.`expiration` = %s
+				SET `expiration` = %s
                 WHERE `cache_type` = %s 
                 AND `object_type` = %s
                 AND `is_single` = %d";
