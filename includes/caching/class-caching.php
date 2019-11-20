@@ -1177,7 +1177,7 @@ class Caching {
 		$query = $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $this->db_table_relations ) );
 
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		if ( self::DB_VERSION !== $version || $this->db_table_caches !== $wpdb->get_var( $query ) ) {
+		if ( self::DB_VERSION !== $version || $this->db_table_relations !== $wpdb->get_var( $query ) ) {
 			include_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
 			$sql_relations =
