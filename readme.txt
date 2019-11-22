@@ -167,6 +167,12 @@ add_filter('wp_rest_cache/settings_capability', 'wprc_change_settings_capability
 
 == Changelog ==
 
+= 2019.4.5 =
+Release Date: November 22nd, 2019
+
+Bugfix: Do not update database table on each load.
+Bugfix: WordPress database error: specified key was too long.
+
 = 2019.4.4 =
 Release Date: November 14th, 2019
 
