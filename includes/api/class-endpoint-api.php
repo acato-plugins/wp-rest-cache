@@ -228,9 +228,10 @@ class Endpoint_Api {
 	 * @return bool True if no caching should be applied, false if caching can be applied.
 	 */
 	public function skip_caching() {
-		// Only cache GET-requests.
+		// Default only cache GET-requests.
+		$allowed_request_methods = get_option( 'wp_rest_cache_allowed_request_methods', [ 'GET' ] );
 		// No filter_input, see https://stackoverflow.com/questions/25232975/php-filter-inputinput-server-request-method-returns-null/36205923.
-		if ( 'GET' !== filter_var( $_SERVER['REQUEST_METHOD'], FILTER_SANITIZE_STRING ) ) {
+		if ( ! in_array( filter_var( $_SERVER['REQUEST_METHOD'], FILTER_SANITIZE_STRING ), $allowed_request_methods, true ) ) {
 			return true;
 		}
 
@@ -369,6 +370,22 @@ class Endpoint_Api {
 		$cacheable_request_headers = apply_filters( 'wp_rest_cache/cacheable_request_headers', $original_cacheable_request_headers );
 		if ( $original_cacheable_request_headers !== $cacheable_request_headers ) {
 			update_option( 'wp_rest_cache_cacheable_request_headers', $cacheable_request_headers );
+		}
+
+		$original_allowed_request_methods = get_option( 'wp_rest_cache_allowed_request_methods', [ 'GET' ] );
+
+		/**
+		 * Override cache-enabled request methods.
+		 *
+		 * Allows to override the request methods that will be cached by the WP REST Cache plugin.
+		 *
+		 * @since 2019.4.6
+		 *
+		 * @param array $original_allowed_request_methods An array of request_methods that are allowed to be cached.
+		 */
+		$allowed_request_methods = apply_filters( 'wp_rest_cache/allowed_request_methods', $original_allowed_request_methods );
+		if ( $original_allowed_request_methods !== $allowed_request_methods ) {
+			update_option( 'wp_rest_cache_allowed_request_methods', $allowed_request_methods );
 		}
 	}
 
