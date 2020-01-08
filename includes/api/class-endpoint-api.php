@@ -94,6 +94,14 @@ class Endpoint_Api {
 		if ( isset( $uri_parts['query'] ) && ! empty( $uri_parts['query'] ) ) {
 			parse_str( $uri_parts['query'], $params );
 			ksort( $params );
+			$uncached_parameters = get_option( 'wp_rest_cache_uncached_parameters', [] );
+			if ( $uncached_parameters ) {
+				foreach ( $uncached_parameters as $uncached_parameter ) {
+					if ( isset( $params[ $uncached_parameter ] ) ) {
+						unset( $params[ $uncached_parameter ] );
+					}
+				}
+			}
 			$request_path .= '?' . http_build_query( $params );
 		}
 
@@ -386,6 +394,22 @@ class Endpoint_Api {
 		$allowed_request_methods = apply_filters( 'wp_rest_cache/allowed_request_methods', $original_allowed_request_methods );
 		if ( $original_allowed_request_methods !== $allowed_request_methods ) {
 			update_option( 'wp_rest_cache_allowed_request_methods', $allowed_request_methods, false );
+		}
+
+		$original_uncached_parameters = get_option( 'wp_rest_cache_uncached_parameters', [] );
+
+		/**
+		 * Filter uncached query parameters.
+		 *
+		 * Allows to specify which query parameters should be omitted from the cacheable query string.
+		 *
+		 * @since 2020.1.0
+		 *
+		 * @param array $original_uncached_parameters An array of query parameters that should be omitted from the cacheable query string.
+		 */
+		$uncached_parameters = apply_filters( 'wp_rest_cache/uncached_parameters', $original_uncached_parameters );
+		if ( $original_uncached_parameters !== $uncached_parameters ) {
+			update_option( 'wp_rest_cache_uncached_parameters', $uncached_parameters, false );
 		}
 	}
 
