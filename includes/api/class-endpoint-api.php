@@ -347,13 +347,13 @@ class Endpoint_Api {
 		 */
 		$allowed_endpoints = apply_filters( 'wp_rest_cache/allowed_endpoints', $item_allowed_endpoints );
 		if ( $original_allowed_endpoints !== $allowed_endpoints ) {
-			update_option( 'wp_rest_cache_allowed_endpoints', $allowed_endpoints );
+			update_option( 'wp_rest_cache_allowed_endpoints', $allowed_endpoints, false );
 		}
 
 		$original_rest_prefix = get_option( 'wp_rest_cache_rest_prefix' );
 		$rest_prefix          = rest_get_url_prefix();
 		if ( $original_rest_prefix !== $rest_prefix ) {
-			update_option( 'wp_rest_cache_rest_prefix', $rest_prefix );
+			update_option( 'wp_rest_cache_rest_prefix', $rest_prefix, false );
 		}
 
 		$original_cacheable_request_headers = get_option( 'wp_rest_cache_cacheable_request_headers', [] );
@@ -369,7 +369,7 @@ class Endpoint_Api {
 		 */
 		$cacheable_request_headers = apply_filters( 'wp_rest_cache/cacheable_request_headers', $original_cacheable_request_headers );
 		if ( $original_cacheable_request_headers !== $cacheable_request_headers ) {
-			update_option( 'wp_rest_cache_cacheable_request_headers', $cacheable_request_headers );
+			update_option( 'wp_rest_cache_cacheable_request_headers', $cacheable_request_headers, false );
 		}
 
 		$original_allowed_request_methods = get_option( 'wp_rest_cache_allowed_request_methods', [ 'GET' ] );
@@ -385,7 +385,7 @@ class Endpoint_Api {
 		 */
 		$allowed_request_methods = apply_filters( 'wp_rest_cache/allowed_request_methods', $original_allowed_request_methods );
 		if ( $original_allowed_request_methods !== $allowed_request_methods ) {
-			update_option( 'wp_rest_cache_allowed_request_methods', $allowed_request_methods );
+			update_option( 'wp_rest_cache_allowed_request_methods', $allowed_request_methods, false );
 		}
 	}
 
