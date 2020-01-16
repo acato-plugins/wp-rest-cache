@@ -167,6 +167,13 @@ add_filter('wp_rest_cache/settings_capability', 'wprc_change_settings_capability
 
 == Changelog ==
 
+= 2020.1.0 =
+Release Date: January 16th, 2020
+
+Feature: Added a filter to ignore specific query string parameters.
+Feature: Make allowed request methods filterable.
+Bugfix: Make options not autoload.
+
 = 2019.4.5 =
 Release Date: November 22nd, 2019
 

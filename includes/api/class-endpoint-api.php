@@ -387,7 +387,7 @@ class Endpoint_Api {
 		 *
 		 * Allows to override the request methods that will be cached by the WP REST Cache plugin.
 		 *
-		 * @since 2019.4.6
+		 * @since 2020.1.0
 		 *
 		 * @param array $original_allowed_request_methods An array of request_methods that are allowed to be cached.
 		 */
