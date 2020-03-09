@@ -236,6 +236,8 @@ class Endpoint_Api {
 	 * @return bool True if no caching should be applied, false if caching can be applied.
 	 */
 	public function skip_caching() {
+		$use_parameter = false;
+
 		// Default only cache GET-requests.
 		$allowed_request_methods = get_option( 'wp_rest_cache_allowed_request_methods', [ 'GET' ] );
 		// No filter_input, see https://stackoverflow.com/questions/25232975/php-filter-inputinput-server-request-method-returns-null/36205923.
@@ -251,7 +253,13 @@ class Endpoint_Api {
 		// Make sure we only apply to allowed api calls.
 		$rest_prefix = sprintf( '/%s/', get_option( 'wp_rest_cache_rest_prefix', 'wp-json' ) );
 		if ( strpos( $this->request_uri, $rest_prefix ) === false ) {
-			return true;
+			if ( strpos( $this->request_uri, 'rest_route=' ) !== false ) {
+				$rest_prefix = 'rest_route=';
+				$use_parameter = true;
+			}
+			else {
+				return true;
+			}
 		}
 
 		$allowed_endpoints = get_option( 'wp_rest_cache_allowed_endpoints', [] );
@@ -259,7 +267,11 @@ class Endpoint_Api {
 		$allowed_endpoint = false;
 		foreach ( $allowed_endpoints as $namespace => $endpoints ) {
 			foreach ( $endpoints as $endpoint ) {
-				if ( strpos( $this->request_uri, $rest_prefix . $namespace . '/' . $endpoint ) !== false ) {
+				$endpoint_uri = $rest_prefix . $namespace . '/' . $endpoint;
+				if ( $use_parameter ) {
+					$endpoint_uri = $rest_prefix . rawurlencode( '/' . $namespace . '/' . $endpoint );
+				}
+				if ( strpos( $this->request_uri, $endpoint_uri ) !== false ) {
 					$allowed_endpoint = true;
 					break 2;
 				}
