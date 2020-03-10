@@ -254,10 +254,9 @@ class Endpoint_Api {
 		$rest_prefix = sprintf( '/%s/', get_option( 'wp_rest_cache_rest_prefix', 'wp-json' ) );
 		if ( strpos( $this->request_uri, $rest_prefix ) === false ) {
 			if ( strpos( $this->request_uri, 'rest_route=' ) !== false ) {
-				$rest_prefix = 'rest_route=';
+				$rest_prefix   = 'rest_route=';
 				$use_parameter = true;
-			}
-			else {
+			} else {
 				return true;
 			}
 		}
