@@ -25,7 +25,7 @@ class Caching {
 	 *
 	 * @var string DB_VERSION The current version of the database tables.
 	 */
-	const DB_VERSION = '2019.4.3';
+	const DB_VERSION = '2020.1.1';
 
 	/**
 	 * The table name for the table where caches are stored together with their statistics.
@@ -1153,21 +1153,21 @@ class Caching {
 
 			$sql_caches =
 				"CREATE TABLE `{$this->db_table_caches}` (
-                `cache_id` BIGINT(20) NOT NULL AUTO_INCREMENT,
-                `cache_key` VARCHAR(181) NOT NULL,
-                `cache_type` VARCHAR(10) NOT NULL,
-                `request_uri` LONGTEXT NOT NULL,
-                `request_headers` LONGTEXT NOT NULL,
-                `object_type` VARCHAR(191) NOT NULL,
-                `cache_hits` BIGINT(20) NOT NULL,
-                `is_single` TINYINT(1) NOT NULL,
-                `expiration` DATETIME NOT NULL,
-                `deleted` TINYINT(1) DEFAULT 0,
-                PRIMARY KEY (`cache_id`),
-                UNIQUE INDEX `cache_key` (`cache_key`),
-                INDEX `cache_type` (`cache_type`),
-                INDEX `non_single_caches` (`cache_type`, `object_type`, `is_single`)
-                )";
+					`cache_id` BIGINT(20) NOT NULL AUTO_INCREMENT,
+					`cache_key` VARCHAR(181) NOT NULL,
+					`cache_type` VARCHAR(10) NOT NULL,
+					`request_uri` LONGTEXT NOT NULL,
+					`request_headers` LONGTEXT NOT NULL,
+					`object_type` VARCHAR(191) NOT NULL,
+					`cache_hits` BIGINT(20) NOT NULL,
+					`is_single` TINYINT(1) NOT NULL,
+					`expiration` DATETIME NOT NULL,
+					`deleted` TINYINT(1) DEFAULT 0,
+					PRIMARY KEY (`cache_id`),
+					UNIQUE INDEX `cache_key` (`cache_key`),
+					KEY `cache_type` (`cache_type`),
+					KEY `non_single_caches` (`cache_type`, `object_type`, `is_single`)
+				)";
 
 			dbDelta( $sql_caches );
 
@@ -1180,15 +1180,22 @@ class Caching {
 		if ( self::DB_VERSION !== $version || $this->db_table_relations !== $wpdb->get_var( $query ) ) {
 			include_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
+			if ( version_compare( '2020.1.1', $version, '>' ) ) {
+				// Added column lengths to INDEX, dbDelta doesn't detect it, so drop INDEX first.
+				$drop_query = "ALTER TABLE `{$this->db_table_relations}` DROP INDEX `object`;";
+				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+				$wpdb->query( $drop_query );
+			}
+
 			$sql_relations =
 				"CREATE TABLE `{$this->db_table_relations}` (
-	            `cache_id` BIGINT(20) NOT NULL,
-	            `object_id` VARCHAR(191) NOT NULL,
-	            `object_type` VARCHAR(191) NOT NULL,
-	            PRIMARY KEY (`cache_id`, `object_id`),
-	            INDEX `cache_id` (`cache_id`),
-	            INDEX `object` (`object_id`, `object_type`)
-                )";
+					`cache_id` BIGINT(20) NOT NULL,
+					`object_id` VARCHAR(191) NOT NULL,
+					`object_type` VARCHAR(191) NOT NULL,
+					PRIMARY KEY (`cache_id`, `object_id`),
+					KEY `cache_id` (`cache_id`),
+					KEY `object` (`object_id`(100), `object_type`(100))
+				)";
 
 			dbDelta( $sql_relations );
 
