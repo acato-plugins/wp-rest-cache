@@ -2,7 +2,7 @@
 Contributors: acato, rockfire, yoeridekker
 Tags: cache, wp-rest, wp-rest-api, api, rest, rest cache, rest api cache
 Requires at least: 4.7
-Tested up to: 5.3
+Tested up to: 5.4
 Requires PHP: 5.5
 Stable tag: trunk
 License: GPLv3
@@ -166,6 +166,12 @@ add_filter('wp_rest_cache/settings_capability', 'wprc_change_settings_capability
 5. Cache details page - Cache data.
 
 == Changelog ==
+
+= 2020.1.1 =
+Release Date: March 12th, 2020
+
+Bugfix: Allow usage of rest_route parameter.
+Bugfix: WordPress database error: specified key was too long.
 
 = 2020.1.0 =
 Release Date: January 16th, 2020
