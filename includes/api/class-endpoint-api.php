@@ -88,6 +88,9 @@ class Endpoint_Api {
 		$request_uri = filter_var( $_SERVER['REQUEST_URI'], FILTER_SANITIZE_URL );
 		// Remove home_url from request_uri for uri's with WordPress in a subdir (like /wp).
 		$request_uri  = str_replace( get_home_url(), '', $request_uri );
+		if ( '//' === substr( $request_uri, 0, 2 ) ) {
+			$request_uri = substr( $request_uri, 1 );
+		}
 		$uri_parts    = wp_parse_url( $request_uri );
 		$request_path = rtrim( $uri_parts['path'], '/' );
 
