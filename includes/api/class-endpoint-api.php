@@ -241,6 +241,19 @@ class Endpoint_Api {
 	public function skip_caching() {
 		$use_parameter = false;
 
+		/**
+		 * Allow for programmatically disabling of caching.
+		 *
+		 * Allows to programmatically skip caching.
+		 *
+		 * @since 2020.2.0
+		 *
+		 * @param bool $skip_caching True if cache should be skipped.
+		 */
+		if ( apply_filters( 'wp_rest_cache/skip_caching', false ) ) {
+			return true;
+		}
+
 		// Default only cache GET-requests.
 		$allowed_request_methods = get_option( 'wp_rest_cache_allowed_request_methods', [ 'GET' ] );
 		// No filter_input, see https://stackoverflow.com/questions/25232975/php-filter-inputinput-server-request-method-returns-null/36205923.
