@@ -63,6 +63,14 @@ class Endpoint_Api {
 	private $request_headers = array();
 
 	/**
+	 * The request object for the current request.
+	 *
+	 * @access private
+	 * @var    \WP_REST_Request $request The request object.
+	 */
+	private $request;
+
+	/**
 	 * The default WordPress REST endpoints, that can be cached.
 	 *
 	 * @access private
@@ -117,16 +125,16 @@ class Endpoint_Api {
 	 * Create an array of cacheable request headers based upon settings and hooks.
 	 */
 	private function set_cacheable_request_headers() {
-		$request = new \WP_REST_Request();
+		$this->request = new \WP_REST_Request();
 		$server  = new \WP_REST_Server();
-		$request->set_headers( $server->get_headers( wp_unslash( $_SERVER ) ) );
+		$this->request->set_headers( $server->get_headers( wp_unslash( $_SERVER ) ) );
 
 		$cacheable_headers = \WP_Rest_Cache_Plugin\Includes\Caching\Caching::get_instance()->get_global_cacheable_request_headers();
 		$cacheable_headers = explode( ',', $cacheable_headers );
 		if ( count( $cacheable_headers ) ) {
 			foreach ( $cacheable_headers as $header ) {
 				if ( strlen( $header ) ) {
-					$this->request_headers[ $header ] = $request->get_header( $header );
+					$this->request_headers[ $header ] = $this->request->get_header( $header );
 				}
 			}
 		}
@@ -143,7 +151,7 @@ class Endpoint_Api {
 				if ( count( $cacheable_headers ) ) {
 					foreach ( $cacheable_headers as $header ) {
 						if ( strlen( $header ) ) {
-							$this->request_headers[ $header ] = $request->get_header( $header );
+							$this->request_headers[ $header ] = $this->request->get_header( $header );
 						}
 					}
 				}
@@ -251,6 +259,11 @@ class Endpoint_Api {
 		 * @param bool $skip_caching True if cache should be skipped.
 		 */
 		if ( apply_filters( 'wp_rest_cache/skip_caching', false ) ) {
+			return true;
+		}
+
+		$wp_nonce = $this->request->get_header( 'x_wp_nonce' );
+		if ( !is_null( $wp_nonce ) ) {
 			return true;
 		}
 
