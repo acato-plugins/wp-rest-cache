@@ -137,10 +137,13 @@ class Caching {
 		}
 		$cache = get_transient( $this->transient_key( $cache_key ) );
 		if ( $cache ) {
-			$hit = $this->register_cache_hit( $cache_key );
-			if ( false === $hit || 0 === $hit ) {
-				// Weird situation where there is a transient but nothing in the cache tables. Return no cache.
-				$cache = false;
+			$cache_hit_recording = get_option( 'wp_rest_cache_hit_recording', true );
+			if ( $cache_hit_recording ) {
+				$hit = $this->register_cache_hit( $cache_key );
+				if ( false === $hit || 0 === $hit ) {
+					// Weird situation where there is a transient but nothing in the cache tables. Return no cache.
+					$cache = false;
+				}
 			}
 		}
 

@@ -451,6 +451,21 @@ class Endpoint_Api {
 		if ( $original_uncached_parameters !== $uncached_parameters ) {
 			update_option( 'wp_rest_cache_uncached_parameters', $uncached_parameters, false );
 		}
+
+		$original_cache_hit_recording = get_option( 'wp_rest_cache_hit_recording', true );
+		/**
+		 * Filter to disable cache hit recording.
+		 *
+		 * Allows to override the cache hit recording.
+		 *
+		 * @since 2020.2.0
+		 *
+		 * @param boolean $original_uncached_parameters An array of query parameters that should be omitted from the cacheable query string.
+		 */
+		$cache_hit_recording = apply_filters( 'wp_rest_cache/cache_hit_recording', $original_cache_hit_recording );
+		if ( (int) $original_cache_hit_recording !== (int) $cache_hit_recording ) {
+			update_option( 'wp_rest_cache_hit_recording', (int) $cache_hit_recording, true );
+		}
 	}
 
 	/**
