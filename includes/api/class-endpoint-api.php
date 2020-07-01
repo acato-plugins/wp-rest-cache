@@ -95,7 +95,7 @@ class Endpoint_Api {
 		// No filter_input, see https://stackoverflow.com/questions/25232975/php-filter-inputinput-server-request-method-returns-null/36205923.
 		$request_uri = filter_var( $_SERVER['REQUEST_URI'], FILTER_SANITIZE_URL );
 		// Remove home_url from request_uri for uri's with WordPress in a subdir (like /wp).
-		$request_uri  = str_replace( get_home_url(), '', $request_uri );
+		$request_uri = str_replace( get_home_url(), '', $request_uri );
 		if ( '//' === substr( $request_uri, 0, 2 ) ) {
 			$request_uri = substr( $request_uri, 1 );
 		}
@@ -126,7 +126,7 @@ class Endpoint_Api {
 	 */
 	private function set_cacheable_request_headers() {
 		$this->request = new \WP_REST_Request();
-		$server  = new \WP_REST_Server();
+		$server        = new \WP_REST_Server();
 		$this->request->set_headers( $server->get_headers( wp_unslash( $_SERVER ) ) );
 
 		$cacheable_headers = \WP_Rest_Cache_Plugin\Includes\Caching\Caching::get_instance()->get_global_cacheable_request_headers();
@@ -263,7 +263,7 @@ class Endpoint_Api {
 		}
 
 		$wp_nonce = $this->request->get_header( 'x_wp_nonce' );
-		if ( !is_null( $wp_nonce ) ) {
+		if ( ! is_null( $wp_nonce ) ) {
 			return true;
 		}
 

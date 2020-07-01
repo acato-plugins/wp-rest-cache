@@ -46,7 +46,7 @@ if ( isset( $_REQUEST['wp_rest_cache_nonce'] ) && wp_verify_nonce( sanitize_key(
 			<input type="hidden" name="page" value="wp-rest-cache">
 			<input type="hidden" name="sub" value="clear-cache">
 			<?php wp_nonce_field( 'wp_rest_cache_options', 'wp_rest_cache_nonce' ); ?>
-            <input type="checkbox" name="delete_caches" value="1">Delete all caches (this will make you lose all statistics)<br/><br/>
+			<input type="checkbox" name="delete_caches" value="1">Delete all caches (this will make you lose all statistics)<br/><br/>
 			<input type="submit" name="submit" id="submit"
 				class="button button-<?php echo $wp_rest_cache_clear_cache ? 'disabled' : 'primary'; ?>" <?php echo $wp_rest_cache_clear_cache ? 'disabled' : ''; ?>
 				value="<?php esc_attr_e( 'Clear REST Cache', 'wp-rest-cache' ); ?>">
@@ -87,7 +87,7 @@ if ( isset( $_REQUEST['wp_rest_cache_nonce'] ) && wp_verify_nonce( sanitize_key(
 						"action": "flush_caches",
 						"page": page,
 						"wp_rest_cache_nonce": ajaxnonce,
-                        "delete_caches": deletecaches
+						"delete_caches": deletecaches
 					},
 					success: function (response) {
 						progressbar.progressbar("value", response.percentage);

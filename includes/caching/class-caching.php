@@ -442,7 +442,7 @@ class Caching {
 	/**
 	 * Delete all caches.
 	 *
-	 * @param bool  $delete True if caches need to be deleted instead of flushed.
+	 * @param bool $delete True if caches need to be deleted instead of flushed.
 	 */
 	public function delete_all_caches( $delete ) {
 		global $wpdb;
@@ -452,7 +452,7 @@ class Caching {
 						ELSE `deleted`
 						END )";
 		if ( $delete ) {
-			$deleted = "1";
+			$deleted = '1';
 		}
 
 		$sql =
@@ -659,7 +659,7 @@ class Caching {
 			[
 				'expiration' => $expiration,
 				'deleted'    => 0,
-				'cleaned'    => (int) $cleaned
+				'cleaned'    => (int) $cleaned,
 			],
 			[ 'cache_id' => $cache_id ],
 			[ '%s', '%d', '%d' ],
