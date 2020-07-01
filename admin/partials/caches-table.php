@@ -14,7 +14,7 @@ $wp_rest_cache_sub = filter_input( INPUT_GET, 'sub', FILTER_SANITIZE_STRING );
 <div id="poststuff">
 	<div id="post-body" class="metabox-holder">
 		<div class="meta-box-sortables ui-sortable">
-			<form method="post">
+			<form method="get">
 				<input type="hidden" name="page" value="wp-rest-cache"/>
 				<input type="hidden" name="sub" value="<?php echo esc_attr( $wp_rest_cache_sub ); ?>"/>
 				<?php

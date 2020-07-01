@@ -900,7 +900,7 @@ class Caching {
 		$order = $this->get_orderby_clause();
 
 		$prepare_args[] = ( $page * $per_page );
-		$prepare_args[] = ( ( $page + 1 ) * $per_page );
+		$prepare_args[] = $per_page;
 
 		$sql =
 			"SELECT * 
@@ -959,6 +959,9 @@ class Caching {
 		$prepare_args[] = $api_type;
 		$prepare_args[] = false;
 		$search         = filter_input( INPUT_POST, 's', FILTER_SANITIZE_STRING );
+		if ( ! $search ) {
+			$search = filter_input( INPUT_GET, 's', FILTER_SANITIZE_STRING );
+		}
 
 		if ( ! empty( $search ) ) {
 			$where         .= ' AND ( `request_uri` LIKE %s OR `object_type` LIKE %s )';
