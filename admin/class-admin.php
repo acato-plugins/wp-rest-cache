@@ -369,23 +369,10 @@ class Admin {
 	public function flush_caches() {
 		check_ajax_referer( 'wp_rest_cache_clear_cache_ajax', 'wp_rest_cache_nonce' );
 
-		$caching          = Caching::get_instance();
-		$number_of_caches = $caching->get_record_count( 'endpoint' );
-		$page             = filter_input( INPUT_POST, 'page', FILTER_VALIDATE_INT );
-		$per_page         = get_option( 'posts_per_page' );
+		$caching = Caching::get_instance();
+		$caching->delete_all_caches();
 
-		$caches = $caching->get_api_data( 'endpoint', $per_page, $page );
-		foreach ( $caches as $cache ) {
-			if ( ! $cache['is_active'] ) {
-				continue;
-			}
-			$force = ( 'unknown' === $cache['object_type'] );
-			$caching->delete_cache( $cache['cache_key'], $force );
-		}
-
-		$result = [
-			'percentage' => min( floor( ( ( $page * $per_page ) / $number_of_caches ) * 100 ), 100 ),
-		];
+		$result = [ 'percentage' => 100 ]; // deprecated, since we delete all caches at once, we should remove the progress bar.
 
 		echo wp_json_encode( $result );
 		exit;

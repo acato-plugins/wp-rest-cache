@@ -25,7 +25,7 @@ class Caching {
 	 *
 	 * @var string DB_VERSION The current version of the database tables.
 	 */
-	const DB_VERSION = '2020.1.1';
+	const DB_VERSION = '2020.2.0';
 
 	/**
 	 * The table name for the table where caches are stored together with their statistics.
@@ -203,7 +203,7 @@ class Caching {
 			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 			$wpdb->query( $wpdb->prepare( $sql, $cache_id ) );
 		} else {
-			$this->update_cache_expiration( $cache_id, date_i18n( 'Y-m-d H:i:s', 0 ) );
+			$this->update_cache_expiration( $cache_id, date_i18n( 'Y-m-d H:i:s', 0 ), true );
 		}
 	}
 
@@ -440,6 +440,28 @@ class Caching {
 	}
 
 	/**
+	 * Delete all caches.
+	 */
+	public function delete_all_caches() {
+		global $wpdb;
+
+		$sql =
+			"UPDATE `{$this->db_table_caches}`
+				SET `expiration` = %s,
+					`deleted` = ( CASE
+						WHEN `object_type` = 'unknown' THEN 1
+						ELSE `deleted`
+						END )";
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		$affected_rows = $wpdb->query( $wpdb->prepare( $sql, date_i18n( 'Y-m-d H:i:s', 0 ) ) );
+
+		if ( 0 !== $affected_rows && false !== $affected_rows ) {
+			$this->schedule_cleanup();
+		}
+	}
+
+	/**
 	 * Delete all related caches for an object ID and object type. Possibly also delete cache statistics for single
 	 * endpoint caches.
 	 *
@@ -611,8 +633,9 @@ class Caching {
 	 *
 	 * @param int         $cache_id The ID of the cache row.
 	 * @param null|string $expiration The specific expiration date/time. If none supplied it will be calculated.
+	 * @param bool        $cleaned True if this is called when the transient is actually deleted.
 	 */
-	private function update_cache_expiration( $cache_id, $expiration = null ) {
+	private function update_cache_expiration( $cache_id, $expiration = null, $cleaned = false ) {
 		global $wpdb;
 
 		if ( is_null( $expiration ) ) {
@@ -629,9 +652,10 @@ class Caching {
 			[
 				'expiration' => $expiration,
 				'deleted'    => 0,
+				'cleaned'    => (int) $cleaned
 			],
 			[ 'cache_id' => $cache_id ],
-			[ '%s', '%d' ],
+			[ '%s', '%d', '%d' ],
 			[ '%d' ]
 		);
 	}
@@ -1128,15 +1152,39 @@ class Caching {
 	public function cleanup_deleted_caches() {
 		global $wpdb;
 
-		$sql = "SELECT `cache_key`, `deleted`
-				FROM    {$this->db_table_caches}
-				WHERE	`expiration` = %s";
+		/**
+		 * How many caches should be cleanup in each run?
+		 *
+		 * Allows to change the number of cleaned up caches per cron run.
+		 *
+		 * @since 2020.2.0
+		 *
+		 * @param int The maximum number of cleaned up caches per cron run.
+		 */
+		$limit = (int) apply_filters( 'wp_rest_cache/max_cleanup_caches', 1000 );
+
+		$sql = "SELECT  `cache_key`, `deleted`
+                FROM    {$this->db_table_caches}
+                WHERE   `expiration` = %s
+                AND     `cleaned` = %d
+                LIMIT   %d";
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		$caches = $wpdb->get_results( $wpdb->prepare( $sql, date_i18n( 'Y-m-d H:i:s', 0 ) ) );
+		$caches = $wpdb->get_results( $wpdb->prepare( $sql, date_i18n( 'Y-m-d H:i:s', 0 ), 0, $limit ) );
 		if ( $caches ) {
 			foreach ( $caches as $cache ) {
 				$this->delete_cache( $cache->cache_key, $cache->deleted );
 			}
+		}
+
+		$sql = "SELECT  COUNT( `cache_id` ) AS `number_of_caches`
+                FROM    {$this->db_table_caches}
+                WHERE   `expiration` = %s
+                AND     `cleaned` = %d";
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		$count = $wpdb->get_var( $wpdb->prepare( $sql, date_i18n( 'Y-m-d H:i:s', 0 ), 0 ) );
+
+		if ( $count > 0 ) {
+			$this->schedule_cleanup();
 		}
 	}
 
@@ -1166,6 +1214,7 @@ class Caching {
 					`is_single` TINYINT(1) NOT NULL,
 					`expiration` DATETIME NOT NULL,
 					`deleted` TINYINT(1) DEFAULT 0,
+					`cleaned` TINYINT(1) DEFAULT 0,
 					PRIMARY KEY (`cache_id`),
 					UNIQUE INDEX `cache_key` (`cache_key`),
 					KEY `cache_type` (`cache_type`),
