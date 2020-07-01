@@ -441,17 +441,24 @@ class Caching {
 
 	/**
 	 * Delete all caches.
+	 *
+	 * @param bool  $delete True if caches need to be deleted instead of flushed.
 	 */
-	public function delete_all_caches() {
+	public function delete_all_caches( $delete ) {
 		global $wpdb;
+
+		$deleted = "( CASE
+						WHEN `object_type` = 'unknown' THEN 1
+						ELSE `deleted`
+						END )";
+		if ( $delete ) {
+			$deleted = "1";
+		}
 
 		$sql =
 			"UPDATE `{$this->db_table_caches}`
 				SET `expiration` = %s,
-					`deleted` = ( CASE
-						WHEN `object_type` = 'unknown' THEN 1
-						ELSE `deleted`
-						END )";
+					`deleted` = {$deleted}";
 
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		$affected_rows = $wpdb->query( $wpdb->prepare( $sql, date_i18n( 'Y-m-d H:i:s', 0 ) ) );

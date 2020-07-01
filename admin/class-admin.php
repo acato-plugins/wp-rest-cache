@@ -368,9 +368,10 @@ class Admin {
 	 */
 	public function flush_caches() {
 		check_ajax_referer( 'wp_rest_cache_clear_cache_ajax', 'wp_rest_cache_nonce' );
+		$delete_caches = filter_input( INPUT_POST, 'delete_caches', FILTER_VALIDATE_BOOLEAN );
 
 		$caching = Caching::get_instance();
-		$caching->delete_all_caches();
+		$caching->delete_all_caches( $delete_caches );
 
 		$result = [ 'percentage' => 100 ]; // deprecated, since we delete all caches at once, we should remove the progress bar.
 
