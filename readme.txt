@@ -167,6 +167,17 @@ add_filter('wp_rest_cache/settings_capability', 'wprc_change_settings_capability
 
 == Changelog ==
 
+= 2020.2.0 =
+Release Date: July 2nd, 2020
+
+Improvement: Speed up cache clearing.
+Feature: Added filter for programmatically skip caching.
+Feature: Added filter to disable cache hit recording.
+Feature: Added option to delete all caches (vs flush all caches).
+Bugfix: Do not cache API calls with a nonce.
+Bugfix: Fix for not caching when there are double slashes in the request path.
+Bugfix: Fix persisting the search when searching through caches.
+
 = 2020.1.1 =
 Release Date: March 12th, 2020
 
