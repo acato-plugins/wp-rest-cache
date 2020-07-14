@@ -94,7 +94,13 @@ class Plugin {
 		add_action( 'admin_init', [ $plugin_admin, 'handle_actions' ] );
 		add_action( 'admin_notices', [ $plugin_admin, 'display_notices' ] );
 		add_action( 'wp_before_admin_bar_render', [ $plugin_admin, 'admin_bar_item' ], 999 );
+
+		// set-screen-option should be deprecated in favor of set_screen_option-{$option} but in WP version 5.4.2 there
+		// is a bug making both calls necessary until that bug is fixed in the next version.
+		// See: https://core.trac.wordpress.org/ticket/50392 for more info.
 		add_filter( 'set-screen-option', [ $plugin_admin, 'set_screen_option' ], 10, 3 );
+		add_filter( 'set_screen_option_caches_per_page', [ $plugin_admin, 'set_screen_option' ], 10, 3 );
+
 		add_filter(
 			'plugin_action_links_' . trailingslashit( dirname( plugin_basename( __DIR__ ) ) ) . 'wp-rest-cache.php',
 			[
