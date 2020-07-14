@@ -167,6 +167,11 @@ add_filter('wp_rest_cache/settings_capability', 'wprc_change_settings_capability
 
 == Changelog ==
 
+= 2020.2.1 =
+Release Date: July 14th, 2020
+
+Bugfix: WordPress bug caused screen options to not work correctly anymore.
+
 = 2020.2.0 =
 Release Date: July 2nd, 2020
 
