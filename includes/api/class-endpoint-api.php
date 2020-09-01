@@ -167,8 +167,14 @@ class Endpoint_Api {
 	private function build_cache_key() {
 		$this->build_request_uri();
 		$this->set_cacheable_request_headers();
+		// No filter_input, see https://stackoverflow.com/questions/25232975/php-filter-inputinput-server-request-method-returns-null/36205923.
+		$request_method = filter_var( $_SERVER['REQUEST_METHOD'], FILTER_SANITIZE_STRING );
+		// For backwards compatibility empty string for request method = GET.
+		if ( 'GET' === $request_method ) {
+			$request_method = '';
+		}
 
-		$this->cache_key = md5( $this->request_uri . wp_json_encode( $this->request_headers ) );
+		$this->cache_key = md5( $this->request_uri . wp_json_encode( $this->request_headers ) . $request_method );
 	}
 
 	/**
@@ -232,11 +238,14 @@ class Endpoint_Api {
 			return $result;
 		}
 
+		// No filter_input, see https://stackoverflow.com/questions/25232975/php-filter-inputinput-server-request-method-returns-null/36205923.
+		$request_method = filter_var( $_SERVER['REQUEST_METHOD'], FILTER_SANITIZE_STRING );
+
 		$data = array(
 			'data'    => $result,
 			'headers' => $this->response_headers,
 		);
-		\WP_Rest_Cache_Plugin\Includes\Caching\Caching::get_instance()->set_cache( $this->cache_key, $data, 'endpoint', $this->request_uri, '', $this->request_headers );
+		\WP_Rest_Cache_Plugin\Includes\Caching\Caching::get_instance()->set_cache( $this->cache_key, $data, 'endpoint', $this->request_uri, '', $this->request_headers, $request_method );
 
 		return $result;
 	}

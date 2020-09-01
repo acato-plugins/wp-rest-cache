@@ -230,6 +230,7 @@ class API_Caches_Table extends \WP_List_Table {
 			'cache_key'       => __( 'Cache Key', 'wp-rest-cache' ),
 			'request_uri'     => __( 'Request URI', 'wp-rest-cache' ),
 			'request_headers' => __( 'Request Headers', 'wp-rest-cache' ),
+			'request_method'  => __( 'Request Method', 'wp-rest-cache' ),
 			'object_type'     => __( 'Object Type', 'wp-rest-cache' ),
 			'expiration'      => __( 'Expiration', 'wp-rest-cache' ),
 			'cache_hits'      => __( '# Cache Hits', 'wp-rest-cache' ),
@@ -246,11 +247,12 @@ class API_Caches_Table extends \WP_List_Table {
 	 */
 	public function get_sortable_columns() {
 		$sortable_columns = [
-			'cache_key'   => [ 'cache_key', false ],
-			'request_uri' => [ 'request_uri', false ],
-			'object_type' => [ 'object_type', false ],
-			'expiration'  => [ 'expiration', true ],
-			'cache_hits'  => [ 'cache_hits', true ],
+			'cache_key'      => [ 'cache_key', false ],
+			'request_uri'    => [ 'request_uri', false ],
+			'request_method' => [ 'request_method', false ],
+			'object_type'    => [ 'object_type', false ],
+			'expiration'     => [ 'expiration', true ],
+			'cache_hits'     => [ 'cache_hits', true ],
 		];
 
 		return $sortable_columns;
