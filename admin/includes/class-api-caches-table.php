@@ -332,7 +332,7 @@ class API_Caches_Table extends \WP_List_Table {
 	 * @param string $action The action to be taken.
 	 */
 	private function process_bulk_action( $action ) {
-		$caches = filter_input( INPUT_POST, 'bulk-flush', FILTER_SANITIZE_STRING, FILTER_REQUIRE_ARRAY );
+		$caches = filter_input( INPUT_GET, 'bulk-flush', FILTER_SANITIZE_STRING, FILTER_REQUIRE_ARRAY );
 		foreach ( $caches as $cache_key ) {
 			self::clear_cache( $cache_key, ( 'bulk-delete' === $action ) );
 		}
