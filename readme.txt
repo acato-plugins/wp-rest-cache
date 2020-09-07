@@ -1,10 +1,10 @@
 === WP REST Cache ===
 Contributors: acato, rockfire, yoeridekker
-Tags: cache, wp-rest, wp-rest-api, api, rest, rest cache, rest api cache
+Tags: cache, wp-rest-api, api, rest, rest cache, rest api cache
 Requires at least: 4.7
 Tested up to: 5.5
 Requires PHP: 5.5
-Stable tag: trunk
+Stable tag: 2020.2.2
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl.html
 
@@ -166,6 +166,12 @@ add_filter('wp_rest_cache/settings_capability', 'wprc_change_settings_capability
 5. Cache details page - Cache data.
 
 == Changelog ==
+
+= 2020.2.2 =
+Release Date: September 7th, 2020
+
+Bugfix: Conflict when caching two calls with same url but different request method.
+Bugfix: Bulk actions were broken.
 
 = 2020.2.1 =
 Release Date: July 14th, 2020

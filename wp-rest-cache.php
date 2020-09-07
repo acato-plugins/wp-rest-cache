@@ -10,11 +10,12 @@
  * Plugin Name:     WP REST Cache
  * Plugin URI:      http://www.acato.nl
  * Description:     Adds caching to the WP REST API
- * Version:         2020.2.1
+ * Version:         2020.2.2
  * Author:          Acato
  * Author URI:      http://www.acato.nl
  * Text Domain:     wp-rest-cache
- * Domain Path:     /languages
+ * License:         GPLv3
+ * License URI:     http://www.gnu.org/licenses/gpl.html
  */
 
 // If this file is called directly, abort.
