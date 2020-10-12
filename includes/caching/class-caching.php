@@ -155,21 +155,21 @@ class Caching {
 	 *
 	 * @param string $cache_key The cache key for the cache.
 	 * @param mixed  $value The item to be cached.
-	 * @param string $type The type of cache (endpoint|item).
+	 * @param string $type The type of cache (endpoint).
 	 * @param string $uri The requested uri for this cache if available.
 	 * @param string $object_type The object type for this cache if available.
 	 * @param array  $request_headers An array of cacheable request headers.
 	 * @param string $request_method The request method for this call.
 	 */
 	public function set_cache( $cache_key, $value, $type, $uri = '', $object_type = '', $request_headers = [], $request_method = 'GET' ) {
-		switch ( $type ) {
-			case 'endpoint':
-				$this->register_endpoint_cache( $cache_key, $value, $uri, $request_headers, $request_method );
-				break;
-			case 'item':
-				$this->register_item_cache( $cache_key, $object_type, $value );
-				break;
+		if ( 'endpoint' !== $type ) {
+			_deprecated_argument( __FUNCTION__, '2020.3.0', 'Only \'endpoint\' is allowed for $type.' );
+
+			return;
 		}
+
+		$this->register_endpoint_cache( $cache_key, $value, $uri, $request_headers, $request_method );
+
 		set_transient( $this->transient_key( $cache_key ), $value, $this->get_timeout() );
 	}
 
@@ -570,7 +570,7 @@ class Caching {
 	 * Insert a new cache into the database.
 	 *
 	 * @param string $cache_key The cache key.
-	 * @param string $cache_type The cache type (endpoint|item).
+	 * @param string $cache_type The cache type (endpoint).
 	 * @param string $uri The requested URI.
 	 * @param string $object_type The object type for the cache.
 	 * @param bool   $is_single Whether it is a single item cache.
@@ -581,6 +581,12 @@ class Caching {
 	 */
 	private function insert_cache_row( $cache_key, $cache_type, $uri, $object_type, $is_single = true, $request_headers = [], $request_method = 'GET' ) {
 		global $wpdb;
+
+		if ( 'endpoint' !== $cache_type ) {
+			_deprecated_argument( __FUNCTION__, '2020.3.0', 'Only \'endpoint\' is allowed for $cache_type.' );
+
+			return;
+		}
 
 		$expiration = self::get_timeout();
 		if ( ! self::get_memcache_used() ) {
@@ -781,28 +787,6 @@ class Caching {
 	}
 
 	/**
-	 * Register an item cache in the database.
-	 *
-	 * @param string $cache_key The cache key.
-	 * @param string $object_type The object type of the cached item.
-	 * @param mixed  $data The cached data.
-	 */
-	private function register_item_cache( $cache_key, $object_type, $data ) {
-		$cache_id = $this->get_cache_row_id( $cache_key );
-
-		if ( is_null( $cache_id ) ) {
-			$cache_id = $this->insert_cache_row( $cache_key, 'item', '', $object_type );
-		} else {
-			$this->update_cache_expiration( $cache_id );
-		}
-
-		// Force data to be an array.
-		$data = json_decode( wp_json_encode( $data->data ), true );
-
-		$this->process_recursive_cache_relations( $cache_id, $data );
-	}
-
-	/**
 	 * Loop through the cached data to determine all cache relations recursively.
 	 *
 	 * @param int   $cache_id The ID of the cache row.
@@ -892,7 +876,7 @@ class Caching {
 	/**
 	 * Get an array of cache data for a specific API type.
 	 *
-	 * @param string $api_type The type of the API for which the data is retrieved (endpoint|item).
+	 * @param string $api_type The type of the API for which the data is retrieved (endpoint).
 	 * @param int    $per_page Number of items to return per page.
 	 * @param int    $page_number The requested page.
 	 *
@@ -936,7 +920,7 @@ class Caching {
 	/**
 	 * Get the number of records for the requested API type.
 	 *
-	 * @param string $api_type The type of the API for which the data is retrieved (endpoint|item).
+	 * @param string $api_type The type of the API for which the data is retrieved (endpoint).
 	 *
 	 * @return int The number of records.
 	 */
@@ -958,7 +942,7 @@ class Caching {
 	/**
 	 * Build the where clause for the query that retrieves the cache data for a specific API type.
 	 *
-	 * @param string $api_type The type of the API for which the data is retrieved (endpoint|item).
+	 * @param string $api_type The type of the API for which the data is retrieved (endpoint).
 	 * @param array  $prepare_args A reference to an array containing the arguments for the prepare statement.
 	 *
 	 * @return string The where clause.

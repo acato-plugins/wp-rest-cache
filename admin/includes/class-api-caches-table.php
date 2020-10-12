@@ -48,7 +48,7 @@ class API_Caches_Table extends \WP_List_Table {
 	 * @throws \Exception If invalid API Type is supplied.
 	 */
 	public function __construct( $api_type ) {
-		if ( ! in_array( $api_type, [ 'item', 'endpoint' ], true ) ) {
+		if ( 'endpoint' !== $api_type ) {
 			throw new \Exception(
 				sprintf(
 					/* translators: %s: api-type */
@@ -59,22 +59,12 @@ class API_Caches_Table extends \WP_List_Table {
 		}
 
 		self::$api_type = $api_type;
-		switch ( $api_type ) {
-			case 'item':
-				$args = [
-					'singular' => __( 'Item API Cache', 'wp-rest-cache' ),
-					'plural'   => __( 'Item API Caches', 'wp-rest-cache' ),
-					'ajax'     => false,
-				];
-				break;
-			case 'endpoint':
-				$args = [
-					'singular' => __( 'Endpoint API Cache', 'wp-rest-cache' ),
-					'plural'   => __( 'Endpoint API Caches', 'wp-rest-cache' ),
-					'ajax'     => false,
-				];
-				break;
-		}
+
+		$args = [
+			'singular' => __( 'Endpoint API Cache', 'wp-rest-cache' ),
+			'plural'   => __( 'Endpoint API Caches', 'wp-rest-cache' ),
+			'ajax'     => false,
+		];
 		parent::__construct( $args );
 	}
 
