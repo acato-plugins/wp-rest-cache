@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2020-10-12T11:21:52+02:00\n"
+"POT-Creation-Date: 2020-10-12T14:16:07+02:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.4.0\n"
 "X-Domain: wp-rest-cache\n"
@@ -255,16 +255,21 @@ msgstr ""
 msgid "Are you using Memcache(d) as external object caching?"
 msgstr ""
 
-#: includes/caching/class-caching.php:256
+#: includes/caching/class-caching.php:268
 msgid "Invalid strictness"
 msgstr ""
 
-#: includes/caching/class-caching.php:638
-#: includes/caching/class-caching.php:910
+#: includes/caching/class-caching.php:656
+#: includes/caching/class-caching.php:930
 msgid "Flushed"
 msgstr ""
 
-#: includes/caching/class-caching.php:640
-#: includes/caching/class-caching.php:912
+#: includes/caching/class-caching.php:658
+#: includes/caching/class-caching.php:932
 msgid "Expired"
+msgstr ""
+
+#: includes/caching/class-caching.php:661
+#: includes/caching/class-caching.php:935
+msgid "Unlimited"
 msgstr ""
