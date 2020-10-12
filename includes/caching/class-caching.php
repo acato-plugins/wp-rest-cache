@@ -132,7 +132,7 @@ class Caching {
 	 */
 	public function get_cache( $cache_key ) {
 		$expiration = $this->get_cache_expiration( $cache_key );
-		if ( 0 === strtotime( $expiration ) ) {
+		if ( 1 === strtotime( $expiration ) ) {
 			return false;
 		}
 		$cache = get_transient( $this->transient_key( $cache_key ) );
@@ -170,7 +170,19 @@ class Caching {
 
 		$this->register_endpoint_cache( $cache_key, $value, $uri, $request_headers, $request_method );
 
-		set_transient( $this->transient_key( $cache_key ), $value, $this->get_timeout() );
+		set_transient(
+			$this->transient_key( $cache_key ),
+			$value,
+			$this->get_timeout(
+				true,
+				[
+					'uri'             => $uri,
+					'object_type'     => $object_type,
+					'request_headers' => $request_headers,
+					'request_method'  => $request_method,
+				]
+			)
+		);
 	}
 
 	/**
@@ -204,7 +216,7 @@ class Caching {
 			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 			$wpdb->query( $wpdb->prepare( $sql, $cache_id ) );
 		} else {
-			$this->update_cache_expiration( $cache_id, date_i18n( 'Y-m-d H:i:s', 0 ), true );
+			$this->update_cache_expiration( $cache_id, date_i18n( 'Y-m-d H:i:s', 1 ), true );
 		}
 	}
 
@@ -238,7 +250,7 @@ class Caching {
 		$sql              = "UPDATE `{$this->db_table_caches}`
 		SET `expiration` = %s
         WHERE ";
-		$prepare_params[] = date_i18n( 'Y-m-d H:i:s', 0 );
+		$prepare_params[] = date_i18n( 'Y-m-d H:i:s', 1 );
 		switch ( $strictness ) {
 			case self::FLUSH_STRICT:
 				$sql             .= ' `request_uri` = %s ';
@@ -462,7 +474,7 @@ class Caching {
 					`deleted` = {$deleted}";
 
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		$affected_rows = $wpdb->query( $wpdb->prepare( $sql, date_i18n( 'Y-m-d H:i:s', 0 ) ) );
+		$affected_rows = $wpdb->query( $wpdb->prepare( $sql, date_i18n( 'Y-m-d H:i:s', 1 ) ) );
 
 		if ( 0 !== $affected_rows && false !== $affected_rows ) {
 			$this->schedule_cleanup();
@@ -496,7 +508,7 @@ class Caching {
                 AND `r`.`object_type` = %s";
 
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		$affected_rows = $wpdb->query( $wpdb->prepare( $sql, date_i18n( 'Y-m-d H:i:s', 0 ), $id, $object_type ) );
+		$affected_rows = $wpdb->query( $wpdb->prepare( $sql, date_i18n( 'Y-m-d H:i:s', 1 ), $id, $object_type ) );
 
 		if ( 0 !== $affected_rows && false !== $affected_rows ) {
 			$this->schedule_cleanup();
@@ -584,12 +596,18 @@ class Caching {
 
 		if ( 'endpoint' !== $cache_type ) {
 			_deprecated_argument( __FUNCTION__, '2020.3.0', 'Only \'endpoint\' is allowed for $cache_type.' );
-
-			return;
 		}
 
-		$expiration = self::get_timeout();
-		if ( ! self::get_memcache_used() ) {
+		$expiration = $this->get_timeout(
+			true,
+			[
+				'uri'             => $uri,
+				'object_type'     => $object_type,
+				'request_headers' => $request_headers,
+				'request_method'  => $request_method,
+			]
+		);
+		if ( 0 !== $expiration && ! $this->get_memcache_used() ) {
 			// phpcs:ignore WordPress.DateTime.CurrentTimeTimestamp.Requested
 			$expiration += current_time( 'timestamp' );
 		}
@@ -632,13 +650,15 @@ class Caching {
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		$result = $wpdb->get_row( $wpdb->prepare( $sql, $cache_key ), ARRAY_A );
 
-		$result['is_active'] = ( false !== get_transient( $this->transient_key( $result['cache_key'] ) ) && 0 !== strtotime( $result['expiration'] ) );
+		$result['is_active'] = ( false !== get_transient( $this->transient_key( $result['cache_key'] ) ) && 1 !== strtotime( $result['expiration'] ) );
 		if ( ! $result['is_active'] ) {
-			if ( strtotime( $result['expiration'] ) === 0 ) {
+			if ( 1 === strtotime( $result['expiration'] ) ) {
 				$result['expiration'] = __( 'Flushed', 'wp-rest-cache' );
 			} else {
 				$result['expiration'] = __( 'Expired', 'wp-rest-cache' );
 			}
+		} elseif ( 0 === strtotime( $result['expiration'] ) ) {
+			$result['expiration'] = __( 'Unlimited', 'wp-rest-cache' );
 		}
 
 		return $result;
@@ -655,8 +675,8 @@ class Caching {
 		global $wpdb;
 
 		if ( is_null( $expiration ) ) {
-			$expiration = self::get_timeout();
-			if ( ! self::get_memcache_used() ) {
+			$expiration = $this->get_timeout();
+			if ( ! $this->get_memcache_used() ) {
 				// phpcs:ignore WordPress.DateTime.CurrentTimeTimestamp.Requested
 				$expiration += current_time( 'timestamp' );
 			}
@@ -904,13 +924,15 @@ class Caching {
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		$results = $wpdb->get_results( $wpdb->prepare( $sql, $prepare_args ), ARRAY_A );
 		foreach ( $results as &$result ) {
-			$result['is_active'] = ( false !== get_transient( $this->transient_key( $result['cache_key'] ) ) && 0 !== strtotime( $result['expiration'] ) );
+			$result['is_active'] = ( false !== get_transient( $this->transient_key( $result['cache_key'] ) ) && 1 !== strtotime( $result['expiration'] ) );
 			if ( ! $result['is_active'] ) {
-				if ( 0 === strtotime( $result['expiration'] ) ) {
+				if ( 1 === strtotime( $result['expiration'] ) ) {
 					$result['expiration'] = __( 'Flushed', 'wp-rest-cache' );
 				} else {
 					$result['expiration'] = __( 'Expired', 'wp-rest-cache' );
 				}
+			} elseif ( 0 === strtotime( $result['expiration'] ) ) {
+				$result['expiration'] = __( 'Unlimited', 'wp-rest-cache' );
 			}
 		}
 
@@ -1022,10 +1044,11 @@ class Caching {
 	 * Get the cache timeout as set in the plugin Settings.
 	 *
 	 * @param boolean $calculated If the returned value should be calculated using the interval.
+	 * @param array   $options An array of options for the wp_rest_cache/timeout filter.
 	 *
 	 * @return int Timeout (in seconds if calculated).
 	 */
-	public function get_timeout( $calculated = true ) {
+	public function get_timeout( $calculated = true, $options = [] ) {
 		$timeout = get_option( 'wp_rest_cache_timeout', 1 );
 		if ( $calculated ) {
 			$timeout_interval = $this->get_timeout_interval();
@@ -1033,6 +1056,20 @@ class Caching {
 			if ( $this->get_memcache_used() ) {
 				$timeout += time();
 			}
+		}
+
+		if ( $options ) {
+			/**
+			 * What timeout should be used for the current cache record?
+			 *
+			 * Allows to change the timeout for a specific cache record.
+			 *
+			 * @since 2020.3.0
+			 *
+			 * @param int The timeout as set in the settings.
+			 * @param array An array of options, containing the current uri, the object type, the request headers and the request method.
+			 */
+			$timeout = apply_filters( 'wp_rest_cache/timeout', $timeout, $options );
 		}
 
 		return $timeout;
@@ -1172,7 +1209,7 @@ class Caching {
                 AND     `cleaned` = %d
                 LIMIT   %d";
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		$caches = $wpdb->get_results( $wpdb->prepare( $sql, date_i18n( 'Y-m-d H:i:s', 0 ), 0, $limit ) );
+		$caches = $wpdb->get_results( $wpdb->prepare( $sql, date_i18n( 'Y-m-d H:i:s', 1 ), 0, $limit ) );
 		if ( $caches ) {
 			foreach ( $caches as $cache ) {
 				$this->delete_cache( $cache->cache_key, $cache->deleted );
@@ -1184,7 +1221,7 @@ class Caching {
                 WHERE   `expiration` = %s
                 AND     `cleaned` = %d";
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		$count = $wpdb->get_var( $wpdb->prepare( $sql, date_i18n( 'Y-m-d H:i:s', 0 ), 0 ) );
+		$count = $wpdb->get_var( $wpdb->prepare( $sql, date_i18n( 'Y-m-d H:i:s', 1 ), 0 ) );
 
 		if ( $count > 0 ) {
 			$this->schedule_cleanup();
