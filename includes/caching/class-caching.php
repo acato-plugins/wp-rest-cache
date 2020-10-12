@@ -784,12 +784,17 @@ class Caching {
 		if ( is_null( $cache_id ) ) {
 			$cache_id = $this->insert_cache_row( $cache_key, 'endpoint', $uri, $object_type, $this->is_single, $request_headers, $request_method );
 		} else {
-			$this->update_cache_expiration( $cache_id, null, false, [
-				'uri'             => $uri,
-				'object_type'     => $object_type,
-				'request_headers' => $request_headers,
-				'request_method'  => $request_method
-			] );
+			$this->update_cache_expiration(
+				$cache_id,
+				null,
+				false,
+				[
+					'uri'             => $uri,
+					'object_type'     => $object_type,
+					'request_headers' => $request_headers,
+					'request_method'  => $request_method,
+				]
+			);
 		}
 
 		// Force data to be an array.
