@@ -670,17 +670,18 @@ class Caching {
 	 * @param int         $cache_id The ID of the cache row.
 	 * @param null|string $expiration The specific expiration date/time. If none supplied it will be calculated.
 	 * @param bool        $cleaned True if this is called when the transient is actually deleted.
+	 * @param array       $options An array of options for the wp_rest_cache/timeout filter.
 	 */
-	private function update_cache_expiration( $cache_id, $expiration = null, $cleaned = false ) {
+	private function update_cache_expiration( $cache_id, $expiration = null, $cleaned = false, $options = [] ) {
 		global $wpdb;
 
 		if ( is_null( $expiration ) ) {
-			$expiration = $this->get_timeout();
-			if ( ! $this->get_memcache_used() ) {
+			$timeout = $this->get_timeout( true, $options );
+			if ( 0 !== $timeout && ! $this->get_memcache_used() ) {
 				// phpcs:ignore WordPress.DateTime.CurrentTimeTimestamp.Requested
-				$expiration += current_time( 'timestamp' );
+				$timeout += current_time( 'timestamp' );
 			}
-			$expiration = date_i18n( 'Y-m-d H:i:s', $expiration );
+			$expiration = date_i18n( 'Y-m-d H:i:s', $timeout );
 		}
 
 		$wpdb->update(
@@ -783,7 +784,12 @@ class Caching {
 		if ( is_null( $cache_id ) ) {
 			$cache_id = $this->insert_cache_row( $cache_key, 'endpoint', $uri, $object_type, $this->is_single, $request_headers, $request_method );
 		} else {
-			$this->update_cache_expiration( $cache_id );
+			$this->update_cache_expiration( $cache_id, null, false, [
+				'uri'             => $uri,
+				'object_type'     => $object_type,
+				'request_headers' => $request_headers,
+				'request_method'  => $request_method
+			] );
 		}
 
 		// Force data to be an array.
