@@ -531,7 +531,7 @@ class Caching {
                 AND `is_single` = %d";
 
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		$affected_rows = $wpdb->query( $wpdb->prepare( $sql, date_i18n( 'Y-m-d H:i:s', 0 ), 'endpoint', $object_type, false ) );
+		$affected_rows = $wpdb->query( $wpdb->prepare( $sql, date_i18n( 'Y-m-d H:i:s', 1 ), 'endpoint', $object_type, false ) );
 
 		if ( 0 !== $affected_rows && false !== $affected_rows ) {
 			$this->schedule_cleanup();
