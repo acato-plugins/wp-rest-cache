@@ -4,7 +4,7 @@ Tags: cache, wp-rest-api, api, rest, rest cache, rest api cache
 Requires at least: 4.7
 Tested up to: 5.5
 Requires PHP: 5.5
-Stable tag: 2020.3.0
+Stable tag: 2020.3.1
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl.html
 
@@ -166,6 +166,11 @@ add_filter('wp_rest_cache/settings_capability', 'wprc_change_settings_capability
 5. Cache details page - Cache data.
 
 == Changelog ==
+
+= 2020.3.1 =
+Release Date: October 19th, 2020
+
+Bugfix: Not all caches were flushed correctly after last update.
 
 = 2020.3.0 =
 Release Date: October 12th, 2020
