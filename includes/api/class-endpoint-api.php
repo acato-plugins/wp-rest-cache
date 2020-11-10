@@ -342,11 +342,13 @@ class Endpoint_Api {
 			$last_error = json_last_error();
 
 			if ( JSON_ERROR_NONE === $last_error ) {
+
+				$this->rest_send_cors_headers( '' );
+				
 				foreach ( $cache['headers'] as $key => $value ) {
 					$header = sprintf( '%s: %s', $key, $value );
 					header( $header );
 				}
-				$this->rest_send_cors_headers( '' );
 
 				echo $data; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 				exit;
