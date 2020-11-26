@@ -2,7 +2,7 @@
 Contributors: acato, rockfire, yoeridekker
 Tags: cache, wp-rest-api, api, rest, rest cache, rest api cache
 Requires at least: 4.7
-Tested up to: 5.5
+Tested up to: 5.6
 Requires PHP: 5.5
 Stable tag: 2020.3.2
 License: GPLv3
