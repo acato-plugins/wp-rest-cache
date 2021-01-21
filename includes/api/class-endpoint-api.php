@@ -272,7 +272,19 @@ class Endpoint_Api {
 		}
 
 		$wp_nonce = $this->request->get_header( 'x_wp_nonce' );
-		if ( ! is_null( $wp_nonce ) ) {
+
+		/**
+		 * Allow for programmatically enable nonce caching.
+		 *
+		 * Allows to programmatically enable caching of requests with a nonce.
+		 *
+		 * @since 2021.1.0
+		 *
+		 * @param bool $skip_nonce_caching False if cache should not be skipped when nonce is present.
+		 * @param \WP_REST_Request $request The current REST Request.
+		 * @param string $request_uri The REST URI that is being requested.
+		 */
+		if ( apply_filters( 'wp_rest_cache/skip_nonce_caching', true, $this->request, $this->request_uri ) && ! is_null( $wp_nonce ) ) {
 			return true;
 		}
 
@@ -344,7 +356,7 @@ class Endpoint_Api {
 			if ( JSON_ERROR_NONE === $last_error ) {
 
 				$this->rest_send_cors_headers( '' );
-				
+
 				foreach ( $cache['headers'] as $key => $value ) {
 					$header = sprintf( '%s: %s', $key, $value );
 					header( $header );
