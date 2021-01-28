@@ -1,0 +1,10 @@
+# Directories
+/.wordpress-org export-ignore
+/.github export-ignore
+/vendor export-ignore
+
+# Files
+/.gitattributes export-ignore
+/.gitignore export-ignore
+/composer.json export-ignore
+/phpcs.xml.dist export-ignore
