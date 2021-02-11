@@ -456,6 +456,8 @@ class Caching {
 	 * Delete all caches.
 	 *
 	 * @param bool $delete True if caches need to be deleted instead of flushed.
+	 *
+	 * @return int  The number of deleted caches.
 	 */
 	public function delete_all_caches( $delete ) {
 		global $wpdb;
@@ -479,6 +481,8 @@ class Caching {
 		if ( 0 !== $affected_rows && false !== $affected_rows ) {
 			$this->schedule_cleanup();
 		}
+
+		return $affected_rows;
 	}
 
 	/**
@@ -488,17 +492,21 @@ class Caching {
 	 * @param int|string $id The ID of the object.
 	 * @param string     $object_type The type of the object.
 	 * @param bool       $force_single_delete Whether to delete cache statistics for single endpoint caches.
+	 * @param bool       $delete True if caches need to be deleted instead of flushed.
+	 *
+	 * @return int       The number of deleted caches.
 	 */
-	public function delete_related_caches( $id, $object_type, $force_single_delete = false ) {
+	public function delete_related_caches( $id, $object_type, $force_single_delete = false, $delete = false ) {
 		global $wpdb;
 
-		if ( $force_single_delete ) {
-			$set_clause = '`c`.`expiration` = %s,
-                	`c`.`deleted` = `c`.`is_single`';
-		} else {
-			$set_clause =
-				'`c`.`expiration` = %s';
+		$set_clause = '`c`.`expiration` = %s';
+
+		if ( $delete ) {
+			$set_clause .= ', `c`.`deleted` = 1';
+		} elseif ( $force_single_delete ) {
+			$set_clause .= ', `c`.`deleted` = `c`.`is_single`';
 		}
+
 		$sql =
 			"UPDATE `{$this->db_table_caches}` AS `c`
                 JOIN `{$this->db_table_relations}` AS `r`
@@ -513,19 +521,32 @@ class Caching {
 		if ( 0 !== $affected_rows && false !== $affected_rows ) {
 			$this->schedule_cleanup();
 		}
+
+		return $affected_rows;
 	}
 
 	/**
 	 * Delete all non-single caches for an object type.
 	 *
 	 * @param string $object_type The type of the object.
+	 * @param bool   $delete True if caches need to be deleted instead of flushed.
+	 *
+	 * @return int      The number of deleted caches.
 	 */
-	public function delete_object_type_caches( $object_type ) {
+	public function delete_object_type_caches( $object_type, $delete = false ) {
 		global $wpdb;
+
+		if ( $delete ) {
+			$set_clause = 'expiration` = %s,
+                	`deleted` = 1';
+		} else {
+			$set_clause =
+				'expiration` = %s';
+		}
 
 		$sql =
 			"UPDATE `{$this->db_table_caches}`
-				SET `expiration` = %s
+				SET {$set_clause}
                 WHERE `cache_type` = %s 
                 AND `object_type` = %s
                 AND `is_single` = %d";
@@ -536,6 +557,8 @@ class Caching {
 		if ( 0 !== $affected_rows && false !== $affected_rows ) {
 			$this->schedule_cleanup();
 		}
+
+		return $affected_rows;
 	}
 
 	/**

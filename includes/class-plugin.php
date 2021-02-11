@@ -119,6 +119,8 @@ class Plugin {
 			3
 		);
 		add_action( 'wp_ajax_flush_caches', [ $plugin_admin, 'flush_caches' ], 10, 1 );
+
+		add_action( 'cli_init', [ $plugin_admin, 'add_cli_commands' ] );
 	}
 
 	/**
