@@ -241,6 +241,9 @@ class Endpoint_Api {
 		// No filter_input, see https://stackoverflow.com/questions/25232975/php-filter-inputinput-server-request-method-returns-null/36205923.
 		$request_method = filter_var( $_SERVER['REQUEST_METHOD'], FILTER_SANITIZE_STRING );
 
+		// Force result to be valid JSON.
+		$result = json_decode( wp_json_encode( $result ) );
+
 		$data = array(
 			'data'    => $result,
 			'headers' => $this->response_headers,
