@@ -378,4 +378,15 @@ class Admin {
 		echo wp_json_encode( $result );
 		exit;
 	}
+
+	/**
+	 * Add custom WP CLI commands.
+	 *
+	 * @throws \Exception An exception is thrown if the command contains an error.
+	 */
+	public function add_cli_commands() {
+		if ( defined( 'WP_CLI' ) && WP_CLI ) {
+			\WP_CLI::add_command( 'wp-rest-cache flush', \WP_Rest_Cache_Plugin\Includes\CLI\Flush_Command::class );
+		}
+	}
 }
