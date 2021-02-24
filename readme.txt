@@ -4,7 +4,7 @@ Tags: cache, wp-rest-api, api, rest, rest cache, rest api cache
 Requires at least: 4.7
 Tested up to: 5.6
 Requires PHP: 5.5
-Stable tag: 2021.1.0
+Stable tag: 2021.2.0
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl.html
 
@@ -157,6 +157,10 @@ Yes you can! Use the hook `wp_rest_cache/settings_capability` like this:
 }
 add_filter('wp_rest_cache/settings_capability', 'wprc_change_settings_capability', 10, 1);`
 
+= Can I use WP CLI to flush caches from the command line? =
+
+Yes you can! Use the `wp wp-rest-cache flush` command to flush caches. Type `wp wp-rest-cache flush --help` to see all options.
+
 == Screenshots ==
 
 1. Settings for the WP REST Cache plugin.
@@ -166,6 +170,12 @@ add_filter('wp_rest_cache/settings_capability', 'wprc_change_settings_capability
 5. Cache details page - Cache data.
 
 == Changelog ==
+
+= 2021.2.0 =
+Release Date: February 24th, 2021
+
+Feature: Added WP CLI command to flush caches from the command line.
+Bugfix: Force saved cache to be valid JSON (to prevent errors with invalid JSON responses).
 
 = 2021.1.0 =
 Release Date: January 28th, 2021
