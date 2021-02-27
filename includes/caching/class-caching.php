@@ -537,11 +537,11 @@ class Caching {
 		global $wpdb;
 
 		if ( $delete ) {
-			$set_clause = 'expiration` = %s,
+			$set_clause = '`expiration` = %s,
                 	`deleted` = 1';
 		} else {
 			$set_clause =
-				'expiration` = %s';
+				'`expiration` = %s';
 		}
 
 		$sql =
