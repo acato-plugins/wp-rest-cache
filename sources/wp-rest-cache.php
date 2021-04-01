@@ -23,7 +23,7 @@
 require_once ABSPATH . 'wp-admin/includes/plugin.php';
 if ( is_plugin_active( 'wp-rest-cache/wp-rest-cache.php' ) ) {
 	include_once WP_PLUGIN_DIR . '/wp-rest-cache/wp-rest-cache.php';
-} else if ( file_exists( WPMU_PLUGIN_DIR . '/wp-rest-cache/wp-rest-cache.php' ) ) {
+} elseif ( file_exists( WPMU_PLUGIN_DIR . '/wp-rest-cache/wp-rest-cache.php' ) ) {
 	include_once WPMU_PLUGIN_DIR . '/wp-rest-cache/wp-rest-cache.php';
 } else {
 	return;
