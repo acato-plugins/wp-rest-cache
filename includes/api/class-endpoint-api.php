@@ -358,7 +358,18 @@ class Endpoint_Api {
 
 			if ( JSON_ERROR_NONE === $last_error ) {
 
-				$this->rest_send_cors_headers( '' );
+				/**
+				 * Disable CORS headers.
+				 *
+				 * Allows to disable the sending of CORS headers.
+				 *
+				 * @since 2021.4.0
+				 *
+				 * @param boolean $disable_cors_headers True if CORS headers should not be send.
+				 */
+				if ( false === apply_filters( 'wp_rest_cache/disable_cors_headers', false ) ) {
+					$this->rest_send_cors_headers( '' );
+				}
 
 				foreach ( $cache['headers'] as $key => $value ) {
 					$header = sprintf( '%s: %s', $key, $value );
