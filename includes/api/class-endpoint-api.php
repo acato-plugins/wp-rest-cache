@@ -334,6 +334,20 @@ class Endpoint_Api {
 			return true;
 		}
 
+		$disallowed_endpoints = get_option( 'wp_rest_cache_disallowed_endpoints', [] );
+
+		foreach ( $disallowed_endpoints as $namespace => $endpoints ) {
+			foreach ( $endpoints as $endpoint ) {
+				$endpoint_uri = $rest_prefix . $namespace . '/' . $endpoint;
+				if ( $use_parameter ) {
+					$endpoint_uri = $rest_prefix . rawurlencode( '/' . $namespace . '/' . $endpoint );
+				}
+				if ( strpos( $this->request_uri, $endpoint_uri ) !== false ) {
+					return true;
+				}
+			}
+		}
+
 		// We dont skip.
 		return false;
 	}
@@ -433,6 +447,20 @@ class Endpoint_Api {
 		$allowed_endpoints = apply_filters( 'wp_rest_cache/allowed_endpoints', $item_allowed_endpoints );
 		if ( $original_allowed_endpoints !== $allowed_endpoints ) {
 			update_option( 'wp_rest_cache_allowed_endpoints', $allowed_endpoints, false );
+		}
+
+		/**
+		 * Override cache-disabled endpoints.
+		 *
+		 * Allows to override the endpoints that will not be cached by the WP REST Cache plugin.
+		 *
+		 * @since 2021.4.0
+		 *
+		 * @param array $original_disallowed_endpoints An array of endpoints that are not allowed to be cached.
+		 */
+		$disallowed_endpoints = apply_filters( 'wp_rest_cache/disallowed_endpoints', $original_disallowed_endpoints );
+		if ( $original_disallowed_endpoints !== $disallowed_endpoints ) {
+			update_option( 'wp_rest_cache_disallowed_endpoints', $disallowed_endpoints, false );
 		}
 
 		$original_rest_prefix = get_option( 'wp_rest_cache_rest_prefix' );

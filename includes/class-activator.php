@@ -29,6 +29,9 @@ class Activator {
 		if ( ! get_option( 'wp_rest_cache_allowed_endpoints' ) ) {
 			add_option( 'wp_rest_cache_allowed_endpoints', [], '', false );
 		}
+		if ( ! get_option( 'wp_rest_cache_disallowed_endpoints' ) ) {
+			add_option( 'wp_rest_cache_disallowed_endpoints', [], '', false );
+		}
 		if ( ! get_option( 'wp_rest_cache_rest_prefix' ) ) {
 			add_option( 'wp_rest_cache_rest_prefix', rest_get_url_prefix(), '', false );
 		}
