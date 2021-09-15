@@ -2,7 +2,7 @@
 /**
  * API for endpoint caching.
  *
- * @link: http://www.acato.nl
+ * @link: https://www.acato.nl
  * @since 2018.1
  *
  * @package    WP_Rest_Cache_Plugin
@@ -432,8 +432,9 @@ class Endpoint_Api {
 	 * WordPress process even before several hooks are fired.
 	 */
 	public function save_options() {
-		$original_allowed_endpoints = get_option( 'wp_rest_cache_allowed_endpoints', [] );
-		$item_allowed_endpoints     = get_option( 'wp_rest_cache_item_allowed_endpoints', [] );
+		$original_allowed_endpoints    = get_option( 'wp_rest_cache_allowed_endpoints', [] );
+		$item_allowed_endpoints        = get_option( 'wp_rest_cache_item_allowed_endpoints', [] );
+		$original_disallowed_endpoints = get_option( 'wp_rest_cache_disallowed_endpoints', [] );
 
 		/**
 		 * Override cache-enabled endpoints.

@@ -2,7 +2,7 @@
 /**
  * Class for displaying a list of caches.
  *
- * @link: http://www.acato.nl
+ * @link: https://www.acato.nl
  * @since 2018.4.2
  *
  * @package    WP_Rest_Cache_Plugin

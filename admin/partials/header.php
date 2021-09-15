@@ -2,7 +2,7 @@
 /**
  * View for the header of the WP REST Cache Settings page.
  *
- * @link: http://www.acato.nl
+ * @link: https://www.acato.nl
  * @since 2018.1
  *
  * @package    WP_Rest_Cache_Plugin

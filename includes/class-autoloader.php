@@ -2,7 +2,7 @@
 /**
  * Autoload all plugin classes
  *
- * @link: http://www.acato.nl
+ * @link: https://www.acato.nl
  * @since 2018.5
  *
  * @package    WP_Rest_Cache_Plugin

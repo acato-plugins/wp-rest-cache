@@ -2,7 +2,7 @@
 /**
  * View for the Clear Caches tab.
  *
- * @link: http://www.acato.nl
+ * @link: https://www.acato.nl
  * @since 2019.4
  *
  * @package    WP_Rest_Cache_Plugin
