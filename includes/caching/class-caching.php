@@ -2,7 +2,7 @@
 /**
  * Class responsible for caching and saving cache relations.
  *
- * @link: http://www.acato.nl
+ * @link: https://www.acato.nl
  * @since 2018.3
  *
  * @package    WP_Rest_Cache_Plugin

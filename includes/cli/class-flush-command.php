@@ -2,7 +2,7 @@
 /**
  * WP CLI command for flushing caches.
  *
- * @link: http://www.acato.nl
+ * @link: https://www.acato.nl
  * @since 2021.2.0
  *
  * @package    WP_Rest_Cache_Plugin

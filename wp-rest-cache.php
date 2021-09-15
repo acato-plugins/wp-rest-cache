@@ -2,17 +2,17 @@
 /**
  * The plugin bootstrap file
  *
- * @link:   http://www.acato.nl
+ * @link:   https://www.acato.nl
  * @since   2018.1
  * @package WP_Rest_Cache_Plugin
  *
  * @wordpress-plugin
  * Plugin Name:       WP REST Cache
- * Plugin URI:        http://www.acato.nl
+ * Plugin URI:        https://www.acato.nl
  * Description:       Adds caching to the WP REST API
- * Version:           2021.4.0
+ * Version:           2021.4.1
  * Author:            Acato
- * Author URI:        http://www.acato.nl
+ * Author URI:        https://www.acato.nl
  * Text Domain:       wp-rest-cache
  * License:           GPLv3
  * License URI:       http://www.gnu.org/licenses/gpl.html

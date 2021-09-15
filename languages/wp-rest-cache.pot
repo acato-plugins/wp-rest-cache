@@ -20,7 +20,7 @@ msgstr ""
 
 #. Plugin URI of the plugin
 #. Author URI of the plugin
-msgid "http://www.acato.nl"
+msgid "https://www.acato.nl"
 msgstr ""
 
 #. Description of the plugin

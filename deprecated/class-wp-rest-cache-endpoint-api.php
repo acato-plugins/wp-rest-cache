@@ -2,7 +2,7 @@
 /**
  * Deprecated class, still available for old Must Use plugin versions.
  *
- * @link: http://www.acato.nl
+ * @link: https://www.acato.nl
  * @since 2018.4
  *
  * @package    WP_Rest_Cache_Plugin
