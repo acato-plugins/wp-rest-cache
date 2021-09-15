@@ -525,7 +525,7 @@ class Endpoint_Api {
 		 *
 		 * @since 2020.2.0
 		 *
-		 * @param boolean $original_uncached_parameters An array of query parameters that should be omitted from the cacheable query string.
+		 * @param boolean $original_cache_hit_recording Set to false to disable cache hit recording.
 		 */
 		$cache_hit_recording = apply_filters( 'wp_rest_cache/cache_hit_recording', $original_cache_hit_recording );
 		if ( (int) $original_cache_hit_recording !== (int) $cache_hit_recording ) {

@@ -57,7 +57,7 @@ class Activator {
 	public static function create_mu_plugin() {
 		// Make sure filesystem methods are loaded (not always the case when loaded through mu-plugin).
 		require_once ABSPATH . 'wp-admin/includes/file.php';
-		
+
 		$access_type = get_filesystem_method();
 		if ( 'direct' !== $access_type ) {
 			return;
