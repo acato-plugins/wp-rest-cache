@@ -7,15 +7,17 @@
  * @package WP_Rest_Cache_Plugin
  *
  * @wordpress-plugin
- * Plugin Name:     WP REST Cache
- * Plugin URI:      http://www.acato.nl
- * Description:     Adds caching to the WP REST API
- * Version:         2021.3.0
- * Author:          Acato
- * Author URI:      http://www.acato.nl
- * Text Domain:     wp-rest-cache
- * License:         GPLv3
- * License URI:     http://www.gnu.org/licenses/gpl.html
+ * Plugin Name:       WP REST Cache
+ * Plugin URI:        http://www.acato.nl
+ * Description:       Adds caching to the WP REST API
+ * Version:           2021.4.0
+ * Author:            Acato
+ * Author URI:        http://www.acato.nl
+ * Text Domain:       wp-rest-cache
+ * License:           GPLv3
+ * License URI:       http://www.gnu.org/licenses/gpl.html
+ * Requires at least: 4.7
+ * Requires PHP:      5.5
  */
 
 // If this file is called directly, abort.
