@@ -1161,7 +1161,7 @@ class Caching {
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		$results = $wpdb->get_results( $sql, ARRAY_A );
 		foreach ( $results as &$result ) {
-			if ( false === get_transient( $this->transient_key( $result['cache_key'] ) ) ) {
+			if ( 1 === strtotime( $result['expiration'] ) || false === get_transient( $this->transient_key( $result['cache_key'] ) ) ) {
 				// Regenerate.
 				$url    = get_home_url() . $result['request_uri'];
 				$return = wp_remote_get(
