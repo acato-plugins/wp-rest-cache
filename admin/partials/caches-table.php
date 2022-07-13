@@ -9,7 +9,7 @@
  * @subpackage WP_Rest_Cache_Plugin/Admin/Partials
  */
 
-$wp_rest_cache_sub = filter_input( INPUT_GET, 'sub', FILTER_SANITIZE_STRING );
+$wp_rest_cache_sub = filter_input( INPUT_GET, 'sub', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
 ?>
 <div id="poststuff">
 	<div id="post-body" class="metabox-holder">

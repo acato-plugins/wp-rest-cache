@@ -1007,9 +1007,9 @@ class Caching {
 		$where          = '`cache_type` = %s AND `deleted` = %d';
 		$prepare_args[] = $api_type;
 		$prepare_args[] = false;
-		$search         = filter_input( INPUT_POST, 's', FILTER_SANITIZE_STRING );
+		$search         = filter_input( INPUT_POST, 's', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
 		if ( ! $search ) {
-			$search = filter_input( INPUT_GET, 's', FILTER_SANITIZE_STRING );
+			$search = filter_input( INPUT_GET, 's', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
 		}
 
 		if ( ! empty( $search ) ) {
@@ -1028,7 +1028,7 @@ class Caching {
 	 */
 	private function get_orderby_clause() {
 		$order   = '`cache_id` DESC';
-		$orderby = filter_input( INPUT_GET, 'orderby', FILTER_SANITIZE_STRING );
+		$orderby = filter_input( INPUT_GET, 'orderby', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
 
 		if ( in_array(
 			$orderby,
@@ -1042,7 +1042,7 @@ class Caching {
 			true
 		)
 		) {
-			$order = '`' . $orderby . '` ' . ( filter_input( INPUT_GET, 'order', FILTER_SANITIZE_STRING ) === 'desc' ? 'DESC' : 'ASC' );
+			$order = '`' . $orderby . '` ' . ( filter_input( INPUT_GET, 'order', FILTER_SANITIZE_FULL_SPECIAL_CHARS ) === 'desc' ? 'DESC' : 'ASC' );
 		}
 
 		return $order;
@@ -1161,7 +1161,7 @@ class Caching {
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		$results = $wpdb->get_results( $sql, ARRAY_A );
 		foreach ( $results as &$result ) {
-			if ( false === get_transient( $this->transient_key( $result['cache_key'] ) ) ) {
+			if ( 1 === strtotime( $result['expiration'] ) || false === get_transient( $this->transient_key( $result['cache_key'] ) ) ) {
 				// Regenerate.
 				$url    = get_home_url() . $result['request_uri'];
 				$return = wp_remote_get(

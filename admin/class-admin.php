@@ -67,8 +67,8 @@ class Admin {
 	 */
 	public function enqueue_styles() {
 		wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'css/wp-rest-cache-admin.css', [], $this->version, 'all' );
-		if ( 'wp-rest-cache' === filter_input( INPUT_GET, 'page', FILTER_SANITIZE_STRING )
-			&& 'clear-cache' === filter_input( INPUT_GET, 'sub', FILTER_SANITIZE_STRING ) ) {
+		if ( 'wp-rest-cache' === filter_input( INPUT_GET, 'page', FILTER_SANITIZE_FULL_SPECIAL_CHARS )
+			&& 'clear-cache' === filter_input( INPUT_GET, 'sub', FILTER_SANITIZE_FULL_SPECIAL_CHARS ) ) {
 			wp_enqueue_style( 'jquery-ui-progressbar', plugin_dir_url( __FILE__ ) . 'css/jquery-ui.css', [], $this->version, 'all' );
 		}
 	}
@@ -77,8 +77,8 @@ class Admin {
 	 * Register the scripts for the admin area.
 	 */
 	public function enqueue_scripts() {
-		if ( 'wp-rest-cache' === filter_input( INPUT_GET, 'page', FILTER_SANITIZE_STRING )
-			&& 'clear-cache' === filter_input( INPUT_GET, 'sub', FILTER_SANITIZE_STRING ) ) {
+		if ( 'wp-rest-cache' === filter_input( INPUT_GET, 'page', FILTER_SANITIZE_FULL_SPECIAL_CHARS )
+			&& 'clear-cache' === filter_input( INPUT_GET, 'sub', FILTER_SANITIZE_FULL_SPECIAL_CHARS ) ) {
 			wp_enqueue_script( 'jquery-ui-progressbar' );
 		}
 	}
@@ -174,7 +174,7 @@ class Admin {
 	 * Display the plugin settings page.
 	 */
 	public function settings_page() {
-		$sub = filter_input( INPUT_GET, 'sub', FILTER_SANITIZE_STRING );
+		$sub = filter_input( INPUT_GET, 'sub', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
 		if ( ! strlen( $sub ) ) {
 			$sub = 'settings';
 		}
