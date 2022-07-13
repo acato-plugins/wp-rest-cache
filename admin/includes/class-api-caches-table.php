@@ -114,8 +114,8 @@ class API_Caches_Table extends \WP_List_Table {
 	 * @return string The HTML output.
 	 */
 	public function column_cache_key( $item ) {
-		$page         = filter_input( INPUT_GET, 'page', FILTER_SANITIZE_STRING );
-		$sub          = filter_input( INPUT_GET, 'sub', FILTER_SANITIZE_STRING );
+		$page         = filter_input( INPUT_GET, 'page', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
+		$sub          = filter_input( INPUT_GET, 'sub', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
 		$flush_nonce  = wp_create_nonce( 'wp_rest_cache_flush_cache' );
 		$delete_nonce = wp_create_nonce( 'wp_rest_cache_delete_cache' );
 		$title        = sprintf(
@@ -312,7 +312,7 @@ class API_Caches_Table extends \WP_List_Table {
 		if ( ! isset( $_GET['wp_rest_cache_nonce'] ) || ! wp_verify_nonce( sanitize_key( $_GET['wp_rest_cache_nonce'] ), 'wp_rest_cache_' . $action . '_cache' ) ) {
 			die( 'No naughty business please' );
 		}
-		$cache_key = filter_input( INPUT_GET, 'cache_key', FILTER_SANITIZE_STRING );
+		$cache_key = filter_input( INPUT_GET, 'cache_key', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
 		self::clear_cache( $cache_key, ( 'delete' === $action ) );
 	}
 
@@ -322,7 +322,7 @@ class API_Caches_Table extends \WP_List_Table {
 	 * @param string $action The action to be taken.
 	 */
 	private function process_bulk_action( $action ) {
-		$caches = filter_input( INPUT_GET, 'bulk-flush', FILTER_SANITIZE_STRING, FILTER_REQUIRE_ARRAY );
+		$caches = filter_input( INPUT_GET, 'bulk-flush', FILTER_SANITIZE_FULL_SPECIAL_CHARS, FILTER_REQUIRE_ARRAY );
 		foreach ( $caches as $cache_key ) {
 			self::clear_cache( $cache_key, ( 'bulk-delete' === $action ) );
 		}
