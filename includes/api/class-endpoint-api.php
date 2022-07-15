@@ -229,7 +229,18 @@ class Endpoint_Api {
 	 */
 	public function save_cache( $result, \WP_REST_Server $server, \WP_REST_Request $request ) {
 		// Only Avoid cache if not 200.
-		if ( ! empty( $result ) && is_array( $result ) && ( ( is_array( $result['data'] ) && isset( $result['data']['status'] ) && 200 !== (int) $result['data']['status'] ) || 200 !== http_response_code() ) ) {
+		if ( ! empty( $result )
+			&& is_array( $result )
+			&& (
+				(
+					isset( $result['data'] )
+					&& is_array( $result['data'] )
+					&& isset( $result['data']['status'] )
+					&& 200 !== (int) $result['data']['status']
+				)
+				|| 200 !== http_response_code()
+			)
+		) {
 			return $result;
 		}
 
