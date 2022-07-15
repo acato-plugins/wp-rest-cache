@@ -171,6 +171,11 @@ Yes you can! Use the `wp wp-rest-cache flush` command to flush caches. Type `wp 
 
 == Changelog ==
 
+= 2022.1.1 =
+Release Date: July 15th, 2022
+
+Bugfix: prevent notice.
+
 = 2022.1.0 =
 Release Date: July 13th, 2022
 
