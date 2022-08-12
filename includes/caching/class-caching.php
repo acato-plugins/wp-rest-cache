@@ -1307,7 +1307,7 @@ class Caching {
 		if ( self::DB_VERSION !== $version || $this->db_table_relations !== $wpdb->get_var( $query ) ) {
 			include_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
-			if ( version_compare( '2020.1.1', $version, '>' ) ) {
+			if ( version_compare( '2020.1.1', $version, '>' ) && $this->db_table_relations === $wpdb->get_var( $query ) ) {
 				// Added column lengths to INDEX, dbDelta doesn't detect it, so drop INDEX first.
 				$drop_query = "ALTER TABLE `{$this->db_table_relations}` DROP INDEX `object`;";
 				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
