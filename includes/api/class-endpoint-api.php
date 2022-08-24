@@ -43,7 +43,7 @@ class Endpoint_Api {
 	 * The response headers that need to be send with the cached call.
 	 *
 	 * @access private
-	 * @var    array $response_headers The response headers.
+	 * @var    array<string,string> $response_headers The response headers.
 	 */
 	private $response_headers = array(
 		'Content-Type'                  => 'application/json; charset=UTF-8',
@@ -58,7 +58,7 @@ class Endpoint_Api {
 	 * The request headers that need to be used to distinguish separate caches.
 	 *
 	 * @access private
-	 * @var    array $request_headers The request headers.
+	 * @var    array<string,string> $request_headers The request headers.
 	 */
 	private $request_headers = array();
 
@@ -74,7 +74,7 @@ class Endpoint_Api {
 	 * The default WordPress REST endpoints, that can be cached.
 	 *
 	 * @access private
-	 * @var    array $wordpress_endpoints An array of default WordPress endpoints.
+	 * @var    array<string,array<int,string>> $wordpress_endpoints An array of default WordPress endpoints.
 	 */
 	private $wordpress_endpoints = array(
 		'wp/v2' => array(
@@ -123,6 +123,8 @@ class Endpoint_Api {
 
 	/**
 	 * Create an array of cacheable request headers based upon settings and hooks.
+	 *
+	 * @return void
 	 */
 	private function set_cacheable_request_headers() {
 		$this->request = new \WP_REST_Request();
@@ -131,9 +133,9 @@ class Endpoint_Api {
 
 		$cacheable_headers = \WP_Rest_Cache_Plugin\Includes\Caching\Caching::get_instance()->get_global_cacheable_request_headers();
 		$cacheable_headers = explode( ',', $cacheable_headers );
-		if ( count( $cacheable_headers ) ) {
+		if ( is_array( $cacheable_headers ) ) {
 			foreach ( $cacheable_headers as $header ) {
-				if ( strlen( $header ) ) {
+				if ( '' !== $header ) {
 					$this->request_headers[ $header ] = $this->request->get_header( $header );
 				}
 			}
@@ -148,7 +150,7 @@ class Endpoint_Api {
 				}
 
 				$cacheable_headers = explode( ',', $cacheable_headers );
-				if ( count( $cacheable_headers ) ) {
+				if ( is_array( $cacheable_headers ) ) {
 					foreach ( $cacheable_headers as $header ) {
 						if ( strlen( $header ) ) {
 							$this->request_headers[ $header ] = $this->request->get_header( $header );
@@ -163,6 +165,8 @@ class Endpoint_Api {
 
 	/**
 	 * Build the cache key. A hashed combination of request uri and cacheable request headers.
+	 *
+	 * @return void
 	 */
 	private function build_cache_key() {
 		$this->build_request_uri();
@@ -184,6 +188,8 @@ class Endpoint_Api {
 	 * @param \WP_HTTP_Response $result  Result to send to the client.
 	 * @param \WP_REST_Request  $request Request used to generate the response.
 	 * @param \WP_REST_Server   $server  Server instance.
+	 *
+	 * @return void
 	 */
 	public function save_cache_headers( $served, \WP_HTTP_Response $result, \WP_REST_Request $request, \WP_REST_Server $server ) {
 		$headers = $result->get_headers();
@@ -199,7 +205,7 @@ class Endpoint_Api {
 		 * @param string $request_uri The requested URI.
 		 */
 		$headers = apply_filters( 'wp_rest_cache/cache_headers', $headers, $this->request_uri );
-		if ( isset( $headers ) && ! empty( $headers ) ) {
+		if ( ! empty( $headers ) && is_array( $headers ) ) {
 			foreach ( $headers as $key => $value ) {
 				/**
 				 * Filter the cache header.
@@ -221,11 +227,11 @@ class Endpoint_Api {
 	/**
 	 * Cache the response data.
 	 *
-	 * @param array            $result  Response data to send to the client.
-	 * @param \WP_REST_Server  $server  Server instance.
-	 * @param \WP_REST_Request $request Request used to generate the response.
+	 * @param array<string,mixed> $result  Response data to send to the client.
+	 * @param \WP_REST_Server     $server  Server instance.
+	 * @param \WP_REST_Request    $request Request used to generate the response.
 	 *
-	 * @return array Response data to send to the client.
+	 * @return array<string,mixed> Response data to send to the client.
 	 */
 	public function save_cache( $result, \WP_REST_Server $server, \WP_REST_Request $request ) {
 		// Only Avoid cache if not 200.
@@ -365,6 +371,8 @@ class Endpoint_Api {
 
 	/**
 	 * Check if the current call is a REST API call, if so check if it has already been cached, otherwise cache it.
+	 *
+	 * @return void
 	 */
 	public function get_api_cache() {
 
@@ -441,6 +449,8 @@ class Endpoint_Api {
 	/**
 	 * Re-save the options if they have changed. We need them as options since we are going to use them early in the
 	 * WordPress process even before several hooks are fired.
+	 *
+	 * @return void
 	 */
 	public function save_options() {
 		$original_allowed_endpoints    = get_option( 'wp_rest_cache_allowed_endpoints', [] );
@@ -548,9 +558,9 @@ class Endpoint_Api {
 	/**
 	 * Add the default WordPress endpoints to the allowed endpoints for caching.
 	 *
-	 * @param array $allowed_endpoints The endpoints that are allowed to be cache.
+	 * @param array<string,array<int,string>> $allowed_endpoints The endpoints that are allowed to be cached.
 	 *
-	 * @return mixed An array of endpoints that are allowed to be cache.
+	 * @return mixed An array of endpoints that are allowed to be cached.
 	 */
 	public function add_wordpress_endpoints( array $allowed_endpoints ) {
 		foreach ( $this->wordpress_endpoints as $rest_base => $endpoints ) {

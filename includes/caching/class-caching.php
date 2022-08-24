@@ -68,7 +68,7 @@ class Caching {
 	 * The singleton instance of this class.
 	 *
 	 * @access private
-	 * @var    \WP_Rest_Cache_Plugin\Includes\Caching\Caching $instance The singleton instance of this class.
+	 * @var    \WP_Rest_Cache_Plugin\Includes\Caching\Caching|null $instance The singleton instance of this class.
 	 */
 	private static $instance = null;
 
@@ -153,13 +153,15 @@ class Caching {
 	/**
 	 * Set the transient cache and register the cache + its relations.
 	 *
-	 * @param string $cache_key The cache key for the cache.
-	 * @param mixed  $value The item to be cached.
-	 * @param string $type The type of cache (endpoint).
-	 * @param string $uri The requested uri for this cache if available.
-	 * @param string $object_type The object type for this cache if available.
-	 * @param array  $request_headers An array of cacheable request headers.
-	 * @param string $request_method The request method for this call.
+	 * @param string               $cache_key The cache key for the cache.
+	 * @param mixed                $value The item to be cached.
+	 * @param string               $type The type of cache (endpoint).
+	 * @param string               $uri The requested uri for this cache if available.
+	 * @param string               $object_type The object type for this cache if available.
+	 * @param array<string,string> $request_headers An array of cacheable request headers.
+	 * @param string               $request_method The request method for this call.
+	 *
+	 * @return void
 	 */
 	public function set_cache( $cache_key, $value, $type, $uri = '', $object_type = '', $request_headers = [], $request_method = 'GET' ) {
 		if ( 'endpoint' !== $type ) {
@@ -190,6 +192,8 @@ class Caching {
 	 *
 	 * @param string $cache_key The cache key for the cache.
 	 * @param bool   $force Whether to delete the cache statistics.
+	 *
+	 * @return void
 	 */
 	public function delete_cache( $cache_key, $force = false ) {
 		global $wpdb;
@@ -313,6 +317,8 @@ class Caching {
 	 * @param int      $post_id Post ID.
 	 * @param \WP_Post $post Post object.
 	 * @param bool     $update Whether this is an existing post being updated or not.
+	 *
+	 * @return void
 	 */
 	public function save_post( $post_id, $post, $update ) {
 		if ( 'auto-draft' === $post->post_status ) {
@@ -329,6 +335,8 @@ class Caching {
 	 * Fired upon WordPress 'delete_post' hook. Delete all related caches, including all single cache statistics.
 	 *
 	 * @param int $post_id Post ID.
+	 *
+	 * @return void
 	 */
 	public function delete_post( $post_id ) {
 		$post = get_post( $post_id );
@@ -346,6 +354,8 @@ class Caching {
 	 * @param string   $new_status The new status of the post.
 	 * @param string   $old_status The old status of the post.
 	 * @param \WP_Post $post The post which status has been transitioned.
+	 *
+	 * @return void
 	 */
 	public function transition_post_status( $new_status, $old_status, $post ) {
 		if ( 'publish' !== $new_status && 'publish' !== $old_status ) {
@@ -361,6 +371,8 @@ class Caching {
 	 * @param int    $term_id Term ID.
 	 * @param int    $tt_id Term taxonomy ID.
 	 * @param string $taxonomy Taxonomy slug.
+	 *
+	 * @return void
 	 */
 	public function created_term( $term_id, $tt_id, $taxonomy ) {
 		$this->delete_object_type_caches( $taxonomy );
@@ -372,6 +384,8 @@ class Caching {
 	 * @param int    $term_id Term ID.
 	 * @param int    $tt_id Term taxonomy ID.
 	 * @param string $taxonomy Taxonomy slug.
+	 *
+	 * @return void
 	 */
 	public function edited_term( $term_id, $tt_id, $taxonomy ) {
 		$this->delete_related_caches( $term_id, $taxonomy );
@@ -381,13 +395,15 @@ class Caching {
 	 * Fired upon WordPress 'delete_term' hook. Delete all related caches for this term, including all single cache
 	 * statistics.
 	 *
-	 * @param int    $term Term ID.
-	 * @param int    $tt_id Term taxonomy ID.
-	 * @param string $taxonomy Taxonomy slug.
-	 * @param mixed  $deleted_term Copy of the already-deleted term, in the form specified by the parent function.
-	 *                                 \WP_Error otherwise.
-	 *                                \WP_Error otherwise.
-	 * @param array  $object_ids List of term object IDs.
+	 * @param int            $term Term ID.
+	 * @param int            $tt_id Term taxonomy ID.
+	 * @param string         $taxonomy Taxonomy slug.
+	 * @param mixed          $deleted_term Copy of the already-deleted term, in the form specified by the parent function.
+	 *                                         \WP_Error otherwise.
+	 *                                        \WP_Error otherwise.
+	 * @param array<int,int> $object_ids List of term object IDs.
+	 *
+	 * @return void
 	 */
 	public function delete_term( $term, $tt_id, $taxonomy, $deleted_term, $object_ids ) {
 		$this->delete_related_caches( $term, $taxonomy, true );
@@ -398,6 +414,8 @@ class Caching {
 	 *
 	 * @param int      $user_id User ID.
 	 * @param \WP_User $old_user_data Object containing user's data prior to update.
+	 *
+	 * @return void
 	 */
 	public function profile_update( $user_id, $old_user_data ) {
 		$this->delete_related_caches( $user_id, 'user' );
@@ -407,6 +425,8 @@ class Caching {
 	 * Fired upon WordPress 'user_register' hook. Delete all non-single endpoint caches for users.
 	 *
 	 * @param int $user_id User ID.
+	 *
+	 * @return void
 	 */
 	public function user_register( $user_id ) {
 		$this->delete_object_type_caches( 'users' );
@@ -417,6 +437,8 @@ class Caching {
 	 * statistics.
 	 *
 	 * @param int $user_id User ID.
+	 *
+	 * @return void
 	 */
 	public function deleted_user( $user_id ) {
 		$this->delete_related_caches( $user_id, 'user', true );
@@ -428,6 +450,8 @@ class Caching {
 	 *
 	 * @param int         $comment_id Comment ID.
 	 * @param \WP_Comment $comment The comment for which the hook was triggered.
+	 *
+	 * @return void
 	 */
 	public function delete_comment_related_caches( $comment_id, $comment ) {
 		switch ( current_filter() ) {
@@ -447,6 +471,8 @@ class Caching {
 	 *
 	 * @param int         $comment_id Comment ID.
 	 * @param \WP_Comment $comment The comment for which the hook was triggered.
+	 *
+	 * @return void
 	 */
 	public function delete_comment_type_related_caches( $comment_id, $comment ) {
 		$this->delete_object_type_caches( 'comment' );
@@ -604,13 +630,13 @@ class Caching {
 	/**
 	 * Insert a new cache into the database.
 	 *
-	 * @param string $cache_key The cache key.
-	 * @param string $cache_type The cache type (endpoint).
-	 * @param string $uri The requested URI.
-	 * @param string $object_type The object type for the cache.
-	 * @param bool   $is_single Whether it is a single item cache.
-	 * @param array  $request_headers An array of cacheable request headers.
-	 * @param string $request_method The request method for this call.
+	 * @param string               $cache_key The cache key.
+	 * @param string               $cache_type The cache type (endpoint).
+	 * @param string               $uri The requested URI.
+	 * @param string               $object_type The object type for the cache.
+	 * @param bool                 $is_single Whether it is a single item cache.
+	 * @param array<string,string> $request_headers An array of cacheable request headers.
+	 * @param string               $request_method The request method for this call.
 	 *
 	 * @return int The ID of the inserted row.
 	 */
@@ -659,7 +685,7 @@ class Caching {
 	 *
 	 * @param string $cache_key The cache key.
 	 *
-	 * @return array The cache row data.
+	 * @return array<string,mixed> The cache row data.
 	 */
 	private function get_cache_row( $cache_key ) {
 		global $wpdb;
@@ -690,10 +716,12 @@ class Caching {
 	/**
 	 * Update the expiration date/time for a specific cache.
 	 *
-	 * @param int         $cache_id The ID of the cache row.
-	 * @param null|string $expiration The specific expiration date/time. If none supplied it will be calculated.
-	 * @param bool        $cleaned True if this is called when the transient is actually deleted.
-	 * @param array       $options An array of options for the wp_rest_cache/timeout filter.
+	 * @param int                 $cache_id The ID of the cache row.
+	 * @param null|string         $expiration The specific expiration date/time. If none supplied it will be calculated.
+	 * @param bool                $cleaned True if this is called when the transient is actually deleted.
+	 * @param array<string,mixed> $options An array of options for the wp_rest_cache/timeout filter.
+	 *
+	 * @return void
 	 */
 	private function update_cache_expiration( $cache_id, $expiration = null, $cleaned = false, $options = [] ) {
 		global $wpdb;
@@ -723,9 +751,11 @@ class Caching {
 	/**
 	 * Insert a cache relation into the database.
 	 *
-	 * @param int        $cache_id The ID of the cache row.
-	 * @param int|string $object_id The ID of the related object.
-	 * @param string     $object_type The object type of the relation.
+	 * @param int              $cache_id The ID of the cache row.
+	 * @param int|string|mixed $object_id The ID of the related object.
+	 * @param string|mixed     $object_type The object type of the relation.
+	 *
+	 * @return void
 	 */
 	public function insert_cache_relation( $cache_id, $object_id, $object_type ) {
 		global $wpdb;
@@ -768,11 +798,13 @@ class Caching {
 	/**
 	 * Register an endpoint cache in the database.
 	 *
-	 * @param string $cache_key The cache key.
-	 * @param mixed  $data The cached data.
-	 * @param string $uri The requested URI.
-	 * @param array  $request_headers An array of cacheable request headers.
-	 * @param string $request_method The request method for this call.
+	 * @param string               $cache_key The cache key.
+	 * @param mixed                $data The cached data.
+	 * @param string               $uri The requested URI.
+	 * @param array<string,string> $request_headers An array of cacheable request headers.
+	 * @param string               $request_method The request method for this call.
+	 *
+	 * @return void
 	 */
 	private function register_endpoint_cache( $cache_key, $data, $uri, $request_headers, $request_method ) {
 		$cache_id = $this->get_cache_row_id( $cache_key );
@@ -784,7 +816,7 @@ class Caching {
 		 *
 		 * @since 2018.4.2
 		 *
-		 * @param string Object type
+		 * @param string $object_type Object type
 		 * @param string $cache_key Cache key
 		 * @param mixed $data The data that is to be cached
 		 * @param string $uri The requested URI
@@ -798,7 +830,7 @@ class Caching {
 		 *
 		 * @since 2019.4.3
 		 *
-		 * @param boolean Whether the cache contains a single item (true) or a collection of items (false)
+		 * @param boolean $is_single Whether the cache contains a single item (true) or a collection of items (false)
 		 * @param mixed $data The data that is to be cached
 		 * @param string $uri The requested URI
 		 */
@@ -843,8 +875,10 @@ class Caching {
 	/**
 	 * Loop through the cached data to determine all cache relations recursively.
 	 *
-	 * @param int   $cache_id The ID of the cache row.
-	 * @param array $record An array of data to be checked for relations.
+	 * @param int                 $cache_id The ID of the cache row.
+	 * @param array<string,mixed> $record An array of data to be checked for relations.
+	 *
+	 * @return void
 	 */
 	private function process_recursive_cache_relations( $cache_id, $record ) {
 		if ( ! is_array( $record ) ) {
@@ -881,8 +915,10 @@ class Caching {
 	/**
 	 * Current record is a taxonomy, process its relations.
 	 *
-	 * @param int   $cache_id The ID of the cache row.
-	 * @param array $record An array of data to be checked for relations.
+	 * @param int                 $cache_id The ID of the cache row.
+	 * @param array<string,mixed> $record An array of data to be checked for relations.
+	 *
+	 * @return void
 	 */
 	private function process_taxonomy_relations( $cache_id, $record ) {
 		if ( array_key_exists( 'id', $record )
@@ -898,7 +934,7 @@ class Caching {
 	/**
 	 * Determine the cache object type, based upon the cached data.
 	 *
-	 * @param array $data The cached data.
+	 * @param array<string,mixed> $data The cached data.
 	 *
 	 * @return string The object type, or 'unknown' if it could not be determined.
 	 */
@@ -934,7 +970,7 @@ class Caching {
 	 * @param int    $per_page Number of items to return per page.
 	 * @param int    $page_number The requested page.
 	 *
-	 * @return array An array containing the requested cache data.
+	 * @return array<int,array<string,mixed>> An array containing the requested cache data.
 	 */
 	public function get_api_data( $api_type, $per_page, $page_number ) {
 		global $wpdb;
@@ -998,8 +1034,8 @@ class Caching {
 	/**
 	 * Build the where clause for the query that retrieves the cache data for a specific API type.
 	 *
-	 * @param string $api_type The type of the API for which the data is retrieved (endpoint).
-	 * @param array  $prepare_args A reference to an array containing the arguments for the prepare statement.
+	 * @param string           $api_type The type of the API for which the data is retrieved (endpoint).
+	 * @param array<int,mixed> $prepare_args A reference to an array containing the arguments for the prepare statement.
 	 *
 	 * @return string The where clause.
 	 */
@@ -1053,7 +1089,7 @@ class Caching {
 	 *
 	 * @param string $cache_key The cache key.
 	 *
-	 * @return array|null An array of cache data, or null if the cache row could not be found.
+	 * @return array<string,mixed>|null An array of cache data, or null if the cache row could not be found.
 	 */
 	public function get_cache_data( $cache_key ) {
 		$cache        = [];
@@ -1077,8 +1113,8 @@ class Caching {
 	/**
 	 * Get the cache timeout as set in the plugin Settings.
 	 *
-	 * @param boolean $calculated If the returned value should be calculated using the interval.
-	 * @param array   $options An array of options for the wp_rest_cache/timeout filter.
+	 * @param boolean             $calculated If the returned value should be calculated using the interval.
+	 * @param array<string,mixed> $options An array of options for the wp_rest_cache/timeout filter.
 	 *
 	 * @return int Timeout (in seconds if calculated).
 	 */
@@ -1147,6 +1183,8 @@ class Caching {
 
 	/**
 	 * Cronjob to automatically regenerate expired caches.
+	 *
+	 * @return void
 	 */
 	public function regenerate_expired_caches() {
 		global $wpdb;
@@ -1213,6 +1251,8 @@ class Caching {
 	/**
 	 * Schedule a cron job to delete flushed or deleted caches from the transients API. This is done via a cronjob to
 	 * have a better performance experience when updating / adding a new post / taxonomy item.
+	 *
+	 * @return void
 	 */
 	private function schedule_cleanup() {
 		if ( ! wp_next_scheduled( 'wp_rest_cache_cleanup_deleted_caches' ) ) {
@@ -1222,6 +1262,8 @@ class Caching {
 
 	/**
 	 * Function called by a cron job to delete flushed or deleted caches from the transients API.
+	 *
+	 * @return void
 	 */
 	public function cleanup_deleted_caches() {
 		global $wpdb;
@@ -1233,7 +1275,7 @@ class Caching {
 		 *
 		 * @since 2020.2.0
 		 *
-		 * @param int The maximum number of cleaned up caches per cron run.
+		 * @param int $limit The maximum number of cleaned up caches per cron run.
 		 */
 		$limit = (int) apply_filters( 'wp_rest_cache/max_cleanup_caches', 1000 );
 
@@ -1264,6 +1306,8 @@ class Caching {
 
 	/**
 	 * Update the database structure needed for saving caches and their relations and statistics.
+	 *
+	 * @return void
 	 */
 	public function update_database_structure() {
 		global $wpdb;
@@ -1337,6 +1381,8 @@ class Caching {
 
 	/**
 	 * Delete deprecated item api caches.
+	 *
+	 * @return void
 	 */
 	private function upgrade_2019_4_0() {
 		$nr_of_item_caches = $this->get_record_count( 'item' );
