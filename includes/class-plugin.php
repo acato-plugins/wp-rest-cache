@@ -93,6 +93,7 @@ class Plugin {
 		add_action( 'admin_init', [ $plugin_admin, 'check_memcache_ext_object_caching' ] );
 		add_action( 'admin_init', [ $plugin_admin, 'handle_actions' ] );
 		add_action( 'admin_notices', [ $plugin_admin, 'display_notices' ] );
+		add_action( 'network_admin_notices', [ $plugin_admin, 'display_notices' ] );
 		add_action( 'wp_before_admin_bar_render', [ $plugin_admin, 'admin_bar_item' ], 999 );
 
 		// set-screen-option should be deprecated in favor of set_screen_option-{$option} but in WP version 5.4.2 there
@@ -119,6 +120,8 @@ class Plugin {
 			3
 		);
 		add_action( 'wp_ajax_flush_caches', [ $plugin_admin, 'flush_caches' ], 10, 1 );
+		add_action( 'activated_plugin', [ $plugin_admin, 'activated_plugin' ], 10, 2 );
+		add_action( 'deactivated_plugin', [ $plugin_admin, 'deactivated_plugin' ], 10, 2 );
 
 		add_action( 'cli_init', [ $plugin_admin, 'add_cli_commands' ] );
 	}

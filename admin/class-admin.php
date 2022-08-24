@@ -25,7 +25,6 @@ use WP_Rest_Cache_Plugin\Includes\Caching\Caching;
  */
 class Admin {
 
-
 	/**
 	 * The ID of this plugin.
 	 *
@@ -43,14 +42,6 @@ class Admin {
 	private $version;
 
 	/**
-	 * Notices to be displayed in the wp-admin.
-	 *
-	 * @access private
-	 * @var    array $notices An array of notices to be displayed in the wp-admin.
-	 */
-	private $notices;
-
-	/**
 	 * Initialize the class and set its properties.
 	 *
 	 * @param string $plugin_name The name of this plugin.
@@ -59,7 +50,6 @@ class Admin {
 	public function __construct( $plugin_name, $version ) {
 		$this->plugin_name = $plugin_name;
 		$this->version     = $version;
-		$this->notices     = [];
 	}
 
 	/**
@@ -247,12 +237,16 @@ class Admin {
 	 * @param string $type The type of message (error|warning|success|info).
 	 * @param string $message The message to display.
 	 * @param mixed  $dismissible Boolean, should the message be dismissible or 'permanent' for permanently dismissible notice.
+	 * @param array  $button An array with label + url to display a button with the notice.
 	 */
-	protected function add_notice( $type, $message, $dismissible = true ) {
-		$this->notices[ $type ][] = [
+	protected function add_notice( $type, $message, $dismissible = true, $button = [] ) {
+		$notices            = get_option( 'wp_rest_cache_admin_notices', [] );
+		$notices[ $type ][] = [
 			'message'     => $message,
 			'dismissible' => $dismissible,
+			'button'      => $button,
 		];
+		update_option( 'wp_rest_cache_admin_notices', $notices, false );
 	}
 
 	/**
@@ -305,10 +299,11 @@ class Admin {
 	 * Display notices (if any) on the Admin dashboard
 	 */
 	public function display_notices() {
-		if ( count( $this->notices ) ) {
+		$notices = get_option( 'wp_rest_cache_admin_notices', [] );
+		if ( count( $notices ) ) {
 			$user_id           = get_current_user_id();
 			$dismissed_notices = get_user_meta( $user_id, 'wp_rest_cache_dismissed_notices', true );
-			foreach ( $this->notices as $type => $messages ) {
+			foreach ( $notices as $type => $messages ) {
 				foreach ( $messages as $message ) {
 					if ( ! is_array( $dismissed_notices ) || ! in_array( esc_attr( md5( $message['message'] ) ), $dismissed_notices, true ) ) {
 						?>
@@ -325,11 +320,16 @@ class Admin {
 									<a class="button"
 										href="<?php echo esc_attr( $url ); ?>"><?php echo esc_html_e( 'Hide this message', 'wp-rest-cache' ); ?></a>
 								<?php endif; ?></p>
+							<?php if ( isset( $message['button']['url'], $message['button']['label'] ) ) : ?>
+								<p><a class="button" href="<?php echo esc_attr( $message['button']['url'] ); ?>"><?php echo esc_html( $message['button']['label'] ); ?></a></p>
+							<?php endif; ?>
 						</div>
 						<?php
 					}
 				}
 			}
+
+			delete_option( 'wp_rest_cache_admin_notices' );
 		}
 	}
 
@@ -377,6 +377,59 @@ class Admin {
 
 		echo wp_json_encode( $result );
 		exit;
+	}
+
+	/**
+	 * Upon plugin activation show a message about flushing the REST cache (or flush specific caches when certain
+	 * plugins are activated).
+	 *
+	 * @param string  $plugin The plugin that has just been activated.
+	 * @param boolean $network_wide Whether the plugin has been activated network wide.
+	 */
+	public function activated_plugin( $plugin, $network_wide ) {
+		// Wordfence alters the output of the users endpoint, so flush all users endpoint caches.
+		if ( 'wordfence/wordfence.php' === $plugin ) {
+			$rest_prefix = sprintf( '/%s/', get_option( 'wp_rest_cache_rest_prefix', 'wp-json' ) );
+			$caching     = Caching::get_instance();
+			if ( $network_wide ) {
+				$site_ids = get_sites( [ 'fields' => 'ids' ] );
+				foreach ( $site_ids as $site_id ) {
+					switch_to_blog( $site_id );
+					$caching->delete_cache_by_endpoint( $rest_prefix . 'wp/v2/users', Caching::FLUSH_LOOSE );
+					restore_current_blog();
+				}
+			} else {
+				$caching->delete_cache_by_endpoint( $rest_prefix . 'wp/v2/users', Caching::FLUSH_LOOSE );
+			}
+		} else {
+			$this->add_notice(
+				'warning',
+				__( 'A new plugin has been activated. This might effect the WP REST API output, so please consider if clearing the REST Cache is necessary.', 'wp-rest-cache' ),
+				false,
+				[
+					'label' => __( 'Clear REST cache', 'wp-rest-cache' ),
+					'url'   => self::empty_cache_url(),
+				]
+			);
+		}
+	}
+
+	/**
+	 * Upon plugin deactivation show a message about flushing the REST cache.
+	 *
+	 * @param string  $plugin The plugin that has just been activated.
+	 * @param boolean $network_wide Whether the plugin has been activated network wide.
+	 */
+	public function deactivated_plugin( $plugin, $network_wide ) {
+		$this->add_notice(
+			'warning',
+			__( 'A plugin has been deactivated. This might effect the WP REST API output, so please consider if clearing the REST Cache is necessary.', 'wp-rest-cache' ),
+			false,
+			[
+				'label' => __( 'Clear REST cache', 'wp-rest-cache' ),
+				'url'   => self::empty_cache_url(),
+			]
+		);
 	}
 
 	/**
