@@ -24,6 +24,8 @@ class Deactivator {
 
 	/**
 	 * Deactivate the plugin. Clear cache and delete Must-Use plugin.
+	 *
+	 * @return void
 	 */
 	public static function deactivate() {
 		Caching\Caching::get_instance()->clear_caches( true );

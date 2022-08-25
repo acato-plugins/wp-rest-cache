@@ -4,6 +4,8 @@
     "require-dev": {
         "bjornjohansen/wp-pre-commit-hook": "*",
         "composer/installers": "~1.0",
-        "wp-cli/wp-cli-bundle": "*"
+        "wp-cli/wp-cli-bundle": "*",
+		"szepeviktor/phpstan-wordpress": "^1.1",
+		"phpstan/extension-installer": "^1.1"
     }
 }

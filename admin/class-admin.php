@@ -25,7 +25,6 @@ use WP_Rest_Cache_Plugin\Includes\Caching\Caching;
  */
 class Admin {
 
-
 	/**
 	 * The ID of this plugin.
 	 *
@@ -43,14 +42,6 @@ class Admin {
 	private $version;
 
 	/**
-	 * Notices to be displayed in the wp-admin.
-	 *
-	 * @access private
-	 * @var    array $notices An array of notices to be displayed in the wp-admin.
-	 */
-	private $notices;
-
-	/**
 	 * Initialize the class and set its properties.
 	 *
 	 * @param string $plugin_name The name of this plugin.
@@ -59,11 +50,12 @@ class Admin {
 	public function __construct( $plugin_name, $version ) {
 		$this->plugin_name = $plugin_name;
 		$this->version     = $version;
-		$this->notices     = [];
 	}
 
 	/**
 	 * Register the stylesheets for the admin area.
+	 *
+	 * @return void
 	 */
 	public function enqueue_styles() {
 		wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'css/wp-rest-cache-admin.css', [], $this->version, 'all' );
@@ -75,6 +67,8 @@ class Admin {
 
 	/**
 	 * Register the scripts for the admin area.
+	 *
+	 * @return void
 	 */
 	public function enqueue_scripts() {
 		if ( 'wp-rest-cache' === filter_input( INPUT_GET, 'page', FILTER_SANITIZE_FULL_SPECIAL_CHARS )
@@ -85,6 +79,8 @@ class Admin {
 
 	/**
 	 * Add a new menu item under Settings.
+	 *
+	 * @return void
 	 */
 	public function create_menu() {
 		/**
@@ -115,6 +111,8 @@ class Admin {
 
 	/**
 	 * Add screen options to the WP Admin
+	 *
+	 * @return void
 	 */
 	public function add_screen_options() {
 		$args = [
@@ -128,13 +126,13 @@ class Admin {
 	/**
 	 * Set the caches_per_pages screen option.
 	 *
-	 * @param bool|int $option_value Screen option value. Default false to skip.
-	 * @param string   $option The option name.
-	 * @param int      $value The number of rows to use.
+	 * @param int    $option_value Screen option value. Default false to skip.
+	 * @param string $option The option name.
+	 * @param int    $value The number of rows to use.
 	 *
 	 * @return int
 	 */
-	public function set_screen_option( $option_value, $option, $value ) {
+	public function set_screen_option( $option_value, $option, $value ): int {
 		if ( 'caches_per_page' === $option ) {
 			return $value;
 		}
@@ -145,11 +143,11 @@ class Admin {
 	/**
 	 * Add a settings link to the plugin on the Plugin admin screen.
 	 *
-	 * @param array $links An array of plugin action links.
+	 * @param array<int,string> $links An array of plugin action links.
 	 *
-	 * @return array An array of plugin action links.
+	 * @return array<int,string> An array of plugin action links.
 	 */
-	public function add_plugin_settings_link( $links ) {
+	public function add_plugin_settings_link( $links ): array {
 		$links[] = '<a href="' .
 					admin_url( 'options-general.php?page=wp-rest-cache' ) . '">' .
 					__( 'Settings', 'wp-rest-cache' ) . '</a>';
@@ -159,6 +157,8 @@ class Admin {
 
 	/**
 	 * Register plugin specific settings.
+	 *
+	 * @return void
 	 */
 	public function register_settings() {
 		register_setting( 'wp-rest-cache-settings', 'wp_rest_cache_timeout' );
@@ -172,10 +172,12 @@ class Admin {
 
 	/**
 	 * Display the plugin settings page.
+	 *
+	 * @return void
 	 */
 	public function settings_page() {
 		$sub = filter_input( INPUT_GET, 'sub', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
-		if ( ! strlen( $sub ) ) {
+		if ( '' === $sub ) {
 			$sub = 'settings';
 		}
 		include_once __DIR__ . '/partials/header.php';
@@ -184,6 +186,8 @@ class Admin {
 
 	/**
 	 * Add a 'Clear REST cache' button to the wp-admin top bar.
+	 *
+	 * @return void
 	 */
 	public function admin_bar_item() {
 		/** This filter is documented in the function create_menu(). */
@@ -197,7 +201,7 @@ class Admin {
 		 *
 		 * @since 2018.3.1
 		 *
-		 * @param boolean $show Boolean whether or not the 'Clear REST cache' button should be shown.
+		 * @param boolean $show Boolean whether the 'Clear REST cache' button should be shown.
 		 */
 		$show = apply_filters( 'wp_rest_cache/display_clear_cache_button', true );
 		if ( true === $show ) {
@@ -218,12 +222,14 @@ class Admin {
 	 *
 	 * @return string The url to empty the cache.
 	 */
-	public static function empty_cache_url() {
+	public static function empty_cache_url(): string {
 		return wp_nonce_url( admin_url( 'options-general.php?page=wp-rest-cache&sub=clear-cache' ), 'wp_rest_cache_options', 'wp_rest_cache_nonce' );
 	}
 
 	/**
 	 * Handle the correct actions. I.e. dismiss a notice.
+	 *
+	 * @return void
 	 */
 	public function handle_actions() {
 		if ( isset( $_GET['wp_rest_cache_dismiss'] )
@@ -244,19 +250,27 @@ class Admin {
 	/**
 	 * Add a notice to the wp-admin.
 	 *
-	 * @param string $type The type of message (error|warning|success|info).
-	 * @param string $message The message to display.
-	 * @param mixed  $dismissible Boolean, should the message be dismissible or 'permanent' for permanently dismissible notice.
+	 * @param string               $type The type of message (error|warning|success|info).
+	 * @param string               $message The message to display.
+	 * @param string|bool          $dismissible Boolean, should the message be dismissible or 'permanent' for permanently dismissible notice.
+	 * @param array<string,string> $button An array with label + url to display a button with the notice.
+	 *
+	 * @return void
 	 */
-	protected function add_notice( $type, $message, $dismissible = true ) {
-		$this->notices[ $type ][] = [
+	protected function add_notice( $type, $message, $dismissible = true, $button = [] ) {
+		$notices            = get_option( 'wp_rest_cache_admin_notices', [] );
+		$notices[ $type ][] = [
 			'message'     => $message,
 			'dismissible' => $dismissible,
+			'button'      => $button,
 		];
+		update_option( 'wp_rest_cache_admin_notices', $notices, false );
 	}
 
 	/**
 	 * Check if the MU plugin was created, if not display a warning.
+	 *
+	 * @return void
 	 */
 	public function check_muplugin_existence() {
 		if ( ! file_exists( WPMU_PLUGIN_DIR . '/wp-rest-cache.php' ) ) {
@@ -288,6 +302,8 @@ class Admin {
 
 	/**
 	 * Check if external object caching is being used, if so display a warning for needed Memcache(d) settings.
+	 *
+	 * @return void
 	 */
 	public function check_memcache_ext_object_caching() {
 		if ( wp_using_ext_object_cache()
@@ -303,12 +319,15 @@ class Admin {
 
 	/**
 	 * Display notices (if any) on the Admin dashboard
+	 *
+	 * @return void
 	 */
 	public function display_notices() {
-		if ( count( $this->notices ) ) {
+		$notices = get_option( 'wp_rest_cache_admin_notices', [] );
+		if ( count( $notices ) ) {
 			$user_id           = get_current_user_id();
 			$dismissed_notices = get_user_meta( $user_id, 'wp_rest_cache_dismissed_notices', true );
-			foreach ( $this->notices as $type => $messages ) {
+			foreach ( $notices as $type => $messages ) {
 				foreach ( $messages as $message ) {
 					if ( ! is_array( $dismissed_notices ) || ! in_array( esc_attr( md5( $message['message'] ) ), $dismissed_notices, true ) ) {
 						?>
@@ -325,11 +344,16 @@ class Admin {
 									<a class="button"
 										href="<?php echo esc_attr( $url ); ?>"><?php echo esc_html_e( 'Hide this message', 'wp-rest-cache' ); ?></a>
 								<?php endif; ?></p>
+							<?php if ( isset( $message['button']['url'], $message['button']['label'] ) ) : ?>
+								<p><a class="button" href="<?php echo esc_attr( $message['button']['url'] ); ?>"><?php echo esc_html( $message['button']['label'] ); ?></a></p>
+							<?php endif; ?>
 						</div>
 						<?php
 					}
 				}
 			}
+
+			delete_option( 'wp_rest_cache_admin_notices' );
 		}
 	}
 
@@ -339,6 +363,8 @@ class Admin {
 	 * @param mixed  $old_value The old option value.
 	 * @param mixed  $value The new option value.
 	 * @param string $option Option name.
+	 *
+	 * @return void
 	 */
 	public function regenerate_updated( $old_value, $value, $option ) {
 		if ( '1' === $value ) {
@@ -355,6 +381,8 @@ class Admin {
 	 * @param mixed  $old_value The old option value.
 	 * @param mixed  $value The new option value.
 	 * @param string $option Option name.
+	 *
+	 * @return void
 	 */
 	public function regenerate_interval_updated( $old_value, $value, $option ) {
 		if ( Caching::get_instance()->should_regenerate() ) {
@@ -365,6 +393,8 @@ class Admin {
 
 	/**
 	 * Flush caches in batches. Used through an ajax call from the 'Clear REST Cache' button.
+	 *
+	 * @return void
 	 */
 	public function flush_caches() {
 		check_ajax_referer( 'wp_rest_cache_clear_cache_ajax', 'wp_rest_cache_nonce' );
@@ -380,13 +410,72 @@ class Admin {
 	}
 
 	/**
+	 * Upon plugin activation show a message about flushing the REST cache (or flush specific caches when certain
+	 * plugins are activated).
+	 *
+	 * @param string  $plugin The plugin that has just been activated.
+	 * @param boolean $network_wide Whether the plugin has been activated network wide.
+	 *
+	 * @return void
+	 */
+	public function activated_plugin( $plugin, $network_wide ) {
+		// Wordfence alters the output of the users endpoint, so flush all users endpoint caches.
+		if ( 'wordfence/wordfence.php' === $plugin ) {
+			$rest_prefix = sprintf( '/%s/', get_option( 'wp_rest_cache_rest_prefix', 'wp-json' ) );
+			$caching     = Caching::get_instance();
+			if ( $network_wide ) {
+				$site_ids = get_sites( [ 'fields' => 'ids' ] );
+				foreach ( $site_ids as $site_id ) {
+					switch_to_blog( $site_id );
+					$caching->delete_cache_by_endpoint( $rest_prefix . 'wp/v2/users', Caching::FLUSH_LOOSE );
+					restore_current_blog();
+				}
+			} else {
+				$caching->delete_cache_by_endpoint( $rest_prefix . 'wp/v2/users', Caching::FLUSH_LOOSE );
+			}
+		} else {
+			$this->add_notice(
+				'warning',
+				__( 'A new plugin has been activated. This might effect the WP REST API output, so please consider if clearing the REST Cache is necessary.', 'wp-rest-cache' ),
+				false,
+				[
+					'label' => __( 'Clear REST cache', 'wp-rest-cache' ),
+					'url'   => self::empty_cache_url(),
+				]
+			);
+		}
+	}
+
+	/**
+	 * Upon plugin deactivation show a message about flushing the REST cache.
+	 *
+	 * @param string  $plugin The plugin that has just been activated.
+	 * @param boolean $network_wide Whether the plugin has been activated network wide.
+	 *
+	 * @return void
+	 */
+	public function deactivated_plugin( $plugin, $network_wide ) {
+		$this->add_notice(
+			'warning',
+			__( 'A plugin has been deactivated. This might effect the WP REST API output, so please consider if clearing the REST Cache is necessary.', 'wp-rest-cache' ),
+			false,
+			[
+				'label' => __( 'Clear REST cache', 'wp-rest-cache' ),
+				'url'   => self::empty_cache_url(),
+			]
+		);
+	}
+
+	/**
 	 * Add custom WP CLI commands.
 	 *
 	 * @throws \Exception An exception is thrown if the command contains an error.
+	 *
+	 * @return void
 	 */
 	public function add_cli_commands() {
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
-			\WP_CLI::add_command( 'wp-rest-cache flush', \WP_Rest_Cache_Plugin\Includes\CLI\Flush_Command::class );
+			\WP_CLI::add_command( 'wp-rest-cache flush', [ \WP_Rest_Cache_Plugin\Includes\CLI\Flush_Command::class, '__construct' ] );
 		}
 	}
 }

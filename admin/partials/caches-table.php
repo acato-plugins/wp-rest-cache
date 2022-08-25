@@ -9,6 +9,10 @@
  * @subpackage WP_Rest_Cache_Plugin/Admin/Partials
  */
 
+if ( ! isset( $wp_rest_cache_list ) ) {
+	return;
+}
+
 $wp_rest_cache_sub = filter_input( INPUT_GET, 'sub', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
 ?>
 <div id="poststuff">

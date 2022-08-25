@@ -24,6 +24,8 @@ class Activator {
 
 	/**
 	 * Activate the plugin. Add default options and copy Must-Use plugin to correct directory.
+	 *
+	 * @return void
 	 */
 	public static function activate() {
 		if ( ! get_option( 'wp_rest_cache_allowed_endpoints' ) ) {
@@ -52,7 +54,9 @@ class Activator {
 	}
 
 	/**
-	 * Create a Must Use plugin to handle caching asap. Before loading of other plugins and/or theme.
+	 * Create a Must-Use plugin to handle caching asap. Before loading of other plugins and/or theme.
+	 *
+	 * @return void
 	 */
 	public static function create_mu_plugin() {
 		// Make sure filesystem methods are loaded (not always the case when loaded through mu-plugin).
