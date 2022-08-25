@@ -250,10 +250,10 @@ class Admin {
 	/**
 	 * Add a notice to the wp-admin.
 	 *
-	 * @param string      $type The type of message (error|warning|success|info).
-	 * @param string      $message The message to display.
-	 * @param string|bool $dismissible Boolean, should the message be dismissible or 'permanent' for permanently dismissible notice.
-     * @param array<string,string>  $button An array with label + url to display a button with the notice.
+	 * @param string               $type The type of message (error|warning|success|info).
+	 * @param string               $message The message to display.
+	 * @param string|bool          $dismissible Boolean, should the message be dismissible or 'permanent' for permanently dismissible notice.
+	 * @param array<string,string> $button An array with label + url to display a button with the notice.
 	 *
 	 * @return void
 	 */
@@ -415,8 +415,8 @@ class Admin {
 	 *
 	 * @param string  $plugin The plugin that has just been activated.
 	 * @param boolean $network_wide Whether the plugin has been activated network wide.
-     *
-     * @return void
+	 *
+	 * @return void
 	 */
 	public function activated_plugin( $plugin, $network_wide ) {
 		// Wordfence alters the output of the users endpoint, so flush all users endpoint caches.
@@ -451,8 +451,8 @@ class Admin {
 	 *
 	 * @param string  $plugin The plugin that has just been activated.
 	 * @param boolean $network_wide Whether the plugin has been activated network wide.
-     *
-     * @return void
+	 *
+	 * @return void
 	 */
 	public function deactivated_plugin( $plugin, $network_wide ) {
 		$this->add_notice(
