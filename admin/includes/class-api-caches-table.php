@@ -74,9 +74,9 @@ class API_Caches_Table extends \WP_List_Table {
 	 * @param int $per_page The number of items per page.
 	 * @param int $page_number The current page number.
 	 *
-	 * @return array An array of caches.
+	 * @return array<int,array<string,mixed>> An array of caches.
 	 */
-	public static function get_caches( $per_page = self::ITEMS_PER_PAGE, $page_number = 1 ) {
+	public static function get_caches( $per_page = self::ITEMS_PER_PAGE, $page_number = 1 ): array {
 		return \WP_Rest_Cache_Plugin\Includes\Caching\Caching::get_instance()->get_api_data( self::$api_type, $per_page, $page_number );
 	}
 
@@ -85,6 +85,8 @@ class API_Caches_Table extends \WP_List_Table {
 	 *
 	 * @param string $cache_key The cache key for the cache that needs to be cleared.
 	 * @param bool   $force Whether the cache should be deleted or just flushed.
+	 *
+	 * @return void
 	 */
 	public static function clear_cache( $cache_key, $force = false ) {
 		\WP_Rest_Cache_Plugin\Includes\Caching\Caching::get_instance()->delete_cache( $cache_key, $force );
@@ -95,12 +97,14 @@ class API_Caches_Table extends \WP_List_Table {
 	 *
 	 * @return int The record count.
 	 */
-	public static function record_count() {
+	public static function record_count(): int {
 		return \WP_Rest_Cache_Plugin\Includes\Caching\Caching::get_instance()->get_record_count( self::$api_type );
 	}
 
 	/**
 	 * Echo the message for no records found.
+	 *
+	 * @return void
 	 */
 	public function no_items() {
 		esc_html_e( 'No caches available', 'wp-rest-cache' );
@@ -109,11 +113,11 @@ class API_Caches_Table extends \WP_List_Table {
 	/**
 	 * Get the output for the cache_key column.
 	 *
-	 * @param array $item The current item.
+	 * @param array<string,mixed> $item The current item.
 	 *
 	 * @return string The HTML output.
 	 */
-	public function column_cache_key( $item ) {
+	public function column_cache_key( $item ): string {
 		$page         = filter_input( INPUT_GET, 'page', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
 		$sub          = filter_input( INPUT_GET, 'sub', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
 		$flush_nonce  = wp_create_nonce( 'wp_rest_cache_flush_cache' );
@@ -161,11 +165,11 @@ class API_Caches_Table extends \WP_List_Table {
 	/**
 	 * Get the output for the is_active column.
 	 *
-	 * @param array $item The current item.
+	 * @param array<string,mixed> $item The current item.
 	 *
 	 * @return string The HTML output.
 	 */
-	public function column_is_active( $item ) {
+	public function column_is_active( $item ): string {
 		if ( $item['is_active'] ) {
 			return sprintf(
 				'<span class="dashicons dashicons-yes" style="color:green" title="%s"></span>
@@ -186,23 +190,23 @@ class API_Caches_Table extends \WP_List_Table {
 	/**
 	 * The default output action for columns.
 	 *
-	 * @param array  $item The current item.
-	 * @param string $column_name The name of the current column.
+	 * @param array<string,mixed> $item The current item.
+	 * @param string              $column_name The name of the current column.
 	 *
 	 * @return string The output for this column.
 	 */
-	public function column_default( $item, $column_name ) {
+	public function column_default( $item, $column_name ): string {
 		return $item[ $column_name ];
 	}
 
 	/**
 	 * Get the HTML for the checkbox to select the current item.
 	 *
-	 * @param array $item The item for this row.
+	 * @param array<string,mixed> $item The item for this row.
 	 *
 	 * @return string HTML for the checkbox.
 	 */
-	public function column_cb( $item ) {
+	public function column_cb( $item ): string {
 		return sprintf(
 			'<input type="checkbox" name="bulk-flush[]" value="%s" />',
 			$item['cache_key']
@@ -212,7 +216,7 @@ class API_Caches_Table extends \WP_List_Table {
 	/**
 	 * Get a list of all columns in the list view.
 	 *
-	 * @return array An array of all columns in the view.
+	 * @return array<string,string> An array of all columns in the view.
 	 */
 	public function get_columns() {
 		$columns = [
@@ -233,7 +237,7 @@ class API_Caches_Table extends \WP_List_Table {
 	/**
 	 * Get a list of all sortable columns.
 	 *
-	 * @return array An array of sortable columns.
+	 * @return array<string,array<int,bool|string>> An array of sortable columns.
 	 */
 	public function get_sortable_columns() {
 		$sortable_columns = [
@@ -251,7 +255,7 @@ class API_Caches_Table extends \WP_List_Table {
 	/**
 	 * Get all available bulk actions.
 	 *
-	 * @return array An array of available bulk actions.
+	 * @return array<string,string> An array of available bulk actions.
 	 */
 	public function get_bulk_actions() {
 		$actions = [
@@ -264,6 +268,8 @@ class API_Caches_Table extends \WP_List_Table {
 
 	/**
 	 * Prepare items for view.
+	 *
+	 * @return void
 	 */
 	public function prepare_items() {
 		$this->process_action();
@@ -289,6 +295,8 @@ class API_Caches_Table extends \WP_List_Table {
 
 	/**
 	 * Process an action on a single item or a selection of items.
+	 *
+	 * @return void
 	 */
 	public function process_action() {
 		switch ( $this->current_action() ) {
@@ -307,6 +315,8 @@ class API_Caches_Table extends \WP_List_Table {
 	 * Process an action on a single item.
 	 *
 	 * @param string $action The action to be taken.
+	 *
+	 * @return void
 	 */
 	private function process_single_action( $action ) {
 		if ( ! isset( $_GET['wp_rest_cache_nonce'] ) || ! wp_verify_nonce( sanitize_key( $_GET['wp_rest_cache_nonce'] ), 'wp_rest_cache_' . $action . '_cache' ) ) {
@@ -320,6 +330,8 @@ class API_Caches_Table extends \WP_List_Table {
 	 * Process a bulk action on multiple selected items.
 	 *
 	 * @param string $action The action to be taken.
+	 *
+	 * @return void
 	 */
 	private function process_bulk_action( $action ) {
 		$caches = filter_input( INPUT_GET, 'bulk-flush', FILTER_SANITIZE_FULL_SPECIAL_CHARS, FILTER_REQUIRE_ARRAY );

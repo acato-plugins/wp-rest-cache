@@ -68,6 +68,8 @@ class Plugin {
 	 *
 	 * Uses the WP_Rest_Cache_Plugin\Includes\I18n class in order to set the domain and to register the hook
 	 * with WordPress.
+	 *
+	 * @return void
 	 */
 	private function set_locale() {
 
@@ -78,7 +80,9 @@ class Plugin {
 	}
 
 	/**
-	 * Register all of the hooks related to the admin area functionality of the plugin.
+	 * Register all the hooks related to the admin area functionality of the plugin.
+	 *
+	 * @return void
 	 */
 	private function define_admin_hooks() {
 
@@ -127,7 +131,9 @@ class Plugin {
 	}
 
 	/**
-	 * Register all of the hooks related to the api functionality of the plugin.
+	 * Register all the hooks related to the api functionality of the plugin.
+	 *
+	 * @return void
 	 */
 	private function define_api_hooks() {
 		$endpoint_api = new API\Endpoint_Api();
@@ -144,7 +150,9 @@ class Plugin {
 	}
 
 	/**
-	 * Register all of the hooks related to the caching functionality of the plugin.
+	 * Register all the hooks related to the caching functionality of the plugin.
+	 *
+	 * @return void
 	 */
 	private function define_caching_hooks() {
 		$caching = Caching\Caching::get_instance();

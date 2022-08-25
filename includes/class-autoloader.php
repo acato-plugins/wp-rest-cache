@@ -27,6 +27,8 @@ class Autoloader {
 	 * Autoload classes related to this plugin.
 	 *
 	 * @param string $class_name The requested class.
+	 *
+	 * @return void
 	 */
 	public static function autoload( $class_name ) {
 		$file_path = explode( '\\', $class_name );

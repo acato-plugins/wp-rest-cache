@@ -32,30 +32,30 @@
 					<th><?php esc_html_e( 'Cache timeout', 'wp-rest-cache' ); ?></th>
 					<td>
 						<input type="number" min="1" name="wp_rest_cache_timeout" class="small-text"
-								value="<?php echo esc_attr( $wp_rest_cache_timeout ); ?>">
+								value="<?php echo esc_attr( (string) $wp_rest_cache_timeout ); ?>">
 						<select name="wp_rest_cache_timeout_interval" id="wp_rest_cache_timeout_interval"
 								style="vertical-align: initial">
-							<option value="<?php echo esc_attr( MINUTE_IN_SECONDS ); ?>"
+							<option value="<?php echo esc_attr( (string) MINUTE_IN_SECONDS ); ?>"
 								<?php selected( $wp_rest_cache_timeout_interval, MINUTE_IN_SECONDS ); ?>>
 								<?php esc_html_e( 'Minute(s)', 'wp-rest-cache' ); ?>
 							</option>
-							<option value="<?php echo esc_attr( HOUR_IN_SECONDS ); ?>"
+							<option value="<?php echo esc_attr( (string) HOUR_IN_SECONDS ); ?>"
 								<?php selected( $wp_rest_cache_timeout_interval, HOUR_IN_SECONDS ); ?>>
 								<?php esc_html_e( 'Hour(s)', 'wp-rest-cache' ); ?>
 							</option>
-							<option value="<?php echo esc_attr( DAY_IN_SECONDS ); ?>"
+							<option value="<?php echo esc_attr( (string) DAY_IN_SECONDS ); ?>"
 								<?php selected( $wp_rest_cache_timeout_interval, DAY_IN_SECONDS ); ?>>
 								<?php esc_html_e( 'Day(s)', 'wp-rest-cache' ); ?>
 							</option>
-							<option value="<?php echo esc_attr( WEEK_IN_SECONDS ); ?>"
+							<option value="<?php echo esc_attr( (string) WEEK_IN_SECONDS ); ?>"
 								<?php selected( $wp_rest_cache_timeout_interval, WEEK_IN_SECONDS ); ?>>
 								<?php esc_html_e( 'Week(s)', 'wp-rest-cache' ); ?>
 							</option>
-							<option value="<?php echo esc_attr( MONTH_IN_SECONDS ); ?>"
+							<option value="<?php echo esc_attr( (string) MONTH_IN_SECONDS ); ?>"
 								<?php selected( $wp_rest_cache_timeout_interval, MONTH_IN_SECONDS ); ?>>
 								<?php esc_html_e( 'Month(s)', 'wp-rest-cache' ); ?>
 							</option>
-							<option value="<?php echo esc_attr( YEAR_IN_SECONDS ); ?>"
+							<option value="<?php echo esc_attr( (string) YEAR_IN_SECONDS ); ?>"
 								<?php selected( $wp_rest_cache_timeout_interval, YEAR_IN_SECONDS ); ?>>
 								<?php esc_html_e( 'Year(s)', 'wp-rest-cache' ); ?>
 							</option>
@@ -100,7 +100,7 @@
 					<th><?php esc_html_e( 'Max number regenerate caches', 'wp-rest-cache' ); ?></th>
 					<td>
 						<input type="number" min="1" name="wp_rest_cache_regenerate_number" class="small-text"
-							value="<?php echo esc_attr( $wp_rest_cache_regenerate_number ); ?>">
+							value="<?php echo esc_attr( (string) $wp_rest_cache_regenerate_number ); ?>">
 						<p class="description"
 							id="wp_rest_cache_regenerate_number-description"><?php esc_html_e( 'How many caches should be regenerated at maximum per interval? Increasing this number will increase the load on your server when the regeneration process is running.', 'wp-rest-cache' ); ?></p>
 					</td>

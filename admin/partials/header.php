@@ -9,6 +9,10 @@
  * @subpackage WP_Rest_Cache_Plugin/Admin/Partials
  */
 
+if ( ! isset( $sub ) ) {
+	return;
+}
+
 ?>
 <h1>WP REST Cache</h1>
 <h2 class="nav-tab-wrapper">
