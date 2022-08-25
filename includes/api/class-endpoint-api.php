@@ -377,8 +377,19 @@ class Endpoint_Api {
 		$cache = \WP_Rest_Cache_Plugin\Includes\Caching\Caching::get_instance()->get_cache( $this->cache_key );
 
 		if ( false !== $cache ) {
+			/**
+			 * Filter cache data.
+			 *
+			 * Allow filtering of the cached data.
+			 *
+			 * @since 2022.2.0
+			 *
+			 * @param mixed $data The cached JSON data object.
+			 */
+			$data = apply_filters( 'wp_rest_cache/filter_cache_output', $cache['data'] );
+
 			// We want the data to be json.
-			$data       = wp_json_encode( $cache['data'] );
+			$data       = wp_json_encode( $data );
 			$last_error = json_last_error();
 
 			if ( JSON_ERROR_NONE === $last_error ) {
