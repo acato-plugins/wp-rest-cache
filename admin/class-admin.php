@@ -177,7 +177,7 @@ class Admin {
 	 */
 	public function settings_page() {
 		$sub = filter_input( INPUT_GET, 'sub', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
-		if ( '' === $sub ) {
+		if ( empty( $sub ) ) {
 			$sub = 'settings';
 		}
 		include_once __DIR__ . '/partials/header.php';

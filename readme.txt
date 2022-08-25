@@ -4,7 +4,7 @@ Tags: cache, wp-rest-api, api, rest, rest cache, rest api cache
 Requires at least: 4.7
 Tested up to: 6.0
 Requires PHP: 7.0
-Stable tag: 2022.2.0
+Stable tag: 2022.2.1
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl.html
 
@@ -170,6 +170,11 @@ Yes you can! Use the `wp wp-rest-cache flush` command to flush caches. Type `wp 
 5. Cache details page - Cache data.
 
 == Changelog ==
+
+= 2022.2.1 =
+Release Date: August 25th, 2022
+
+Hotfix: Settings page wasn't displayed correctly.
 
 = 2022.2.0 =
 Release Date: August 25th, 2022
