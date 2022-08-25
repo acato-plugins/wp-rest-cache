@@ -4,7 +4,7 @@ Tags: cache, wp-rest-api, api, rest, rest cache, rest api cache
 Requires at least: 4.7
 Tested up to: 6.0
 Requires PHP: 7.0
-Stable tag: 2022.1.2
+Stable tag: 2022.2.0
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl.html
 
@@ -170,6 +170,14 @@ Yes you can! Use the `wp wp-rest-cache flush` command to flush caches. Type `wp 
 5. Cache details page - Cache data.
 
 == Changelog ==
+
+= 2022.2.0 =
+Release Date: August 25th, 2022
+
+Feature: Added filter to allow filtering of cache output.
+Improvement: Fix conflict with Wordfence.
+Improvement: Added notice upon any plugin (de/)activation that cache might need to be cleared.
+Improvement: Added phpstan checks and fixed all errors.
 
 = 2022.1.2 =
 Release Date: August 12th, 2022
