@@ -147,6 +147,13 @@ class Plugin {
 
 		add_filter( 'register_post_type_args', [ $item_api, 'set_post_type_rest_controller' ], 10, 2 );
 		add_filter( 'register_taxonomy_args', [ $item_api, 'set_taxonomy_rest_controller' ], 10, 2 );
+
+		$oembed_api = new API\Oembed_Api();
+
+		add_filter( 'wp_rest_cache/allowed_endpoints', [ $oembed_api, 'add_oembed_endpoint' ], 10, 1 );
+		add_filter( 'wp_rest_cache/determine_object_type', [ $oembed_api, 'determine_object_type' ], 10, 4 );
+		add_filter( 'wp_rest_cache/is_single_item', [ $oembed_api, 'is_single_oembed_item' ], 10, 3 );
+		add_action( 'wp_rest_cache/process_cache_relations', [ $oembed_api, 'process_cache_relations' ], 10, 4 );
 	}
 
 	/**
