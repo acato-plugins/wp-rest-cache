@@ -1279,13 +1279,23 @@ class Caching {
 		 */
 		$limit = (int) apply_filters( 'wp_rest_cache/max_cleanup_caches', 1000 );
 
-		$sql = "SELECT  `cache_key`, `deleted`
+		$sql = "SELECT  `cache_key`, `deleted`, `request_uri`, `request_headers`
                 FROM    {$this->db_table_caches}
                 WHERE   `expiration` = %s
                 AND     `cleaned` = %d
                 LIMIT   %d";
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		$caches = $wpdb->get_results( $wpdb->prepare( $sql, date_i18n( 'Y-m-d H:i:s', 1 ), 0, $limit ) );
+
+		/**
+		 * Fires when caches are deleted.
+		 *
+		 * @since 2023.1.0
+		 *
+		 * @param array $caches An array of caches that are deleted.
+		 */
+		do_action( 'wp_rest_cache/deleted_caches', $caches );
+
 		if ( $caches ) {
 			foreach ( $caches as $cache ) {
 				$this->delete_cache( $cache->cache_key, $cache->deleted );
