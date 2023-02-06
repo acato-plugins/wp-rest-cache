@@ -1255,8 +1255,24 @@ class Caching {
 	 * @return void
 	 */
 	private function schedule_cleanup() {
-		if ( ! wp_next_scheduled( 'wp_rest_cache_cleanup_deleted_caches' ) ) {
-			wp_schedule_single_event( time() + 5 * MINUTE_IN_SECONDS, 'wp_rest_cache_cleanup_deleted_caches' );
+		/**
+		 * Should caches be deleted immediately instead of via a cron?
+		 *
+		 * This filter can be used to delete caches immediately instead of via a cron job, which is there for
+		 * performance reasons.
+		 *
+		 * @since 2023.1.0
+		 *
+		 * @param boolean $immediate_deletion Whether the caches should be deleted immediately (true) or with a cron (false, default).
+		 */
+		$immediate_deletion = apply_filters( 'wp_rest_cache/delete_caches_immediately', false );
+
+		if ( $immediate_deletion ) {
+			$this->cleanup_deleted_caches();
+		} else {
+			if ( ! wp_next_scheduled( 'wp_rest_cache_cleanup_deleted_caches' ) ) {
+				wp_schedule_single_event( time() + 5 * MINUTE_IN_SECONDS, 'wp_rest_cache_cleanup_deleted_caches' );
+			}
 		}
 	}
 
@@ -1279,13 +1295,23 @@ class Caching {
 		 */
 		$limit = (int) apply_filters( 'wp_rest_cache/max_cleanup_caches', 1000 );
 
-		$sql = "SELECT  `cache_key`, `deleted`
+		$sql = "SELECT  `cache_key`, `deleted`, `request_uri`, `request_headers`
                 FROM    {$this->db_table_caches}
                 WHERE   `expiration` = %s
                 AND     `cleaned` = %d
                 LIMIT   %d";
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		$caches = $wpdb->get_results( $wpdb->prepare( $sql, date_i18n( 'Y-m-d H:i:s', 1 ), 0, $limit ) );
+
+		/**
+		 * Fires when caches are deleted.
+		 *
+		 * @since 2023.1.0
+		 *
+		 * @param array $caches An array of caches that are deleted.
+		 */
+		do_action( 'wp_rest_cache/deleted_caches', $caches );
+
 		if ( $caches ) {
 			foreach ( $caches as $cache ) {
 				$this->delete_cache( $cache->cache_key, $cache->deleted );

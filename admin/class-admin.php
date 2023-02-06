@@ -475,7 +475,7 @@ class Admin {
 	 */
 	public function add_cli_commands() {
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
-			\WP_CLI::add_command( 'wp-rest-cache', \WP_Rest_Cache_Plugin\Includes\CLI\Flush_Command::class );
+			\WP_CLI::add_command( 'wp-rest-cache', [ \WP_Rest_Cache_Plugin\Includes\CLI\Flush_Command::class, 'flush' ] );
 		}
 	}
 }
