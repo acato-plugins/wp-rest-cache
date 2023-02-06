@@ -1255,8 +1255,24 @@ class Caching {
 	 * @return void
 	 */
 	private function schedule_cleanup() {
-		if ( ! wp_next_scheduled( 'wp_rest_cache_cleanup_deleted_caches' ) ) {
-			wp_schedule_single_event( time() + 5 * MINUTE_IN_SECONDS, 'wp_rest_cache_cleanup_deleted_caches' );
+		/**
+		 * Should caches be deleted immediately in stead of via a cron?
+		 *
+		 * This filter can be used to delete caches immediately in stead of via a cron job, which is there for
+		 * performance reasons.
+		 *
+		 * @since 2023.1.0
+		 *
+		 * @param boolean $immediate_deletion Whether the caches should be deleted immediately (true) or with a cron (false, default).
+		 */
+		$immediate_deletion = apply_filters( 'wp_rest_cache/delete_caches_immediately', false );
+
+		if ( $immediate_deletion ) {
+			$this->cleanup_deleted_caches();
+		} else {
+			if ( ! wp_next_scheduled( 'wp_rest_cache_cleanup_deleted_caches' ) ) {
+				wp_schedule_single_event( time() + 5 * MINUTE_IN_SECONDS, 'wp_rest_cache_cleanup_deleted_caches' );
+			}
 		}
 	}
 
