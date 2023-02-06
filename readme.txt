@@ -345,7 +345,7 @@ Release Date: April 2nd, 2019
 
 Feature: Added function to programatically flush cache records by endpoint path.
 Bugfix: Fix correct filtering of allowed endpoints.
-Bugfix: Fix fatal error with object in stead of array in cache.
+Bugfix: Fix fatal error with object instead of array in cache.
 
 = 2019.1.6 =
 Release Date: March 25th, 2019

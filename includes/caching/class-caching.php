@@ -1256,9 +1256,9 @@ class Caching {
 	 */
 	private function schedule_cleanup() {
 		/**
-		 * Should caches be deleted immediately in stead of via a cron?
+		 * Should caches be deleted immediately instead of via a cron?
 		 *
-		 * This filter can be used to delete caches immediately in stead of via a cron job, which is there for
+		 * This filter can be used to delete caches immediately instead of via a cron job, which is there for
 		 * performance reasons.
 		 *
 		 * @since 2023.1.0
