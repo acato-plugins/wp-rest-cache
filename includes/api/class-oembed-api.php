@@ -69,7 +69,10 @@ class Oembed_Api {
 		$post_id = $this->get_oembed_post_id( $uri );
 
 		if ( $post_id ) {
-			return get_post_type( $post_id );
+			$post_type = get_post_type( $post_id );
+			if ( $post_type ) {
+				return $post_type;
+			}
 		}
 
 		return $object_type;
@@ -102,10 +105,14 @@ class Oembed_Api {
 	 *
 	 * @return void
 	 */
-	public function process_cache_relations( int $cache_id, $data, string $object_type, $uri ) {
+	public function process_cache_relations( $cache_id, $data, $object_type, $uri ) {
 		$post_id = $this->get_oembed_post_id( $uri );
 		if ( $post_id ) {
-			\WP_Rest_Cache_Plugin\Includes\Caching\Caching::get_instance()->insert_cache_relation( $cache_id, $post_id, get_post_type( $post_id ) );
+			$post_type = get_post_type( $post_id );
+			if ( $post_type ) {
+				$object_type = $post_type;
+			}
+			\WP_Rest_Cache_Plugin\Includes\Caching\Caching::get_instance()->insert_cache_relation( $cache_id, $post_id, $object_type );
 		}
 	}
 
