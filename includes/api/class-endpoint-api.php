@@ -250,8 +250,18 @@ class Endpoint_Api {
 			return $result;
 		}
 
-		// Do not cache if empty result set.
-		if ( empty( $result ) ) {
+		/**
+		 * Allow for programmatically enable empty set caching.
+		 *
+		 * Allows to programmatically enable caching of requests with an empty result set.
+		 *
+		 * @since 2023.1.2
+		 *
+		 * @param bool $skip_empty_result_set False if cache should not be skipped when result set is empty.
+		 * @param \WP_REST_Request $request The current REST Request.
+		 * @param string $request_uri The REST URI that is being requested.
+		 */
+		if ( apply_filters( 'wp_rest_cache/skip_empty_result_set', true, $this->request, $this->request_uri )  && empty( $result ) ) {
 			return $result;
 		}
 
