@@ -415,7 +415,19 @@ class Endpoint_Api {
 					$this->rest_send_cors_headers( '' );
 				}
 
-				foreach ( $cache['headers'] as $key => $value ) {
+				$headers = $cache['headers'];
+				/**
+				 * Filter the cached headers prior to outputting them with the cached response.
+				 *
+				 * Allow to filter the cached headers prior to outputting them with the cached response.
+				 *
+				 * @since 2023.2.0
+				 *
+				 * @param array $headers An array of all headers for this cached response.
+				 * @param string $request_uri The requested URI.
+				 */
+				$headers = apply_filters( 'wp_rest_cache/pre_output_headers', $headers, $this->request_uri );
+				foreach ( $headers as $key => $value ) {
 					$header = sprintf( '%s: %s', $key, $value );
 					header( $header );
 				}
