@@ -258,13 +258,20 @@ class Admin {
 	 * @return void
 	 */
 	protected function add_notice( $type, $message, $dismissible = true, $button = [] ) {
-		$notices            = get_option( 'wp_rest_cache_admin_notices', [] );
-		$notices[ $type ][] = [
-			'message'     => $message,
-			'dismissible' => $dismissible,
-			'button'      => $button,
-		];
-		update_option( 'wp_rest_cache_admin_notices', $notices, false );
+		$notices = get_option( 'wp_rest_cache_admin_notices', [] );
+
+		if ( ! array_key_exists( $type, $notices ) ) {
+			$notices[ $type ] = [];
+		}
+
+		if ( ! in_array( $message, array_column( $notices[ $type ], 'message' ), true ) ) {
+			$notices[ $type ][] = [
+				'message'     => $message,
+				'dismissible' => $dismissible,
+				'button'      => $button,
+			];
+			update_option( 'wp_rest_cache_admin_notices', $notices, false );
+		}
 	}
 
 	/**
