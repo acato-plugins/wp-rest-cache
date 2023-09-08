@@ -11,6 +11,8 @@
 
 namespace WP_Rest_Cache_Plugin\Includes\API;
 
+use WP_Upgrader;
+
 /**
  * API for endpoint caching.
  *
@@ -106,6 +108,7 @@ class Endpoint_Api {
 			parse_str( $uri_parts['query'], $params );
 			ksort( $params );
 			$uncached_parameters = get_option( 'wp_rest_cache_uncached_parameters', [] );
+			$uncached_parameters[] = 'regenerate_cache';
 			if ( $uncached_parameters ) {
 				foreach ( $uncached_parameters as $uncached_parameter ) {
 					if ( isset( $params[ $uncached_parameter ] ) ) {
@@ -277,6 +280,9 @@ class Endpoint_Api {
 		);
 		\WP_Rest_Cache_Plugin\Includes\Caching\Caching::get_instance()->set_cache( $this->cache_key, $data, 'endpoint', $this->request_uri, '', $this->request_headers, $request_method );
 
+		// Release eventual lock
+		WP_Upgrader::release_lock('wp_rest_cache/'.$this->cache_key);
+
 		return $result;
 	}
 
@@ -445,6 +451,7 @@ class Endpoint_Api {
 				echo $data; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 				exit;
 			}
+
 		}
 
 		// Catch the headers after serving.
