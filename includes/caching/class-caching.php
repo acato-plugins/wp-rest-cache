@@ -206,6 +206,10 @@ class Caching {
 			delete_transient( $this->transient_key( $cache_key ) );
 		}
 
+		if( $force == true ) {
+			WP_Upgrader::release_lock('wp_rest_cache/'.$cache_key);
+		}
+
 		$cache_id = $this->get_cache_row_id( $cache_key );
 
 		if ( is_null( $cache_id ) ) {
@@ -621,7 +625,7 @@ class Caching {
 	 *
 	 * @return null|string The expiration of the cache.
 	 */
-	private function get_cache_expiration( $cache_key ) {
+	public function get_cache_expiration( $cache_key ) {
 		global $wpdb;
 
 		$sql =
@@ -1339,6 +1343,7 @@ class Caching {
 		if ( $caches ) {
 			foreach ( $caches as $cache ) {
 				$this->delete_cache( $cache->cache_key, $cache->deleted );
+				WP_Upgrader::release_lock('wp_rest_cache/'.$cache->cache_key);
 			}
 		}
 
