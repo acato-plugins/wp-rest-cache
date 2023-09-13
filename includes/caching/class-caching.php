@@ -1407,9 +1407,27 @@ class Caching {
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		$count = $wpdb->get_var( $wpdb->prepare( $sql, date_i18n( 'Y-m-d H:i:s', 1 ), 0 ) );
 
+		// cleanup orfan transcients
+		$this->cleanup_orfan_transcient();
+
 		if ( $count > 0 ) {
 			$this->schedule_cleanup();
 		}
+	}
+
+	/**
+	 * Cleanup orfan transcient (transcient cache value with no reference in the cache table).
+	 * 
+	 * Limitation: Don't process external cache like memcache.
+	 * 
+	 */
+	private function cleanup_orfan_transcient() {
+		global $wpdb;
+		$sql = "DELETE
+				FROM {$wpdb->options} AS t 
+				WHERE t.`option_name` LIKE ( '%\_transient\_wp\_rest\_cache\_%' )
+				AND BINARY SUBSTRING(t.`option_name`, 26) NOT IN ( SELECT BINARY `cache_key` FROM {$this->db_table_caches} )";
+		$wpdb->query( $wpdb->prepare( $sql ) );
 	}
 
 	/**
