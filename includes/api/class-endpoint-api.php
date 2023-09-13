@@ -11,7 +11,7 @@
 
 namespace WP_Rest_Cache_Plugin\Includes\API;
 
-use WP_Upgrader;
+use ErrorException;
 
 /**
  * API for endpoint caching.
@@ -281,7 +281,7 @@ class Endpoint_Api {
 		\WP_Rest_Cache_Plugin\Includes\Caching\Caching::get_instance()->set_cache( $this->cache_key, $data, 'endpoint', $this->request_uri, '', $this->request_headers, $request_method );
 
 		// Release eventual lock
-		WP_Upgrader::release_lock('wp_rest_cache/'.$this->cache_key);
+		\WP_Rest_Cache_Plugin\Includes\Caching\Caching::get_instance()->release_lock_cache_regeneration($this->cache_key);
 
 		return $result;
 	}
@@ -454,11 +454,27 @@ class Endpoint_Api {
 
 		}
 
+		// lock to prevent unessesary cache reconstruction by the cron
+		\WP_Rest_Cache_Plugin\Includes\Caching\Caching::get_instance()->lock_cache_regeneration($this->cache_key);
+
+		// set_error_handler([$this, 'errorHandler']);
+		register_shutdown_function([$this, 'shudownHandler']);
+
 		// Catch the headers after serving.
 		add_filter( 'rest_pre_serve_request', [ $this, 'save_cache_headers' ], 9999, 4 );
 
 		// Catch the result after serving.
 		add_filter( 'rest_pre_echo_response', [ $this, 'save_cache' ], 1000, 3 );
+	}
+
+	/**
+	 * Ensure to release lock when fatal error occurs (out of memory)
+	 */
+	public function shudownHandler() {
+		$error = error_get_last();
+		if( null !== $error ) {
+			\WP_Rest_Cache_Plugin\Includes\Caching\Caching::get_instance()->release_lock_cache_regeneration($this->cache_key);
+		}
 	}
 
 	/**

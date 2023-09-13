@@ -11,8 +11,6 @@
 
 namespace WP_Rest_Cache_Plugin\Includes\Caching;
 
-use WP_Upgrader;
-
 /**
  * Class responsible for caching and saving cache relations.
  *
@@ -207,7 +205,7 @@ class Caching {
 		}
 
 		if( $force == true ) {
-			WP_Upgrader::release_lock('wp_rest_cache/'.$cache_key);
+			$this->release_lock_cache_regeneration($cache_key);
 		}
 
 		$cache_id = $this->get_cache_row_id( $cache_key );
@@ -1202,6 +1200,61 @@ class Caching {
 	}
 
 	/**
+	 * Create a lock for this cache entry 
+	 * 
+	 * @param string $cache_key The cache key.
+	 * 
+	 * @return boolean Success.
+	 */
+	public function lock_cache_regeneration($cache_key) {
+		global $wpdb;
+		$release_timeout = HOUR_IN_SECONDS;
+
+		$lock_option = 'wp_rest_cache/' . $cache_key . '.lock';
+
+		// Try to lock.
+		$lock_result = $wpdb->query( $wpdb->prepare( "INSERT IGNORE INTO `$wpdb->options` ( `option_name`, `option_value`, `autoload` ) VALUES (%s, %s, 'no') /* LOCK */", $lock_option, time() ) );
+
+		if ( ! $lock_result ) {
+			$lock_result = get_option( $lock_option );
+
+			// If a lock couldn't be created, and there isn't a lock, bail.
+			if ( ! $lock_result ) {
+				return false;
+			}
+
+			// Check to see if the lock is still valid. If it is, bail.
+			if ( $lock_result > ( time() - $release_timeout ) ) {
+				return false;
+			}
+
+			// There must exist an expired lock, clear it and re-gain it.
+			$this->release_lock_cache_regeneration( $cache_key );
+
+			return $this->lock_cache_regeneration( $cache_key );
+		}
+
+		// Update the lock, as by this point we've definitely got a lock, just need to fire the actions.
+		update_option( $lock_option, time() );
+
+		return true;
+	}
+
+	/**
+	 * Release a lock for this cache entry 
+	 * 
+	 * @param string $cache_key The cache key.
+	 * 
+	 * @return boolean Success.
+	 */
+	public function release_lock_cache_regeneration($cache_key) {
+
+		$lock_option = 'wp_rest_cache/' . $cache_key . '.lock';
+
+		return delete_option( $lock_option );
+	}
+
+	/**
 	 * Cronjob to automatically regenerate expired caches.
 	 *
 	 * @return void
@@ -1222,7 +1275,7 @@ class Caching {
 			if ( 1 === strtotime( $result['expiration'] ) || false === get_transient( $this->transient_key( $result['cache_key'] ) ) ) {
 				
 				// ignore item still generating
-				if (WP_Upgrader::create_lock('wp_rest_cache/'.$result['cache_key'], 3600)) {
+				if ( $this->lock_cache_regeneration( $result['cache_key'] )) {
 
 					// Regenerate.
 					$home_url = apply_filters( 'wp_rest_cache/cron_rest_home_url', get_home_url());
@@ -1343,7 +1396,7 @@ class Caching {
 		if ( $caches ) {
 			foreach ( $caches as $cache ) {
 				$this->delete_cache( $cache->cache_key, $cache->deleted );
-				WP_Upgrader::release_lock('wp_rest_cache/'.$cache->cache_key);
+				$this->release_lock_cache_regeneration($cache->cache_key);
 			}
 		}
 
