@@ -188,6 +188,17 @@ class API_Caches_Table extends \WP_List_Table {
 	}
 
 	/**
+	 * Get the output for the locked column.
+	 *
+	 * @param array<string,mixed> $item The current item.
+	 *
+	 * @return string The HTML output.
+	 */
+	public function column_locked( $item ): string {
+		return $item['locked'] ? __( 'Yes', 'wp-rest-cache') : __( 'No', 'wp-rest-cache');
+	}
+
+	/**
 	 * The default output action for columns.
 	 *
 	 * @param array<string,mixed> $item The current item.
@@ -229,6 +240,7 @@ class API_Caches_Table extends \WP_List_Table {
 			'expiration'      => __( 'Expiration', 'wp-rest-cache' ),
 			'cache_hits'      => __( '# Cache Hits', 'wp-rest-cache' ),
 			'is_active'       => __( 'Active', 'wp-rest-cache' ),
+			'locked'		  => __( 'Locked', 'wp-rest-cache' ),
 		];
 
 		return $columns;

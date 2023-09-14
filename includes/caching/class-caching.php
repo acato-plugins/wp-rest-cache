@@ -65,6 +65,11 @@ class Caching {
 	const FLUSH_LOOSE = 'loose';
 
 	/**
+	 * Lock timeout in seconds
+	 */
+	const LOCK_TIMEOUT_IN_SECONDS = HOUR_IN_SECONDS;
+
+	/**
 	 * The singleton instance of this class.
 	 *
 	 * @access private
@@ -1013,6 +1018,7 @@ class Caching {
 			} elseif ( 0 === strtotime( $result['expiration'] ) ) {
 				$result['expiration'] = __( 'Unlimited', 'wp-rest-cache' );
 			}
+			$result['locked'] = $this->is_locked_cache_regeneration( $result['cache_key'] );
 		}
 
 		return $results;
@@ -1106,6 +1112,8 @@ class Caching {
 		if ( ! $cache['row'] ) {
 			return null;
 		}
+
+		$cache['locked'] = $this->is_locked_cache_regeneration( $cache_key );
 
 		if ( $cache['row']['is_active'] ) {
 			$cache['data'] = get_transient( $this->transient_key( $cache_key ) );
@@ -1208,7 +1216,6 @@ class Caching {
 	 */
 	public function lock_cache_regeneration($cache_key) {
 		global $wpdb;
-		$release_timeout = HOUR_IN_SECONDS;
 
 		$lock_option = 'wp_rest_cache/' . $cache_key . '.lock';
 
@@ -1224,7 +1231,7 @@ class Caching {
 			}
 
 			// Check to see if the lock is still valid. If it is, bail.
-			if ( $lock_result > ( time() - $release_timeout ) ) {
+			if ( $lock_result > ( time() - self::LOCK_TIMEOUT_IN_SECONDS ) ) {
 				return false;
 			}
 
@@ -1252,6 +1259,20 @@ class Caching {
 		$lock_option = 'wp_rest_cache/' . $cache_key . '.lock';
 
 		return delete_option( $lock_option );
+	}
+
+	/**
+	 * Return true if there is a valid lock for this cache entry
+	 * 
+	 * @param string $cache_key The cache key.
+	 * 
+	 * @return boolean Success.
+	 */
+	public function is_locked_cache_regeneration($cache_key) {
+
+		$lock_result = get_option( 'wp_rest_cache/' . $cache_key . '.lock' );
+
+		return $lock_result && $lock_result > ( time() - self::LOCK_TIMEOUT_IN_SECONDS );
 	}
 
 	/**

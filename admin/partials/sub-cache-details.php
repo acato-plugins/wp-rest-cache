@@ -76,6 +76,10 @@
 									?>
 									</td>
 								</tr>
+								<tr valign="top" class="alternate">
+									<th scope="row"><?php esc_html_e( 'Cache lock', 'wp-rest-cache' ); ?></th>
+									<td><?php echo esc_html( $wp_rest_cache['locked'] ? 'Yes' : 'No' ); ?></td>
+								</tr>
 							</table>
 								<?php endif; ?>
 							</p>
