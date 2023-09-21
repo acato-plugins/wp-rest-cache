@@ -93,6 +93,17 @@ class API_Caches_Table extends \WP_List_Table {
 	}
 
 	/**
+	 * Unlock the selected cache record.
+	 *
+	 * @param string $cache_key The cache key for the cache that needs to be cleared.
+	 *
+	 * @return void
+	 */
+	public static function unlock_cache( $cache_key ) {
+		\WP_Rest_Cache_Plugin\Includes\Caching\Caching::get_instance()->release_lock_cache_regeneration( $cache_key );
+	}
+
+	/**
 	 * Get the record count.
 	 *
 	 * @return int The record count.
@@ -122,6 +133,7 @@ class API_Caches_Table extends \WP_List_Table {
 		$sub          = filter_input( INPUT_GET, 'sub', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
 		$flush_nonce  = wp_create_nonce( 'wp_rest_cache_flush_cache' );
 		$delete_nonce = wp_create_nonce( 'wp_rest_cache_delete_cache' );
+		$unlock_nonce = wp_create_nonce( 'wp_rest_cache_unlock_cache' );
 		$title        = sprintf(
 			'<strong><a href="?page=%s&sub=%s&cache_key=%s">%s</a></strong>',
 			esc_attr( $page ),
@@ -158,6 +170,17 @@ class API_Caches_Table extends \WP_List_Table {
 			$delete_nonce,
 			__( 'Delete cache record', 'wp-rest-cache' )
 		);
+		if ( $item['locked'] ) {
+			$actions['unlock'] = sprintf(
+				'<a href="?page=%s&sub=%s&action=%s&cache_key=%s&wp_rest_cache_nonce=%s">%s</a>',
+				esc_attr( $page ),
+				esc_attr( $sub ),
+				'unlock',
+				esc_attr( $item['cache_key'] ),
+				$unlock_nonce,
+				__( 'Unlock cache record', 'wp-rest-cache' )
+			);
+		}
 
 		return $title . $this->row_actions( $actions );
 	}
@@ -273,6 +296,7 @@ class API_Caches_Table extends \WP_List_Table {
 		$actions = [
 			'bulk-flush'  => __( 'Flush cache', 'wp-rest-cache' ),
 			'bulk-delete' => __( 'Delete cache record', 'wp-rest-cache' ),
+			'bulk-unlock' => __( 'Unlock cache record', 'wp-rest-cache' ),
 		];
 
 		return $actions;
@@ -314,10 +338,12 @@ class API_Caches_Table extends \WP_List_Table {
 		switch ( $this->current_action() ) {
 			case 'flush':
 			case 'delete':
+			case 'unlock':
 				$this->process_single_action( $this->current_action() );
 				break;
 			case 'bulk-flush':
 			case 'bulk-delete':
+			case 'bulk-unlock':
 				$this->process_bulk_action( $this->current_action() );
 				break;
 		}
@@ -335,7 +361,11 @@ class API_Caches_Table extends \WP_List_Table {
 			die( 'No naughty business please' );
 		}
 		$cache_key = filter_input( INPUT_GET, 'cache_key', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
-		self::clear_cache( $cache_key, ( 'delete' === $action ) );
+		if( 'unlock' === $action ) {
+			self::unlock_cache( $cache_key );
+		} else {
+			self::clear_cache( $cache_key, ( 'delete' === $action ) );
+		}
 	}
 
 	/**
@@ -348,7 +378,11 @@ class API_Caches_Table extends \WP_List_Table {
 	private function process_bulk_action( $action ) {
 		$caches = filter_input( INPUT_GET, 'bulk-flush', FILTER_SANITIZE_FULL_SPECIAL_CHARS, FILTER_REQUIRE_ARRAY );
 		foreach ( $caches as $cache_key ) {
-			self::clear_cache( $cache_key, ( 'bulk-delete' === $action ) );
+			if( 'bulk-unlock' === $action ) {
+				self::unlock_cache( $cache_key );
+			} else {
+				self::clear_cache( $cache_key, ( 'bulk-delete' === $action ) );
+			}
 		}
 	}
 }
