@@ -272,8 +272,6 @@ class API_Caches_Table extends \WP_List_Table {
 	 * @return void
 	 */
 	public function prepare_items() {
-		$this->process_action();
-
 		$columns               = $this->get_columns();
 		$hidden                = [];
 		$sortable              = $this->get_sortable_columns();
@@ -324,6 +322,8 @@ class API_Caches_Table extends \WP_List_Table {
 		}
 		$cache_key = filter_input( INPUT_GET, 'cache_key', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
 		self::clear_cache( $cache_key, ( 'delete' === $action ) );
+
+		wp_safe_redirect( admin_url( 'options-general.php?page=wp-rest-cache&sub=endpoint-api' ) );
 	}
 
 	/**
@@ -338,5 +338,6 @@ class API_Caches_Table extends \WP_List_Table {
 		foreach ( $caches as $cache_key ) {
 			self::clear_cache( $cache_key, ( 'bulk-delete' === $action ) );
 		}
+		wp_safe_redirect( admin_url( 'options-general.php?page=wp-rest-cache&sub=endpoint-api' ) );
 	}
 }

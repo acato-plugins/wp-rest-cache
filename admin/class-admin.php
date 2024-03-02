@@ -245,6 +245,10 @@ class Admin {
 				update_user_meta( $user_id, 'wp_rest_cache_dismissed_notices', $dismissed_notices );
 			}
 		}
+		if ( isset( $_REQUEST['action'] ) && -1 !== $_REQUEST['action'] ) {
+			$wp_rest_cache_list = new \WP_Rest_Cache_Plugin\Admin\Includes\API_Caches_Table( 'endpoint' );
+			$wp_rest_cache_list->process_action();
+		}
 	}
 
 	/**
