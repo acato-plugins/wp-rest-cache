@@ -52,8 +52,8 @@ class API_Caches_Table extends \WP_List_Table {
 			throw new \Exception(
 				sprintf(
 					/* translators: %s: api-type */
-					__( 'Invalid API type: %s', 'wp-rest-cache' ),
-					$api_type
+					esc_html__( 'Invalid API type: %s', 'wp-rest-cache' ),
+					esc_html( $api_type )
 				)
 			);
 		}

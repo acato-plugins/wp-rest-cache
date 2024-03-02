@@ -58,7 +58,7 @@
 									<td>
 									<?php
 									if ( $wp_rest_cache['row']['is_active'] ) {
-										echo sprintf(
+										printf(
 											'<span class="dashicons dashicons-yes" style="color:green" title="%s"></span>
                                                     <span class="screen-reader-text">%s</span>',
 											esc_html__( 'Cache is ready to be served.', 'wp-rest-cache' ),
@@ -66,7 +66,7 @@
 										);
 									} else {
 
-										echo sprintf(
+										printf(
 											'<span class="dashicons dashicons-no" style="color:red" title="%s"></span>
                                                     <span class="screen-reader-text">%s</span>',
 											esc_html__( 'Cache is expired or flushed.', 'wp-rest-cache' ),

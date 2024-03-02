@@ -367,13 +367,12 @@ class Admin {
 	/**
 	 * Unschedule or schedule the cron based on the regenerate setting.
 	 *
-	 * @param mixed  $old_value The old option value.
-	 * @param mixed  $value The new option value.
-	 * @param string $option Option name.
+	 * @param mixed $old_value The old option value.
+	 * @param mixed $value The new option value.
 	 *
 	 * @return void
 	 */
-	public function regenerate_updated( $old_value, $value, $option ) {
+	public function regenerate_updated( $old_value, $value ) {
 		if ( '1' === $value ) {
 			$wp_rest_cache_regenerate_interval = Caching::get_instance()->get_regenerate_interval();
 			wp_schedule_event( time(), $wp_rest_cache_regenerate_interval, 'wp_rest_cache_regenerate_cron' );
@@ -385,13 +384,12 @@ class Admin {
 	/**
 	 * Update regenerate interval based on new setting.
 	 *
-	 * @param mixed  $old_value The old option value.
-	 * @param mixed  $value The new option value.
-	 * @param string $option Option name.
+	 * @param mixed $old_value The old option value.
+	 * @param mixed $value The new option value.
 	 *
 	 * @return void
 	 */
-	public function regenerate_interval_updated( $old_value, $value, $option ) {
+	public function regenerate_interval_updated( $old_value, $value ) {
 		if ( Caching::get_instance()->should_regenerate() ) {
 			wp_clear_scheduled_hook( 'wp_rest_cache_regenerate_cron' );
 			wp_schedule_event( time(), $value, 'wp_rest_cache_regenerate_cron' );
@@ -456,12 +454,9 @@ class Admin {
 	/**
 	 * Upon plugin deactivation show a message about flushing the REST cache.
 	 *
-	 * @param string  $plugin The plugin that has just been activated.
-	 * @param boolean $network_wide Whether the plugin has been activated network wide.
-	 *
 	 * @return void
 	 */
-	public function deactivated_plugin( $plugin, $network_wide ) {
+	public function deactivated_plugin() {
 		$this->add_notice(
 			'warning',
 			__( 'A plugin has been deactivated. This might effect the WP REST API output, so please consider if clearing the REST Cache is necessary.', 'wp-rest-cache' ),

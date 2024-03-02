@@ -3,9 +3,17 @@
 	"type": "wordpress-plugin",
     "require-dev": {
         "bjornjohansen/wp-pre-commit-hook": "*",
+		"phpcompatibility/phpcompatibility-wp": "*",
         "composer/installers": "~1.0",
         "wp-cli/wp-cli-bundle": "*",
 		"szepeviktor/phpstan-wordpress": "^1.1",
 		"phpstan/extension-installer": "^1.1"
-    }
+    },
+	"config": {
+		"allow-plugins": {
+			"composer/installers": true,
+			"dealerdirect/phpcodesniffer-composer-installer": true,
+			"phpstan/extension-installer": true
+		}
+	}
 }

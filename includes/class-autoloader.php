@@ -61,5 +61,4 @@ class Autoloader {
 			include_once plugin_dir_path( __DIR__ ) . DIRECTORY_SEPARATOR . 'deprecated' . DIRECTORY_SEPARATOR . 'class-wp-rest-cache-endpoint-api.php';
 		}
 	}
-
 }
