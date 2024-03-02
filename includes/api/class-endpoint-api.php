@@ -184,14 +184,12 @@ class Endpoint_Api {
 	/**
 	 * Save the response headers so they can be added to the cache.
 	 *
-	 * @param bool              $served  Whether the request has already been served. Default false.
-	 * @param \WP_HTTP_Response $result  Result to send to the client.
-	 * @param \WP_REST_Request  $request Request used to generate the response.
-	 * @param \WP_REST_Server   $server  Server instance.
+	 * @param bool              $served Whether the request has already been served. Default false.
+	 * @param \WP_HTTP_Response $result Result to send to the client.
 	 *
 	 * @return void
 	 */
-	public function save_cache_headers( $served, \WP_HTTP_Response $result, \WP_REST_Request $request, \WP_REST_Server $server ) {
+	public function save_cache_headers( $served, \WP_HTTP_Response $result ) {
 		$headers = $result->get_headers();
 
 		/**
@@ -227,13 +225,11 @@ class Endpoint_Api {
 	/**
 	 * Cache the response data.
 	 *
-	 * @param array<string,mixed> $result  Response data to send to the client.
-	 * @param \WP_REST_Server     $server  Server instance.
-	 * @param \WP_REST_Request    $request Request used to generate the response.
+	 * @param array<string,mixed> $result Response data to send to the client.
 	 *
 	 * @return array<string,mixed> Response data to send to the client.
 	 */
-	public function save_cache( $result, \WP_REST_Server $server, \WP_REST_Request $request ) {
+	public function save_cache( $result ) {
 		// Only Avoid cache if not 200.
 		if ( ! empty( $result )
 			&& is_array( $result )
@@ -448,10 +444,10 @@ class Endpoint_Api {
 		}
 
 		// Catch the headers after serving.
-		add_filter( 'rest_pre_serve_request', [ $this, 'save_cache_headers' ], 9999, 4 );
+		add_filter( 'rest_pre_serve_request', [ $this, 'save_cache_headers' ], 9999, 2 );
 
 		// Catch the result after serving.
-		add_filter( 'rest_pre_echo_response', [ $this, 'save_cache' ], 1000, 3 );
+		add_filter( 'rest_pre_echo_response', [ $this, 'save_cache' ], 1000, 1 );
 	}
 
 	/**

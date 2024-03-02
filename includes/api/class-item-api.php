@@ -32,12 +32,11 @@ class Item_Api {
 	/**
 	 * Hook into the registering of a post type and replace the REST Controller with an extension (if allowed).
 	 *
-	 * @param array<string,mixed> $args      Array of arguments for registering a post type.
-	 * @param string              $post_type Post type key.
+	 * @param array<string,mixed> $args Array of arguments for registering a post type.
 	 *
 	 * @return array<string,mixed> Array of arguments for registering a post type.
 	 */
-	public function set_post_type_rest_controller( $args, $post_type ) {
+	public function set_post_type_rest_controller( $args ) {
 		$rest_controller = isset( $args['rest_controller_class'] ) ? $args['rest_controller_class'] : null;
 		if ( ! $this->should_use_custom_class( $rest_controller, 'post_type' ) ) {
 			return $args;
@@ -55,12 +54,11 @@ class Item_Api {
 	/**
 	 * Hook into the registering of a taxonomy and replace the REST Controller with an extension (if allowed).
 	 *
-	 * @param array<string,mixed> $args     Array of arguments for registering a taxonomy.
-	 * @param string              $taxonomy Taxonomy key.
+	 * @param array<string,mixed> $args Array of arguments for registering a taxonomy.
 	 *
 	 * @return array<string,mixed> Array of arguments for registering a taxonomy.
 	 */
-	public function set_taxonomy_rest_controller( $args, $taxonomy ) {
+	public function set_taxonomy_rest_controller( $args ) {
 		$rest_controller = isset( $args['rest_controller_class'] ) ? $args['rest_controller_class'] : null;
 		if ( ! $this->should_use_custom_class( $rest_controller, 'taxonomy' ) ) {
 			return $args;

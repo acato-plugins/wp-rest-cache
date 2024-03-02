@@ -252,9 +252,11 @@ class Caching {
 		}
 
 		$sql              = "UPDATE `{$this->db_table_caches}`
-		SET `expiration` = %s
+		SET `expiration` = %s,
+            `deleted` = %d
         WHERE ";
 		$prepare_params[] = date_i18n( 'Y-m-d H:i:s', 1 );
+		$prepare_params[] = (int) $force;
 		switch ( $strictness ) {
 			case self::FLUSH_STRICT:
 				$sql             .= ' `request_uri` = %s ';
@@ -395,40 +397,33 @@ class Caching {
 	 * Fired upon WordPress 'delete_term' hook. Delete all related caches for this term, including all single cache
 	 * statistics.
 	 *
-	 * @param int            $term Term ID.
-	 * @param int            $tt_id Term taxonomy ID.
-	 * @param string         $taxonomy Taxonomy slug.
-	 * @param mixed          $deleted_term Copy of the already-deleted term, in the form specified by the parent function.
-	 *                                         \WP_Error otherwise.
-	 *                                        \WP_Error otherwise.
-	 * @param array<int,int> $object_ids List of term object IDs.
+	 * @param int    $term Term ID.
+	 * @param int    $tt_id Term taxonomy ID.
+	 * @param string $taxonomy Taxonomy slug.
 	 *
 	 * @return void
 	 */
-	public function delete_term( $term, $tt_id, $taxonomy, $deleted_term, $object_ids ) {
+	public function delete_term( $term, $tt_id, $taxonomy ) {
 		$this->delete_related_caches( $term, $taxonomy, true );
 	}
 
 	/**
 	 * Fired upon WordPress 'profile_update' hook. Delete all related caches for this user.
 	 *
-	 * @param int      $user_id User ID.
-	 * @param \WP_User $old_user_data Object containing user's data prior to update.
+	 * @param int $user_id User ID.
 	 *
 	 * @return void
 	 */
-	public function profile_update( $user_id, $old_user_data ) {
+	public function profile_update( $user_id ) {
 		$this->delete_related_caches( $user_id, 'user' );
 	}
 
 	/**
 	 * Fired upon WordPress 'user_register' hook. Delete all non-single endpoint caches for users.
 	 *
-	 * @param int $user_id User ID.
-	 *
 	 * @return void
 	 */
-	public function user_register( $user_id ) {
+	public function user_register() {
 		$this->delete_object_type_caches( 'users' );
 	}
 
@@ -448,12 +443,11 @@ class Caching {
 	 * Fired upon WordPress 'deleted_comment', 'trashed_comment' and 'spammed_comment' hooks. Delete all related caches
 	 * for this comment, including all single cache statistics if comment is deleted.
 	 *
-	 * @param int         $comment_id Comment ID.
-	 * @param \WP_Comment $comment The comment for which the hook was triggered.
+	 * @param int $comment_id Comment ID.
 	 *
 	 * @return void
 	 */
-	public function delete_comment_related_caches( $comment_id, $comment ) {
+	public function delete_comment_related_caches( $comment_id ) {
 		switch ( current_filter() ) {
 			case 'deleted_comment':
 				$force_single_delete = true;
@@ -469,12 +463,9 @@ class Caching {
 	 * Fired upon WordPress 'edit_comment', 'untrashed_comment', 'unspammed_comment', 'wp_insert_comment' and
 	 * 'comment_post' hooks. Delete all non-single endpoint caches for comments.
 	 *
-	 * @param int         $comment_id Comment ID.
-	 * @param \WP_Comment $comment The comment for which the hook was triggered.
-	 *
 	 * @return void
 	 */
-	public function delete_comment_type_related_caches( $comment_id, $comment ) {
+	public function delete_comment_type_related_caches() {
 		$this->delete_object_type_caches( 'comment' );
 	}
 
@@ -1211,7 +1202,7 @@ class Caching {
 					]
 				);
 
-				$regenerate_number --;
+				--$regenerate_number;
 				if ( $regenerate_number <= 0 ) {
 					break;
 				}
@@ -1269,10 +1260,8 @@ class Caching {
 
 		if ( $immediate_deletion ) {
 			$this->cleanup_deleted_caches();
-		} else {
-			if ( ! wp_next_scheduled( 'wp_rest_cache_cleanup_deleted_caches' ) ) {
-				wp_schedule_single_event( time() + 5 * MINUTE_IN_SECONDS, 'wp_rest_cache_cleanup_deleted_caches' );
-			}
+		} elseif ( ! wp_next_scheduled( 'wp_rest_cache_cleanup_deleted_caches' ) ) {
+			wp_schedule_single_event( time() + 5 * MINUTE_IN_SECONDS, 'wp_rest_cache_cleanup_deleted_caches' );
 		}
 	}
 
@@ -1412,7 +1401,7 @@ class Caching {
 	 */
 	private function upgrade_2019_4_0() {
 		$nr_of_item_caches = $this->get_record_count( 'item' );
-		for ( $count = 0; $count * 100 < $nr_of_item_caches; $count ++ ) {
+		for ( $count = 0; $count * 100 < $nr_of_item_caches; $count++ ) {
 			$item_caches = $this->get_api_data( 'item', 100, $count + 1 );
 			foreach ( $item_caches as $item_cache ) {
 				$this->delete_cache( $item_cache['cache_key'], true );

@@ -22,6 +22,7 @@
         <exclude name="WordPress.Security.EscapeOutput"/>
         -->
         <exclude name="Generic.Arrays.DisallowShortArraySyntax.Found"/>
+        <exclude name="Universal.Arrays.DisallowShortArraySyntax.Found"/>
     </rule>
 
     <!-- Let's also check that everything is properly documented. -->

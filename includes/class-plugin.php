@@ -55,7 +55,7 @@ class Plugin {
 	 */
 	public function __construct() {
 		$this->plugin_name = 'wp-rest-cache';
-		$this->version     = '2023.2.1';
+		$this->version     = '2024.1.0';
 
 		$this->set_locale();
 		$this->define_admin_hooks();
@@ -76,7 +76,6 @@ class Plugin {
 		$plugin_i18n = new I18n();
 
 		add_action( 'plugins_loaded', [ $plugin_i18n, 'load_plugin_textdomain' ] );
-
 	}
 
 	/**
@@ -113,7 +112,7 @@ class Plugin {
 				'add_plugin_settings_link',
 			]
 		);
-		add_action( 'update_option_wp_rest_cache_regenerate', [ $plugin_admin, 'regenerate_updated' ], 10, 3 );
+		add_action( 'update_option_wp_rest_cache_regenerate', [ $plugin_admin, 'regenerate_updated' ], 10, 2 );
 		add_action(
 			'update_option_wp_rest_cache_regenerate_interval',
 			[
@@ -121,11 +120,11 @@ class Plugin {
 				'regenerate_interval_updated',
 			],
 			10,
-			3
+			2
 		);
 		add_action( 'wp_ajax_flush_caches', [ $plugin_admin, 'flush_caches' ], 10, 1 );
 		add_action( 'activated_plugin', [ $plugin_admin, 'activated_plugin' ], 10, 2 );
-		add_action( 'deactivated_plugin', [ $plugin_admin, 'deactivated_plugin' ], 10, 2 );
+		add_action( 'deactivated_plugin', [ $plugin_admin, 'deactivated_plugin' ], 10 );
 
 		add_action( 'cli_init', [ $plugin_admin, 'add_cli_commands' ] );
 	}
@@ -145,8 +144,8 @@ class Plugin {
 
 		$item_api = new API\Item_Api();
 
-		add_filter( 'register_post_type_args', [ $item_api, 'set_post_type_rest_controller' ], 10, 2 );
-		add_filter( 'register_taxonomy_args', [ $item_api, 'set_taxonomy_rest_controller' ], 10, 2 );
+		add_filter( 'register_post_type_args', [ $item_api, 'set_post_type_rest_controller' ], 10 );
+		add_filter( 'register_taxonomy_args', [ $item_api, 'set_taxonomy_rest_controller' ], 10 );
 
 		$oembed_api = new API\Oembed_Api();
 
@@ -172,20 +171,20 @@ class Plugin {
 
 		add_action( 'created_term', [ $caching, 'created_term' ], 999, 3 );
 		add_action( 'edited_term', [ $caching, 'edited_term' ], 999, 3 );
-		add_action( 'delete_term', [ $caching, 'delete_term' ], 10, 5 );
+		add_action( 'delete_term', [ $caching, 'delete_term' ], 10, 3 );
 
-		add_action( 'profile_update', [ $caching, 'profile_update' ], 999, 2 );
-		add_action( 'user_register', [ $caching, 'user_register' ], 999, 1 );
+		add_action( 'profile_update', [ $caching, 'profile_update' ], 999 );
+		add_action( 'user_register', [ $caching, 'user_register' ], 999 );
 		add_action( 'deleted_user', [ $caching, 'deleted_user' ] );
 
-		add_action( 'edit_comment', [ $caching, 'delete_comment_type_related_caches' ], 999, 2 );
-		add_action( 'deleted_comment', [ $caching, 'delete_comment_related_caches' ], 10, 2 );
-		add_action( 'trashed_comment', [ $caching, 'delete_comment_related_caches' ], 10, 2 );
-		add_action( 'untrashed_comment', [ $caching, 'delete_comment_type_related_caches' ], 999, 2 );
-		add_action( 'spammed_comment', [ $caching, 'delete_comment_related_caches' ], 10, 2 );
-		add_action( 'unspammed_comment', [ $caching, 'delete_comment_type_related_caches' ], 999, 2 );
-		add_action( 'wp_insert_comment', [ $caching, 'delete_comment_type_related_caches' ], 999, 2 );
-		add_action( 'comment_post', [ $caching, 'delete_comment_type_related_caches' ], 999, 2 );
+		add_action( 'edit_comment', [ $caching, 'delete_comment_type_related_caches' ], 999 );
+		add_action( 'deleted_comment', [ $caching, 'delete_comment_related_caches' ], 10 );
+		add_action( 'trashed_comment', [ $caching, 'delete_comment_related_caches' ], 10 );
+		add_action( 'untrashed_comment', [ $caching, 'delete_comment_type_related_caches' ], 999 );
+		add_action( 'spammed_comment', [ $caching, 'delete_comment_related_caches' ], 10 );
+		add_action( 'unspammed_comment', [ $caching, 'delete_comment_type_related_caches' ], 999 );
+		add_action( 'wp_insert_comment', [ $caching, 'delete_comment_type_related_caches' ], 999 );
+		add_action( 'comment_post', [ $caching, 'delete_comment_type_related_caches' ], 999 );
 
 		add_action( 'wp_rest_cache_regenerate_cron', [ $caching, 'regenerate_expired_caches' ] );
 		add_action( 'wp_rest_cache_cleanup_deleted_caches', [ $caching, 'cleanup_deleted_caches' ] );
