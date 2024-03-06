@@ -66,7 +66,7 @@ if ( isset( $_REQUEST['wp_rest_cache_nonce'] ) && wp_verify_nonce( sanitize_key(
 				progressLabel = jQuery(".progress-label");
 			var ajaxurl = '<?php echo esc_js( admin_url( 'admin-ajax.php' ) ); ?>';
 			var ajaxnonce = '<?php echo esc_js( wp_create_nonce( 'wp_rest_cache_clear_cache_ajax' ) ); ?>';
-			var deletecaches = '<?php echo esc_js( filter_input( INPUT_GET, 'delete_caches', FILTER_VALIDATE_BOOLEAN ) ); ?>';
+			var deletecaches = '<?php echo esc_js( (string) filter_input( INPUT_GET, 'delete_caches', FILTER_VALIDATE_BOOLEAN ) ); ?>';
 
 			progressbar.progressbar({
 				value: false,
