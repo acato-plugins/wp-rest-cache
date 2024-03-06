@@ -131,7 +131,7 @@ class Caching {
 	 * @return mixed The cache item.
 	 */
 	public function get_cache( $cache_key ) {
-		$expiration = $this->get_cache_expiration( $cache_key );
+		$expiration = $this->get_cache_expiration( $cache_key ) ?? '';
 		if ( 1 === strtotime( $expiration ) ) {
 			return false;
 		}

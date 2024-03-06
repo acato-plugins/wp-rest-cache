@@ -187,7 +187,7 @@ class Endpoint_Api {
 	 * @param bool              $served Whether the request has already been served. Default false.
 	 * @param \WP_HTTP_Response $result Result to send to the client.
 	 *
-	 * @return void
+	 * @return bool
 	 */
 	public function save_cache_headers( $served, \WP_HTTP_Response $result ) {
 		$headers = $result->get_headers();
@@ -220,6 +220,7 @@ class Endpoint_Api {
 				$this->response_headers[ $key ] = $value;
 			}
 		}
+		return $served;
 	}
 
 	/**

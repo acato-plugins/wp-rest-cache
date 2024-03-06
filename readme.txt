@@ -1,10 +1,10 @@
 === WP REST Cache ===
 Contributors: acato, rockfire, yoeridekker
-Tags: cache, wp-rest-api, api, rest, rest cache, rest api cache
+Tags: cache, wp-rest-api, api, rest, rest cache
 Requires at least: 4.7
 Tested up to: 6.5
 Requires PHP: 7.0
-Stable tag: 2024.1.0
+Stable tag: 2024.1.1
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl.html
 
@@ -170,6 +170,11 @@ Yes you can! Use the `wp wp-rest-cache flush` command to flush caches. Type `wp 
 5. Cache details page - Cache data.
 
 == Changelog ==
+
+= 2024.1.1 =
+Release Date: March 6th, 2024
+
+Bugfix: Several small fixes.
 
 = 2024.1.0 =
 Release Date: March 2nd, 2024
