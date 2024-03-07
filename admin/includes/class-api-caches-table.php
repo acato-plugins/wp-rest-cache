@@ -318,7 +318,7 @@ class API_Caches_Table extends \WP_List_Table {
 	 */
 	private function process_single_action( $action ) {
 		if ( ! isset( $_GET['wp_rest_cache_nonce'] ) || ! wp_verify_nonce( sanitize_key( $_GET['wp_rest_cache_nonce'] ), 'wp_rest_cache_' . $action . '_cache' ) ) {
-			die( 'No naughty business please' );
+			return;
 		}
 		$cache_key = filter_input( INPUT_GET, 'cache_key', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
 		self::clear_cache( $cache_key, ( 'delete' === $action ) );
@@ -334,6 +334,9 @@ class API_Caches_Table extends \WP_List_Table {
 	 * @return void
 	 */
 	private function process_bulk_action( $action ) {
+		if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_key( $_GET['_wpnonce'] ), 'bulk-' . sanitize_key( __( 'Endpoint API Caches', 'wp-rest-cache' ) ) ) ) {
+			return;
+		}
 		$caches = filter_input( INPUT_GET, 'bulk-flush', FILTER_SANITIZE_FULL_SPECIAL_CHARS, FILTER_REQUIRE_ARRAY );
 		foreach ( $caches as $cache_key ) {
 			self::clear_cache( $cache_key, ( 'bulk-delete' === $action ) );
