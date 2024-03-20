@@ -172,7 +172,7 @@ class Endpoint_Api {
 		$this->build_request_uri();
 		$this->set_cacheable_request_headers();
 		// No filter_input, see https://stackoverflow.com/questions/25232975/php-filter-inputinput-server-request-method-returns-null/36205923.
-		$request_method = filter_var( $_SERVER['REQUEST_METHOD'], FILTER_SANITIZE_FULL_SPECIAL_CHARS );
+		$request_method = isset( $_SERVER['REQUEST_METHOD'] ) ? filter_var( $_SERVER['REQUEST_METHOD'], FILTER_SANITIZE_FULL_SPECIAL_CHARS ) : '';
 		// For backwards compatibility empty string for request method = GET.
 		if ( 'GET' === $request_method ) {
 			$request_method = '';
@@ -263,7 +263,7 @@ class Endpoint_Api {
 		}
 
 		// No filter_input, see https://stackoverflow.com/questions/25232975/php-filter-inputinput-server-request-method-returns-null/36205923.
-		$request_method = filter_var( $_SERVER['REQUEST_METHOD'], FILTER_SANITIZE_FULL_SPECIAL_CHARS );
+		$request_method = isset( $_SERVER['REQUEST_METHOD'] ) ? filter_var( $_SERVER['REQUEST_METHOD'], FILTER_SANITIZE_FULL_SPECIAL_CHARS ) : 'GET';
 
 		// Force result to be valid JSON.
 		$result = json_decode( wp_json_encode( $result ) );
@@ -318,7 +318,8 @@ class Endpoint_Api {
 		// Default only cache GET-requests.
 		$allowed_request_methods = get_option( 'wp_rest_cache_allowed_request_methods', [ 'GET' ] );
 		// No filter_input, see https://stackoverflow.com/questions/25232975/php-filter-inputinput-server-request-method-returns-null/36205923.
-		if ( ! in_array( filter_var( $_SERVER['REQUEST_METHOD'], FILTER_SANITIZE_FULL_SPECIAL_CHARS ), $allowed_request_methods, true ) ) {
+		$request_method = isset( $_SERVER['REQUEST_METHOD'] ) ? filter_var( $_SERVER['REQUEST_METHOD'], FILTER_SANITIZE_FULL_SPECIAL_CHARS ) : 'GET';
+		if ( ! in_array( $request_method, $allowed_request_methods, true ) ) {
 			return true;
 		}
 
@@ -458,7 +459,8 @@ class Endpoint_Api {
 	 * @return mixed Response data.
 	 */
 	private function rest_send_cors_headers( $value ) {
-		$origin = get_http_origin();
+		$origin         = get_http_origin();
+		$request_method = isset( $_SERVER['REQUEST_METHOD'] ) ? filter_var( $_SERVER['REQUEST_METHOD'], FILTER_SANITIZE_FULL_SPECIAL_CHARS ) : 'GET';
 
 		if ( $origin ) {
 			// Requests from file:// and data: URLs send "Origin: null".
@@ -469,7 +471,7 @@ class Endpoint_Api {
 			header( 'Access-Control-Allow-Methods: OPTIONS, GET, POST, PUT, PATCH, DELETE' );
 			header( 'Access-Control-Allow-Credentials: true' );
 			header( 'Vary: Origin', false );
-		} elseif ( ! headers_sent() && 'GET' === $_SERVER['REQUEST_METHOD'] ) {
+		} elseif ( ! headers_sent() && 'GET' === $request_method ) {
 			header( 'Vary: Origin' );
 		}
 
