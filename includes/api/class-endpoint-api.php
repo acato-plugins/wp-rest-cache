@@ -459,7 +459,7 @@ class Endpoint_Api {
 	 * @return mixed Response data.
 	 */
 	private function rest_send_cors_headers( $value ) {
-		$origin = get_http_origin();
+		$origin         = get_http_origin();
 		$request_method = isset( $_SERVER['REQUEST_METHOD'] ) ? filter_var( $_SERVER['REQUEST_METHOD'], FILTER_SANITIZE_FULL_SPECIAL_CHARS ) : 'GET';
 
 		if ( $origin ) {
