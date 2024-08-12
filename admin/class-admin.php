@@ -42,6 +42,14 @@ class Admin {
 	private $version;
 
 	/**
+	 * The settings panels for the WP REST Cache settings page.
+	 *
+	 * @access private
+	 * @var array<string,array<string,mixed>> $settings_panels The settings panels for the WP REST Cache settings page.
+	 */
+	private $settings_panels;
+
+	/**
 	 * Initialize the class and set its properties.
 	 *
 	 * @param string $plugin_name The name of this plugin.
@@ -50,6 +58,12 @@ class Admin {
 	public function __construct( $plugin_name, $version ) {
 		$this->plugin_name = $plugin_name;
 		$this->version     = $version;
+
+		$this->settings_panels = [
+			'settings'     => [ 'label' => __( 'Settings', 'wp-rest-cache' ) ],
+			'endpoint-api' => [ 'label' => __( 'Endpoint API Caches', 'wp-rest-cache' ) ],
+			'clear-cache'  => [ 'label' => __( 'Clear Caches', 'wp-rest-cache' ) ],
+		];
 	}
 
 	/**
@@ -176,12 +190,20 @@ class Admin {
 	 * @return void
 	 */
 	public function settings_page() {
+		$this->settings_panels = apply_filters( 'wp_rest_cache/settings_panels', $this->settings_panels );
+
 		$sub = filter_input( INPUT_GET, 'sub', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
 		if ( empty( $sub ) ) {
 			$sub = 'settings';
 		}
 		include_once __DIR__ . '/partials/header.php';
-		include_once __DIR__ . '/partials/sub-' . $sub . '.php';
+		if ( isset( $this->settings_panels[ $sub ]['template'] ) ) {
+			include_once $this->settings_panels[ $sub ]['template'];
+		} elseif ( file_exists( __DIR__ . '/partials/sub-' . $sub . '.php' ) ) {
+			include_once __DIR__ . '/partials/sub-' . $sub . '.php';
+		} else {
+			include_once __DIR__ . '/partials/sub-settings.php';
+		}
 	}
 
 	/**
@@ -334,6 +356,9 @@ class Admin {
 	 * @return void
 	 */
 	public function display_notices() {
+		if ( ! in_array( get_current_screen()->base, [ 'plugins', 'dashboard' ], true ) ) {
+			return;
+		}
 		$notices = get_option( 'wp_rest_cache_admin_notices', [] );
 		if ( count( $notices ) ) {
 			$user_id           = get_current_user_id();
@@ -344,7 +369,7 @@ class Admin {
 						?>
 						<div
 							class="notice notice-<?php echo esc_attr( $type ); ?> <?php echo ( true === $message['dismissible'] ) ? 'is-dismissible' : ''; ?>">
-							<p><strong>WP REST Cache:</strong> <?php echo esc_html( $message['message'] ); ?>
+							<p><strong>WP REST Cache:</strong> <?php echo wp_kses_post( $message['message'] ); ?>
 								<?php if ( 'permanent' === $message['dismissible'] ) : ?>
 									<?php
 									$url = wp_nonce_url(
@@ -356,7 +381,7 @@ class Admin {
 										href="<?php echo esc_attr( $url ); ?>"><?php echo esc_html_e( 'Hide this message', 'wp-rest-cache' ); ?></a>
 								<?php endif; ?></p>
 							<?php if ( isset( $message['button']['url'], $message['button']['label'] ) ) : ?>
-								<p><a class="button" href="<?php echo esc_attr( $message['button']['url'] ); ?>"><?php echo esc_html( $message['button']['label'] ); ?></a></p>
+								<p><a class="<?php echo esc_attr( $message['button']['class'] ?? 'button' ); ?>" href="<?php echo esc_attr( $message['button']['url'] ); ?>"><?php echo esc_html( $message['button']['label'] ); ?></a></p>
 							<?php endif; ?>
 						</div>
 						<?php
