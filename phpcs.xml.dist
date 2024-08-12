@@ -67,6 +67,7 @@
         <properties>
             <property name="prefixes" type="array">
                 <element value="WP_Rest_Cache"/>
+                <element value="wprc"/>
             </property>
         </properties>
     </rule>
