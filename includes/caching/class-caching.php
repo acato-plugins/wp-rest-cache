@@ -11,6 +11,8 @@
 
 namespace WP_Rest_Cache_Plugin\Includes\Caching;
 
+use WP_Rest_Cache_Plugin\Includes\Util;
+
 /**
  * Class responsible for caching and saving cache relations.
  *
@@ -1192,7 +1194,7 @@ class Caching {
 		foreach ( $results as &$result ) {
 			if ( 1 === strtotime( $result['expiration'] ) || false === get_transient( $this->transient_key( $result['cache_key'] ) ) ) {
 				// Regenerate.
-				$url    = get_home_url() . $result['request_uri'];
+				$url    = Util::get_home_url() . $result['request_uri'];
 				$return = wp_remote_get(
 					$url,
 					[

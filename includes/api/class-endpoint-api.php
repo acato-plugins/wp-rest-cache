@@ -11,6 +11,8 @@
 
 namespace WP_Rest_Cache_Plugin\Includes\API;
 
+use WP_Rest_Cache_Plugin\Includes\Util;
+
 /**
  * API for endpoint caching.
  *
@@ -95,7 +97,7 @@ class Endpoint_Api {
 		// No filter_input, see https://stackoverflow.com/questions/25232975/php-filter-inputinput-server-request-method-returns-null/36205923.
 		$request_uri = filter_var( $_SERVER['REQUEST_URI'], FILTER_SANITIZE_URL );
 		// Remove home_url from request_uri for uri's with WordPress in a subdir (like /wp).
-		$request_uri = str_replace( get_home_url(), '', $request_uri );
+		$request_uri = str_replace( Util::get_home_url(), '', $request_uri );
 		if ( '//' === substr( $request_uri, 0, 2 ) ) {
 			$request_uri = substr( $request_uri, 1 );
 		}

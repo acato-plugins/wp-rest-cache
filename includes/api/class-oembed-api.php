@@ -11,6 +11,8 @@
 
 namespace WP_Rest_Cache_Plugin\Includes\API;
 
+use WP_Rest_Cache_Plugin\Includes\Util;
+
 /**
  * Caching of the Oembed endpoint.
  *
@@ -129,7 +131,7 @@ class Oembed_Api {
 			if ( isset( $uri_parts['query'] ) && ! empty( $uri_parts['query'] ) ) {
 				parse_str( $uri_parts['query'], $params );
 				if ( isset( $params['url'] ) ) {
-					$post_id = url_to_postid( get_home_url() . $params['url'] );
+					$post_id = url_to_postid( Util::get_home_url() . $params['url'] );
 
 					// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
 					$post_id = apply_filters( 'oembed_request_post_id', $post_id, $params['url'] );
