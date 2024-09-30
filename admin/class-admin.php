@@ -360,7 +360,7 @@ class Admin {
 			return;
 		}
 		$notices = get_option( 'wp_rest_cache_admin_notices', [] );
-		if ( count( $notices ) ) {
+		if ( is_array( $notices ) && count( $notices ) ) {
 			$user_id           = get_current_user_id();
 			$dismissed_notices = get_user_meta( $user_id, 'wp_rest_cache_dismissed_notices', true );
 			foreach ( $notices as $type => $messages ) {
