@@ -1112,7 +1112,7 @@ class Caching {
 	 * @return int Timeout (in seconds if calculated).
 	 */
 	public function get_timeout( $calculated = true, $options = [] ) {
-		$timeout = get_option( 'wp_rest_cache_timeout', 1 );
+		$timeout = defined( 'WP_REST_CACHE_TIMEOUT' ) ? WP_REST_CACHE_TIMEOUT : get_option( 'wp_rest_cache_timeout', 1 );
 		if ( $calculated ) {
 			$timeout_interval = $this->get_timeout_interval();
 			$timeout          = $timeout * $timeout_interval;
@@ -1144,7 +1144,7 @@ class Caching {
 	 * @return int Timeout interval in seconds.
 	 */
 	public function get_timeout_interval() {
-		return get_option( 'wp_rest_cache_timeout_interval', YEAR_IN_SECONDS );
+		return defined( 'WP_REST_CACHE_TIMEOUT_INTERVAL' ) ? WP_REST_CACHE_TIMEOUT_INTERVAL : get_option( 'wp_rest_cache_timeout_interval', YEAR_IN_SECONDS );
 	}
 
 	/**
@@ -1153,7 +1153,7 @@ class Caching {
 	 * @return bool Whether or not a cron should be activated.
 	 */
 	public function should_regenerate() {
-		return get_option( 'wp_rest_cache_regenerate', false ) === '1';
+		return defined( 'WP_REST_CACHE_REGENERATE' ) ? WP_REST_CACHE_REGENERATE : get_option( 'wp_rest_cache_regenerate', false ) === '1';
 	}
 
 	/**
@@ -1162,7 +1162,7 @@ class Caching {
 	 * @return string The interval key.
 	 */
 	public function get_regenerate_interval() {
-		return get_option( 'wp_rest_cache_regenerate_interval', 'twicedaily' );
+		return defined( 'WP_REST_CACHE_REGENERATE_INTERVAL' ) ? WP_REST_CACHE_REGENERATE_INTERVAL : get_option( 'wp_rest_cache_regenerate_interval', 'twicedaily' );
 	}
 
 	/**
@@ -1171,7 +1171,7 @@ class Caching {
 	 * @return int Maximum nuber of caches.
 	 */
 	public function get_regenerate_number() {
-		return get_option( 'wp_rest_cache_regenerate_number', 10 );
+		return defined( 'WP_REST_CACHE_REGENERATE_NUMBER' ) ? WP_REST_CACHE_REGENERATE_NUMBER : get_option( 'wp_rest_cache_regenerate_number', 10 );
 	}
 
 	/**
@@ -1218,7 +1218,7 @@ class Caching {
 	 * @return bool Whether Memcache(d) is being used.
 	 */
 	public function get_memcache_used() {
-		return '1' === get_option( 'wp_rest_cache_memcache_used', false );
+		return defined( 'WP_REST_CACHE_MEMCACHE_USED' ) ? true === WP_REST_CACHE_MEMCACHE_USED : '1' === get_option( 'wp_rest_cache_memcache_used', false );
 	}
 
 	/**
@@ -1227,7 +1227,7 @@ class Caching {
 	 * @return string The list of global cacheable request headers.
 	 */
 	public function get_global_cacheable_request_headers() {
-		return get_option( 'wp_rest_cache_global_cacheable_request_headers', '' );
+		return defined( 'WP_REST_CACHE_GLOBAL_CACHEABLE_REQUEST_HEADERS' ) ? WP_REST_CACHE_GLOBAL_CACHEABLE_REQUEST_HEADERS : get_option( 'wp_rest_cache_global_cacheable_request_headers', '' );
 	}
 
 	/**

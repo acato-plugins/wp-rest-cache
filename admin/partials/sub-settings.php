@@ -32,8 +32,10 @@
 					<th><?php esc_html_e( 'Cache timeout', 'wp-rest-cache' ); ?></th>
 					<td>
 						<input type="number" min="1" name="wp_rest_cache_timeout" class="small-text"
+							<?php echo defined( 'WP_REST_CACHE_TIMEOUT' ) ? 'disabled="disabled"' : ''; ?>
 								value="<?php echo esc_attr( (string) $wp_rest_cache_timeout ); ?>">
 						<select name="wp_rest_cache_timeout_interval" id="wp_rest_cache_timeout_interval"
+							<?php echo defined( 'WP_REST_CACHE_TIMEOUT_INTERVAL' ) ? 'disabled="disabled"' : ''; ?>
 								style="vertical-align: initial">
 							<option value="<?php echo esc_attr( (string) MINUTE_IN_SECONDS ); ?>"
 								<?php selected( $wp_rest_cache_timeout_interval, MINUTE_IN_SECONDS ); ?>>
@@ -60,33 +62,39 @@
 								<?php esc_html_e( 'Year(s)', 'wp-rest-cache' ); ?>
 							</option>
 						</select>
-						<p class="description"
-							id="wp_rest_cache_timeout-description"><?php esc_html_e( 'Time until expiration of cache. (Default = 1 year)', 'wp-rest-cache' ); ?></p>
+						<p class="description" id="wp_rest_cache_timeout-description">
+							<?php esc_html_e( 'Time until expiration of cache. (Default = 1 year)', 'wp-rest-cache' ); ?>
+						</p>
 					</td>
 				</tr>
 				<tr>
 					<th><?php esc_html_e( 'Global cacheable request headers', 'wp-rest-cache' ); ?></th>
 					<td>
-						<input type="text" value="<?php echo esc_attr( $wp_rest_cache_global_cacheable_request_headers ); ?>"
-							name="wp_rest_cache_global_cacheable_request_headers">
-						<p class="description"
-							id="wp_rest_cache_global_cacheable_request_headers-description"><?php esc_html_e( 'Which request headers should be cached (and used to distinguish separate caches). This can be a comma separated list of headers. If you want to use headers for only certain REST calls please see the FAQ.', 'wp-rest-cache' ); ?></p>
+						<input type="text" name="wp_rest_cache_global_cacheable_request_headers"
+							<?php echo defined( 'WP_REST_CACHE_GLOBAL_CACHEABLE_REQUEST_HEADERS' ) ? 'disabled="disabled"' : ''; ?>
+								value="<?php echo esc_attr( $wp_rest_cache_global_cacheable_request_headers ); ?>">
+						<p class="description" id="wp_rest_cache_global_cacheable_request_headers-description">
+							<?php esc_html_e( 'Which request headers should be cached (and used to distinguish separate caches). This can be a comma separated list of headers. If you want to use headers for only certain REST calls please see the FAQ.', 'wp-rest-cache' ); ?>
+						</p>
 					</td>
 				</tr>
 				<tr>
 					<th><?php esc_html_e( 'Enable cache regeneration', 'wp-rest-cache' ); ?></th>
 					<td>
-						<input type="checkbox" value="1"
-							name="wp_rest_cache_regenerate" <?php echo $wp_rest_cache_regenerate ? 'checked="checked"' : ''; ?>>
-						<p class="description"
-							id="wp_rest_cache_regenerate-description"><?php esc_html_e( 'Will enable a cron that regenerates expired or flushed caches.', 'wp-rest-cache' ); ?></p>
+						<input type="checkbox" value="1" name="wp_rest_cache_regenerate"
+							<?php echo defined( 'WP_REST_CACHE_REGENERATE' ) ? 'disabled="disabled"' : ''; ?>
+							<?php echo $wp_rest_cache_regenerate ? 'checked="checked"' : ''; ?>>
+						<p class="description" id="wp_rest_cache_regenerate-description">
+							<?php esc_html_e( 'Will enable a cron that regenerates expired or flushed caches.', 'wp-rest-cache' ); ?>
+						</p>
 					</td>
 				</tr>
 				<tr>
 					<th><?php esc_html_e( 'Regeneration interval', 'wp-rest-cache' ); ?></th>
 					<td>
 						<select name="wp_rest_cache_regenerate_interval" id="wp_rest_cache_regenerate_interval"
-							style="vertical-align: initial">
+							<?php echo defined( 'WP_REST_CACHE_REGENERATE_INTERVAL' ) ? 'disabled="disabled"' : ''; ?>
+								style="vertical-align: initial">
 							<?php foreach ( $wp_rest_cache_schedules as $wp_rest_cache_key => $wp_rest_cache_schedule ) : ?>
 								<option value="<?php echo esc_attr( $wp_rest_cache_key ); ?>"
 									<?php selected( $wp_rest_cache_regenerate_interval, $wp_rest_cache_key ); ?>>
@@ -100,9 +108,11 @@
 					<th><?php esc_html_e( 'Max number regenerate caches', 'wp-rest-cache' ); ?></th>
 					<td>
 						<input type="number" min="1" name="wp_rest_cache_regenerate_number" class="small-text"
-							value="<?php echo esc_attr( (string) $wp_rest_cache_regenerate_number ); ?>">
-						<p class="description"
-							id="wp_rest_cache_regenerate_number-description"><?php esc_html_e( 'How many caches should be regenerated at maximum per interval? Increasing this number will increase the load on your server when the regeneration process is running.', 'wp-rest-cache' ); ?></p>
+							<?php echo defined( 'WP_REST_CACHE_REGENERATE_NUMBER' ) ? 'disabled="disabled"' : ''; ?>
+								value="<?php echo esc_attr( (string) $wp_rest_cache_regenerate_number ); ?>">
+						<p class="description" id="wp_rest_cache_regenerate_number-description">
+							<?php esc_html_e( 'How many caches should be regenerated at maximum per interval? Increasing this number will increase the load on your server when the regeneration process is running.', 'wp-rest-cache' ); ?>
+						</p>
 					</td>
 				</tr>
 				<?php
@@ -112,10 +122,12 @@
 					<tr>
 						<th><?php esc_html_e( 'Memcache(d) used', 'wp-rest-cache' ); ?></th>
 						<td>
-							<input type="checkbox" value="1"
-								name="wp_rest_cache_memcache_used" <?php echo $wp_rest_cache_memcache_used ? 'checked="checked"' : ''; ?>>
-							<p class="description"
-								id="wp_rest_cache_memcache_used-description"><?php esc_html_e( 'Are you using Memcache(d) as external object caching?', 'wp-rest-cache' ); ?></p>
+							<input type="checkbox" value="1" name="wp_rest_cache_memcache_used"
+								<?php echo defined( 'WP_REST_CACHE_MEMCACHE_USED' ) ? 'disabled="disabled"' : ''; ?>
+								<?php echo $wp_rest_cache_memcache_used ? 'checked="checked"' : ''; ?>>
+							<p class="description" id="wp_rest_cache_memcache_used-description">
+								<?php esc_html_e( 'Are you using Memcache(d) as external object caching?', 'wp-rest-cache' ); ?>
+							</p>
 						</td>
 					</tr>
 				<?php endif; ?>
