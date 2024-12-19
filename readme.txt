@@ -2,7 +2,7 @@
 Contributors: acato, rockfire, yoeridekker
 Tags: cache, wp-rest-api, api, rest, rest cache
 Requires at least: 4.7
-Tested up to: 6.6
+Tested up to: 6.7
 Requires PHP: 7.0
 Stable tag: 2024.3.0
 License: GPLv3
@@ -112,7 +112,7 @@ Yes you can! Add the GET-parameter `skip_cache=1` to your call and no caching wi
 Yes you can! Use the hook `wp_rest_cache/determine_object_type` like this:
 
 `function wprc_determine_object_type( $object_type, $cache_key, $data, $uri ) {
-    if ( $object_type !== 'unknown' || strpos( $uri, $this->namespace . '/' . $this->rest_base ) === false ) {
+    if ( $object_type !== 'unknown' || strpos( $uri, $your_namespace . '/' . $your_rest_base ) === false ) {
         return $object_type;
     }
     // Do your magic here
