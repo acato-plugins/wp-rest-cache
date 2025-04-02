@@ -370,6 +370,26 @@ class Caching {
 	}
 
 	/**
+	 * Fired upon WordPress 'add_attachment' hook. Delete all non-single endpoint caches for attachments.
+	 *
+	 * @return void
+	 */
+	public function add_attachment() {
+		$this->delete_object_type_caches( 'attachment' );
+	}
+
+	/**
+	 * Fired upon WordPress 'edit_attachment' hook. Delete all related caches for this attachment.
+	 *
+	 * @param int $attachment_id Attachment ID.
+	 *
+	 * @return void
+	 */
+	public function edit_attachment( $attachment_id ) {
+		$this->delete_related_caches( $attachment_id, 'attachment' );
+	}
+
+	/**
 	 * Fired upon WordPress 'created_term' hook. Delete all non-single endpoint caches for this taxonomy.
 	 *
 	 * @param int    $term_id Term ID.
