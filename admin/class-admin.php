@@ -356,7 +356,7 @@ class Admin {
 	 * @return void
 	 */
 	public function display_notices() {
-		if ( ! in_array( get_current_screen()->base, [ 'plugins', 'dashboard' ], true ) ) {
+		if ( ! in_array( get_current_screen()->base, [ 'plugins', 'dashboard', 'settings_page_wp-rest-cache' ], true ) ) {
 			return;
 		}
 		$notices = get_option( 'wp_rest_cache_admin_notices', [] );

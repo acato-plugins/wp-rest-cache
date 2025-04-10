@@ -169,6 +169,9 @@ class Plugin {
 		add_action( 'delete_post', [ $caching, 'delete_post' ] );
 		add_action( 'transition_post_status', [ $caching, 'transition_post_status' ], 10, 3 );
 
+		add_action( 'add_attachment', [ $caching, 'add_attachment' ], 999 );
+		add_action( 'edit_attachment', [ $caching, 'edit_attachment' ], 999, 1 );
+
 		add_action( 'created_term', [ $caching, 'created_term' ], 999, 3 );
 		add_action( 'edited_term', [ $caching, 'edited_term' ], 999, 3 );
 		add_action( 'delete_term', [ $caching, 'delete_term' ], 10, 3 );

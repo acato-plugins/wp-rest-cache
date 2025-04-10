@@ -1,6 +1,8 @@
 parameters:
 	level: 6
 	paths:
+		- wp-rest-cache.php
+		- uninstall.php
 		- admin
 		- deprecated
 		- includes
