@@ -130,10 +130,10 @@ Yes they can!  Go to Settings > WP REST Cache, on the Settings tab you can check
 
 Yes you can! Use the hook `wp_rest_cache/display_clear_cache_button` like this:
 
-`function wprc_hide_clear_cache_button( $show ) {
-    return true;
+`function wprc_display_clear_cache_button( $show ) {
+    return false;
 }
-add_filter('wp_rest_cache/display_clear_cache_button', 'wprc_hide_clear_cache_button', 10, 1);`
+add_filter('wp_rest_cache/display_clear_cache_button', 'wprc_display_clear_cache_button', 10, 1);`
 
 = Can I differentiate between caches based upon request headers? =
 
