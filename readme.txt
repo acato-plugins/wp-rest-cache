@@ -161,6 +161,10 @@ add_filter('wp_rest_cache/settings_capability', 'wprc_change_settings_capability
 
 Yes you can! Use the `wp wp-rest-cache flush` command to flush caches. Type `wp wp-rest-cache flush --help` to see all options.
 
+= Is Redis Object Cache supported? =
+
+We are using the WordPress transient API, so as long as you are using a Redis Object Cache plugin which enables Redis caching through the transients API it is supported.
+
 == Screenshots ==
 
 1. Settings for the WP REST Cache plugin.
