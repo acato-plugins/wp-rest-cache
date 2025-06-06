@@ -27,7 +27,7 @@ class Caching {
 	 *
 	 * @var string DB_VERSION The current version of the database tables.
 	 */
-	const DB_VERSION = '2020.3.0';
+	const DB_VERSION = '2025.1.0';
 
 	/**
 	 * The table name for the table where caches are stored together with their statistics.
@@ -349,6 +349,10 @@ class Caching {
 		}
 
 		$this->delete_related_caches( $post_id, $post->post_type, true );
+
+		if ( post_type_supports( $post->post_type, 'comments' ) ) {
+			$this->delete_comment_type_related_caches();
+		}
 	}
 
 	/**
@@ -367,6 +371,10 @@ class Caching {
 		}
 
 		$this->delete_object_type_caches( $post->post_type );
+
+		if ( 'publish' === $old_status && post_type_supports( $post->post_type, 'comments' ) ) {
+			$this->delete_comment_type_related_caches();
+		}
 	}
 
 	/**
@@ -918,6 +926,15 @@ class Caching {
 			}
 		}
 
+		if ( array_key_exists( 'type', $record )
+					&& array_key_exists( 'post', $record )
+					&& 'comment' === $record['type'] ) {
+			$object_type = get_post_type( $record['post'] );
+			if ( $object_type ) {
+				$this->insert_cache_relation( $cache_id, $record['post'], $object_type );
+			}
+		}
+
 		foreach ( $record as $field => $value ) {
 			if ( is_array( $value ) ) {
 				$this->process_recursive_cache_relations( $cache_id, $value );
@@ -1396,12 +1413,19 @@ class Caching {
 				$wpdb->query( $drop_query );
 			}
 
+			if ( $this->db_table_relations === $current_db_version && version_compare( '2025.1.0', $version, '>' ) ) {
+				// Added column to PRIMARY KEY, dbDelta doesn't detect it, so drop PRIMARY KEY first.
+				$drop_query = "ALTER TABLE `{$this->db_table_relations}` DROP PRIMARY KEY;";
+				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+				$wpdb->query( $drop_query );
+			}
+
 			$sql_relations =
 				"CREATE TABLE `{$this->db_table_relations}` (
 					`cache_id` BIGINT(20) NOT NULL,
 					`object_id` VARCHAR(191) NOT NULL,
 					`object_type` VARCHAR(191) NOT NULL,
-					PRIMARY KEY (`cache_id`, `object_id`),
+					PRIMARY KEY (`cache_id`, `object_id`, `object_type`),
 					KEY `cache_id` (`cache_id`),
 					KEY `object` (`object_id`(100), `object_type`(100))
 				)";
