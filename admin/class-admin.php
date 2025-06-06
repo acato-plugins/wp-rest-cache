@@ -2,8 +2,8 @@
 /**
  * The admin-specific functionality of the plugin.
  *
- * @link: https://www.acato.nl
- * @since 2018.1
+ * @link       : https://www.acato.nl
+ * @since      2018.1
  *
  * @package    WP_Rest_Cache_Plugin
  * @subpackage WP_Rest_Cache_Plugin/Admin
@@ -21,7 +21,7 @@ use WP_Rest_Cache_Plugin\Includes\Caching\Caching;
  *
  * @package    WP_Rest_Cache_Plugin
  * @subpackage WP_Rest_Cache_Plugin/Admin
- * @author:    Richard Korthuis - Acato <richardkorthuis@acato.nl>
+ * @author     :    Richard Korthuis - Acato <richardkorthuis@acato.nl>
  */
 class Admin {
 
@@ -53,7 +53,7 @@ class Admin {
 	 * Initialize the class and set its properties.
 	 *
 	 * @param string $plugin_name The name of this plugin.
-	 * @param string $version The version of this plugin.
+	 * @param string $version     The version of this plugin.
 	 */
 	public function __construct( $plugin_name, $version ) {
 		$this->plugin_name = $plugin_name;
@@ -74,7 +74,7 @@ class Admin {
 	public function enqueue_styles() {
 		wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'css/wp-rest-cache-admin.css', [], $this->version, 'all' );
 		if ( 'wp-rest-cache' === filter_input( INPUT_GET, 'page', FILTER_SANITIZE_FULL_SPECIAL_CHARS )
-			&& 'clear-cache' === filter_input( INPUT_GET, 'sub', FILTER_SANITIZE_FULL_SPECIAL_CHARS ) ) {
+		     && 'clear-cache' === filter_input( INPUT_GET, 'sub', FILTER_SANITIZE_FULL_SPECIAL_CHARS ) ) {
 			wp_enqueue_style( 'jquery-ui-progressbar', plugin_dir_url( __FILE__ ) . 'css/jquery-ui.css', [], $this->version, 'all' );
 		}
 	}
@@ -86,7 +86,7 @@ class Admin {
 	 */
 	public function enqueue_scripts() {
 		if ( 'wp-rest-cache' === filter_input( INPUT_GET, 'page', FILTER_SANITIZE_FULL_SPECIAL_CHARS )
-			&& 'clear-cache' === filter_input( INPUT_GET, 'sub', FILTER_SANITIZE_FULL_SPECIAL_CHARS ) ) {
+		     && 'clear-cache' === filter_input( INPUT_GET, 'sub', FILTER_SANITIZE_FULL_SPECIAL_CHARS ) ) {
 			wp_enqueue_script( 'jquery-ui-progressbar' );
 		}
 	}
@@ -141,8 +141,8 @@ class Admin {
 	 * Set the caches_per_pages screen option.
 	 *
 	 * @param int    $option_value Screen option value. Default false to skip.
-	 * @param string $option The option name.
-	 * @param int    $value The number of rows to use.
+	 * @param string $option       The option name.
+	 * @param int    $value        The number of rows to use.
 	 *
 	 * @return int
 	 */
@@ -163,8 +163,8 @@ class Admin {
 	 */
 	public function add_plugin_settings_link( $links ): array {
 		$links[] = '<a href="' .
-					admin_url( 'options-general.php?page=wp-rest-cache' ) . '">' .
-					__( 'Settings', 'wp-rest-cache' ) . '</a>';
+		           admin_url( 'options-general.php?page=wp-rest-cache' ) . '">' .
+		           __( 'Settings', 'wp-rest-cache' ) . '</a>';
 
 		return $links;
 	}
@@ -196,6 +196,13 @@ class Admin {
 		if ( empty( $sub ) ) {
 			$sub = 'settings';
 		}
+
+		// prevent path traversal attacks in the sub parameter.
+		$potential_sub_file = __DIR__ . '/partials/sub-' . $sub . '.php';
+		if ( dirname( $potential_sub_file ) !== __DIR__ . '/partials' ) {
+			$sub = 'settings';
+		}
+
 		include_once __DIR__ . '/partials/header.php';
 		if ( isset( $this->settings_panels[ $sub ]['template'] ) ) {
 			include_once $this->settings_panels[ $sub ]['template'];
@@ -255,7 +262,7 @@ class Admin {
 	 */
 	public function handle_actions() {
 		if ( isset( $_GET['wp_rest_cache_dismiss'] )
-			&& check_admin_referer( 'wp-rest-cache-dismiss-notice-' . filter_input( INPUT_GET, 'wp_rest_cache_dismiss' ) )
+		     && check_admin_referer( 'wp-rest-cache-dismiss-notice-' . filter_input( INPUT_GET, 'wp_rest_cache_dismiss' ) )
 		) {
 			$user_id           = get_current_user_id();
 			$dismissed_notices = get_user_meta( $user_id, 'wp_rest_cache_dismissed_notices', true );
@@ -276,10 +283,10 @@ class Admin {
 	/**
 	 * Add a notice to the wp-admin.
 	 *
-	 * @param string               $type The type of message (error|warning|success|info).
-	 * @param string               $message The message to display.
+	 * @param string               $type        The type of message (error|warning|success|info).
+	 * @param string               $message     The message to display.
 	 * @param string|bool          $dismissible Boolean, should the message be dismissible or 'permanent' for permanently dismissible notice.
-	 * @param array<string,string> $button An array with label + url to display a button with the notice.
+	 * @param array<string,string> $button      An array with label + url to display a button with the notice.
 	 *
 	 * @return void
 	 */
@@ -311,18 +318,18 @@ class Admin {
 			if ( ! file_exists( WPMU_PLUGIN_DIR . '/wp-rest-cache.php' ) ) {
 
 				$from = '<code>' . substr(
-					plugin_dir_path( __DIR__ ) . 'sources/wp-rest-cache.php',
-					strpos( plugin_dir_path( __DIR__ ), '/wp-content/' )
-				) . '</code>';
+						plugin_dir_path( __DIR__ ) . 'sources/wp-rest-cache.php',
+						strpos( plugin_dir_path( __DIR__ ), '/wp-content/' )
+					) . '</code>';
 				$to   = '<code>' . substr(
-					WPMU_PLUGIN_DIR . '/wp-rest-cache.php',
-					strpos( WPMU_PLUGIN_DIR, '/wp-content/' )
-				) . '</code>';
+						WPMU_PLUGIN_DIR . '/wp-rest-cache.php',
+						strpos( WPMU_PLUGIN_DIR, '/wp-content/' )
+					) . '</code>';
 
 				$this->add_notice(
 					'warning',
 					sprintf(
-						/* translators: %1$s: source-directory, %2$s: target-directory */
+					/* translators: %1$s: source-directory, %2$s: target-directory */
 						__( 'You are not getting the best caching result! <br/>Please copy %1$s to %2$s', 'wp-rest-cache' ),
 						$from,
 						$to
@@ -340,8 +347,8 @@ class Admin {
 	 */
 	public function check_memcache_ext_object_caching() {
 		if ( wp_using_ext_object_cache()
-			&& ( class_exists( 'Memcache' ) || class_exists( 'Memcached' ) )
-			&& ! Caching::get_instance()->get_memcache_used() ) {
+		     && ( class_exists( 'Memcache' ) || class_exists( 'Memcached' ) )
+		     && ! Caching::get_instance()->get_memcache_used() ) {
 			$this->add_notice(
 				'warning',
 				__( 'We have detected you are using external object caching. If you are using Memcache(d) as external object cache, please make sure you visit this plugin\'s settings page and check the `Using Memcache(d)` checkbox.', 'wp-rest-cache' ),
@@ -377,11 +384,15 @@ class Admin {
 										'wp-rest-cache-dismiss-notice-' . esc_attr( md5( $message['message'] ) )
 									);
 									?>
-									<a class="button"
+									<a
+										class="button"
 										href="<?php echo esc_attr( $url ); ?>"><?php echo esc_html_e( 'Hide this message', 'wp-rest-cache' ); ?></a>
 								<?php endif; ?></p>
 							<?php if ( isset( $message['button']['url'], $message['button']['label'] ) ) : ?>
-								<p><a class="<?php echo esc_attr( $message['button']['class'] ?? 'button' ); ?>" href="<?php echo esc_attr( $message['button']['url'] ); ?>"><?php echo esc_html( $message['button']['label'] ); ?></a></p>
+								<p><a
+										class="<?php echo esc_attr( $message['button']['class'] ?? 'button' ); ?>"
+										href="<?php echo esc_attr( $message['button']['url'] ); ?>"><?php echo esc_html( $message['button']['label'] ); ?></a>
+								</p>
 							<?php endif; ?>
 						</div>
 						<?php
@@ -397,7 +408,7 @@ class Admin {
 	 * Unschedule or schedule the cron based on the regenerate setting.
 	 *
 	 * @param mixed $old_value The old option value.
-	 * @param mixed $value The new option value.
+	 * @param mixed $value     The new option value.
 	 *
 	 * @return void
 	 */
@@ -414,7 +425,7 @@ class Admin {
 	 * Update regenerate interval based on new setting.
 	 *
 	 * @param mixed $old_value The old option value.
-	 * @param mixed $value The new option value.
+	 * @param mixed $value     The new option value.
 	 *
 	 * @return void
 	 */
@@ -447,7 +458,7 @@ class Admin {
 	 * Upon plugin activation show a message about flushing the REST cache (or flush specific caches when certain
 	 * plugins are activated).
 	 *
-	 * @param string  $plugin The plugin that has just been activated.
+	 * @param string  $plugin       The plugin that has just been activated.
 	 * @param boolean $network_wide Whether the plugin has been activated network wide.
 	 *
 	 * @return void
@@ -500,9 +511,9 @@ class Admin {
 	/**
 	 * Add custom WP CLI commands.
 	 *
+	 * @return void
 	 * @throws \Exception An exception is thrown if the command contains an error.
 	 *
-	 * @return void
 	 */
 	public function add_cli_commands() {
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
