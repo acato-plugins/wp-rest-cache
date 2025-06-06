@@ -196,6 +196,13 @@ class Admin {
 		if ( empty( $sub ) ) {
 			$sub = 'settings';
 		}
+
+		// prevent path traversal attacks in the sub parameter.
+		$potential_sub_file = __DIR__ . '/partials/sub-' . $sub . '.php';
+		if ( dirname( $potential_sub_file ) !== __DIR__ . '/partials' ) {
+			$sub = 'settings';
+		}
+
 		include_once __DIR__ . '/partials/header.php';
 		if ( isset( $this->settings_panels[ $sub ]['template'] ) ) {
 			include_once $this->settings_panels[ $sub ]['template'];
