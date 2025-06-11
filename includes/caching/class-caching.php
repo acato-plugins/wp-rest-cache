@@ -1403,7 +1403,7 @@ class Caching {
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		$current_db_version = $wpdb->get_var( $query );
 
-		if ( self::DB_VERSION !== $version || $this->db_table_relations !== $current_db_version ) {
+ 		if ( self::DB_VERSION !== $version || $this->db_table_relations !== $current_db_version ) {
 			include_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
 			if ( $this->db_table_relations === $current_db_version && version_compare( '2020.1.1', $version, '>' ) ) {
