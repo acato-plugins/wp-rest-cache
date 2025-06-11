@@ -165,6 +165,10 @@ Yes you can! Use the `wp wp-rest-cache flush` command to flush caches. Type `wp 
 
 We are using the WordPress transient API, so as long as you are using a Redis Object Cache plugin which enables Redis caching through the transients API it is supported.
 
+= How can I report security bugs? =
+
+You can report security bugs through the Patchstack Vulnerability Disclosure Program. The Patchstack team helps validate, triage and handle any security vulnerabilities. [Report a security vulnerability.](https://patchstack.com/database/vdp/1307d9dc-155a-4a70-b80c-978a2832290f)
+
 == Screenshots ==
 
 1. Settings for the WP REST Cache plugin.
