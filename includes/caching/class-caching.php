@@ -1417,8 +1417,17 @@ class Caching {
 				// Added column to PRIMARY KEY, dbDelta doesn't detect it, so drop PRIMARY KEY first if it exists.
 				$check_primary_query = "SHOW KEYS FROM `{$this->db_table_relations}` WHERE Key_name = 'PRIMARY'";
 				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-				$primary_key_exists = $wpdb->get_var( $check_primary_query );
-				if ( $primary_key_exists ) {
+				$current_pk_columns = $wpdb->get_results( $check_primary_query );
+
+				$current_pk_names = [];
+				foreach ( $current_pk_columns as $column ) {
+					// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+					$current_pk_names[] = $column->Column_name;
+				}
+
+				$expected_pk_names = [ 'cache_id', 'object_id', 'object_type' ];
+
+				if ( $current_pk_names !== $expected_pk_names ) {
 					$drop_query = "ALTER TABLE `{$this->db_table_relations}` DROP PRIMARY KEY;";
 					// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 					$wpdb->query( $drop_query );
