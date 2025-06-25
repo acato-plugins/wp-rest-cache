@@ -1403,7 +1403,7 @@ class Caching {
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		$current_db_version = $wpdb->get_var( $query );
 
- 		if ( self::DB_VERSION !== $version || $this->db_table_relations !== $current_db_version ) {
+		if ( self::DB_VERSION !== $version || $this->db_table_relations !== $current_db_version ) {
 			include_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
 			if ( $this->db_table_relations === $current_db_version && version_compare( '2020.1.1', $version, '>' ) ) {
@@ -1414,10 +1414,15 @@ class Caching {
 			}
 
 			if ( $this->db_table_relations === $current_db_version && version_compare( '2025.1.0', $version, '>' ) ) {
-				// Added column to PRIMARY KEY, dbDelta doesn't detect it, so drop PRIMARY KEY first.
-				$drop_query = "ALTER TABLE `{$this->db_table_relations}` DROP PRIMARY KEY;";
+				// Added column to PRIMARY KEY, dbDelta doesn't detect it, so drop PRIMARY KEY first if it exists.
+				$check_primary_query = "SHOW KEYS FROM `{$this->db_table_relations}` WHERE Key_name = 'PRIMARY'";
 				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-				$wpdb->query( $drop_query );
+				$primary_key_exists = $wpdb->get_var( $check_primary_query );
+				if ( $primary_key_exists ) {
+					$drop_query = "ALTER TABLE `{$this->db_table_relations}` DROP PRIMARY KEY;";
+					// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+					$wpdb->query( $drop_query );
+				}
 			}
 
 			$sql_relations =
