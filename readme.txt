@@ -4,7 +4,7 @@ Tags: cache, wp-rest-api, api, rest, rest cache
 Requires at least: 4.7
 Tested up to: 6.8
 Requires PHP: 7.0
-Stable tag: 2025.1.3
+Stable tag: 2025.1.4
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl.html
 
@@ -178,6 +178,11 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 5. Cache details page - Cache data.
 
 == Changelog ==
+
+= 2025.1.4 =
+Release Date: June 25th, 2025
+
+Fix: Better checking of existing primary key before updating it.
 
 = 2025.1.3 =
 Release Date: June 25th, 2025
