@@ -98,6 +98,15 @@ class Endpoint_Api {
 		$request_uri = filter_var( $_SERVER['REQUEST_URI'], FILTER_SANITIZE_URL );
 		// Remove home_url from request_uri for uri's with WordPress in a subdir (like /wp).
 		$request_uri = str_replace( Util::get_home_url(), '', $request_uri );
+
+		// remove subsite path from request_uri.
+		if ( is_multisite() ) {
+			$path = get_blog_details()->path;
+			if ( ! empty( $path ) && '/' !== $path && str_starts_with( $request_uri, $path ) ) {
+				$request_uri = substr( $request_uri, strlen( untrailingslashit( $path ) ) );
+			}
+		}
+
 		if ( '//' === substr( $request_uri, 0, 2 ) ) {
 			$request_uri = substr( $request_uri, 1 );
 		}
