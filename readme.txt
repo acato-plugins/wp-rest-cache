@@ -4,7 +4,7 @@ Tags: cache, wp-rest-api, api, rest, rest cache
 Requires at least: 4.7
 Tested up to: 6.8
 Requires PHP: 7.0
-Stable tag: 2025.1.5
+Stable tag: 2025.1.6
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl.html
 
@@ -179,10 +179,15 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 2025.1.6 =
+Release Date: August 19th, 2025
+
+Fix: Remove load_plugin_textdomain as it is no longer needed as of WP 4.6
+
 = 2025.1.5 =
 Release Date: August 18th, 2025
 
-Fix: incorret url when regenerating expired caches
+Fix: incorrect url when regenerating expired caches
 Fix: PHP Notice _load_textdomain_just_in_time was called incorrectly
 
 = 2025.1.4 =
