@@ -57,25 +57,9 @@ class Plugin {
 		$this->plugin_name = 'wp-rest-cache';
 		$this->version     = '2025.1.5';
 
-		$this->set_locale();
 		$this->define_admin_hooks();
 		$this->define_api_hooks();
 		$this->define_caching_hooks();
-	}
-
-	/**
-	 * Define the locale for this plugin for internationalization.
-	 *
-	 * Uses the WP_Rest_Cache_Plugin\Includes\I18n class in order to set the domain and to register the hook
-	 * with WordPress.
-	 *
-	 * @return void
-	 */
-	private function set_locale() {
-
-		$plugin_i18n = new I18n();
-
-		add_action( 'init', [ $plugin_i18n, 'load_plugin_textdomain' ] );
 	}
 
 	/**
