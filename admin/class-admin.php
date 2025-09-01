@@ -56,14 +56,9 @@ class Admin {
 	 * @param string $version The version of this plugin.
 	 */
 	public function __construct( $plugin_name, $version ) {
-		$this->plugin_name = $plugin_name;
-		$this->version     = $version;
-
-		$this->settings_panels = [
-			'settings'     => [ 'label' => __( 'Settings', 'wp-rest-cache' ) ],
-			'endpoint-api' => [ 'label' => __( 'Endpoint API Caches', 'wp-rest-cache' ) ],
-			'clear-cache'  => [ 'label' => __( 'Clear Caches', 'wp-rest-cache' ) ],
-		];
+		$this->plugin_name     = $plugin_name;
+		$this->version         = $version;
+		$this->settings_panels = [];
 	}
 
 	/**
@@ -515,5 +510,22 @@ class Admin {
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
 			\WP_CLI::add_command( 'wp-rest-cache', new \WP_Rest_Cache_Plugin\Includes\CLI\Flush_Command() );
 		}
+	}
+
+	/**
+	 * Filter the settings panels for the WP REST Cache settings page.
+	 *
+	 * @param array<string,array<string,mixed>> $panels The settings panels for the WP REST Cache settings page.
+	 *
+	 * @return array<string,array<string,mixed>>
+	 */
+	public function filter_settings_panels( $panels ) {
+		$settings_panels = [
+			'settings'     => [ 'label' => __( 'Settings', 'wp-rest-cache' ) ],
+			'endpoint-api' => [ 'label' => __( 'Endpoint API Caches', 'wp-rest-cache' ) ],
+			'clear-cache'  => [ 'label' => __( 'Clear Caches', 'wp-rest-cache' ) ],
+		];
+
+		return array_merge( $panels, $settings_panels );
 	}
 }
