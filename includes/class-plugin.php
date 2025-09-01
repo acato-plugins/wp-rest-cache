@@ -82,6 +82,7 @@ class Plugin {
 		add_action( 'admin_notices', [ $plugin_admin, 'display_notices' ] );
 		add_action( 'network_admin_notices', [ $plugin_admin, 'display_notices' ] );
 		add_action( 'wp_before_admin_bar_render', [ $plugin_admin, 'admin_bar_item' ], 999 );
+		add_filter( 'wp_rest_cache/settings_panels', [ $plugin_admin, 'filter_settings_panels' ] );
 
 		// set-screen-option should be deprecated in favor of set_screen_option-{$option} but in WP version 5.4.2 there
 		// is a bug making both calls necessary until that bug is fixed in the next version.
