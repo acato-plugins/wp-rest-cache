@@ -55,7 +55,7 @@ class Plugin {
 	 */
 	public function __construct() {
 		$this->plugin_name = 'wp-rest-cache';
-		$this->version     = '2025.1.7';
+		$this->version     = '2025.1.8';
 
 		$this->define_admin_hooks();
 		$this->define_api_hooks();
@@ -76,6 +76,7 @@ class Plugin {
 		// Create custom plugin settings menu.
 		add_action( 'admin_menu', [ $plugin_admin, 'create_menu' ] );
 		add_action( 'admin_init', [ $plugin_admin, 'register_settings' ] );
+		add_action( 'admin_init', [ $plugin_admin, 'display_pro_message' ] );
 		add_action( 'admin_init', [ $plugin_admin, 'check_muplugin_existence' ] );
 		add_action( 'admin_init', [ $plugin_admin, 'check_memcache_ext_object_caching' ] );
 		add_action( 'admin_init', [ $plugin_admin, 'handle_actions' ] );

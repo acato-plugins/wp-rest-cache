@@ -371,19 +371,19 @@ class Admin {
 						?>
 						<div
 							class="notice notice-<?php echo esc_attr( $type ); ?> <?php echo ( true === $message['dismissible'] ) ? 'is-dismissible' : ''; ?>">
-							<p><strong>WP REST Cache:</strong> <?php echo wp_kses_post( $message['message'] ); ?>
-								<?php if ( 'permanent' === $message['dismissible'] ) : ?>
-									<?php
-									$url = wp_nonce_url(
-										'?wp_rest_cache_dismiss=' . esc_attr( md5( $message['message'] ) ),
-										'wp-rest-cache-dismiss-notice-' . esc_attr( md5( $message['message'] ) )
-									);
-									?>
-									<a class="button"
-										href="<?php echo esc_attr( $url ); ?>"><?php echo esc_html_e( 'Hide this message', 'wp-rest-cache' ); ?></a>
-								<?php endif; ?></p>
+							<p><strong>WP REST Cache:</strong> <?php echo wp_kses_post( $message['message'] ); ?></p>
 							<?php if ( isset( $message['button']['url'], $message['button']['label'] ) ) : ?>
 								<p><a class="<?php echo esc_attr( $message['button']['class'] ?? 'button' ); ?>" href="<?php echo esc_attr( $message['button']['url'] ); ?>"><?php echo esc_html( $message['button']['label'] ); ?></a></p>
+							<?php endif; ?>
+							<?php if ( 'permanent' === $message['dismissible'] ) : ?>
+								<?php
+								$url = get_admin_url() . wp_nonce_url(
+									'?wp_rest_cache_dismiss=' . esc_attr( md5( $message['message'] ) ),
+									'wp-rest-cache-dismiss-notice-' . esc_attr( md5( $message['message'] ) )
+								);
+								?>
+								<p><a class="button"
+										href="<?php echo esc_attr( $url ); ?>"><?php echo esc_html_e( 'Hide this message', 'wp-rest-cache' ); ?></a></p>
 							<?php endif; ?>
 						</div>
 						<?php
@@ -527,5 +527,23 @@ class Admin {
 		];
 
 		return array_merge( $panels, $settings_panels );
+	}
+
+	/**
+	 * Display a message about the Pro version of the plugin.
+	 *
+	 * @return void
+	 */
+	public function display_pro_message() {
+		$this->add_notice(
+			'success',
+			__( 'Did you know that with the new Pro version of the WP REST Cache plugin you can easily configure custom endpoints to be cached?', 'wp-rest-cache' ),
+			'permanent',
+			[
+				'label' => __( 'Upgrade to Pro', 'wp-rest-cache' ),
+				'url'   => 'https://plugins.acato.nl/',
+				'class' => 'button button-primary',
+			]
+		);
 	}
 }
