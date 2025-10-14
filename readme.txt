@@ -29,6 +29,7 @@ This plugin offers:
 
 **WP REST Cache Pro**
 For more advanced features, check out our [WP REST Cache Pro](https://plugins.acato.nl/) plugin:
+
 * Configure custom endpoints for caching through the wp-admin interface.
 * Configure relationships within endpoints.
 * No coding required.
