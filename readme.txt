@@ -4,7 +4,7 @@ Tags: cache, wp-rest-api, api, rest, rest cache
 Requires at least: 4.7
 Tested up to: 6.8
 Requires PHP: 7.0
-Stable tag: 2025.1.7
+Stable tag: 2025.1.8
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl.html
 
@@ -26,6 +26,13 @@ This plugin offers:
 * Specifying after what time the cache should be timed out.
 * Registering custom endpoints for caching.
 * Automatic cache regeneration.
+
+**WP REST Cache Pro**
+For more advanced features, check out our [WP REST Cache Pro](https://plugins.acato.nl/) plugin:
+* Configure custom endpoints for caching through the wp-admin interface.
+* Configure relationships within endpoints.
+* No coding required.
+
 
 == Installation ==
 
@@ -69,11 +76,11 @@ Yes, the plugin will automatically cache the endpoint of custom taxonomies. Unle
 
 = I have created a custom WP REST endpoint, will the plugin cache this endpoint? =
 
-No, the plugin will not cache your custom endpoint unless you tell it to cache it using the hook `wp_rest_cache/allowed_endpoints` (See 'Can I register my own endpoint for caching?'). Please keep in mind that once you do so the plugin will not automatically flush the cache of that endpoint if something is edited (it has no way of knowing when to flush the cache). It will however try to determine the relations and for the determined relations it will flush the cache automatically once the relation is edited.
+No, the plugin will not cache your custom endpoint unless you tell it to cache it using our [WP REST Cache Pro](https://plugins.acato.nl/) plugin or the hook `wp_rest_cache/allowed_endpoints` (See 'Can I register my own endpoint for caching?'). Please keep in mind that once you do so the plugin will not automatically flush the cache of that endpoint if something is edited (it has no way of knowing when to flush the cache). It will however try to determine the relations and for the determined relations it will flush the cache automatically once the relation is edited.
 
 = Can I register my own endpoint for caching? =
 
-Yes you can! Use the hook `wp_rest_cache/allowed_endpoints` like this:
+Yes you can! You can use our [WP REST Cache Pro](https://plugins.acato.nl/) plugin to easily register your own endpoints for caching through the wp-admin interface. Or you can do it programmatically by using the hook `wp_rest_cache/allowed_endpoints` like this:
 
 `/**
  * Register the /wp-json/acf/v3/posts endpoint so it will be cached.
@@ -178,6 +185,11 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 5. Cache details page - Cache data.
 
 == Changelog ==
+
+= 2025.1.8 =
+Release Date: October 14th, 2025
+
+Improvement: Add option to flush or delete cache to cache details page.
 
 = 2025.1.7 =
 Release Date: September 1st, 2025
