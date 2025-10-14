@@ -16,6 +16,44 @@
 	$wp_rest_cache = \WP_Rest_Cache_Plugin\Includes\Caching\Caching::get_instance()->get_cache_data(
 		filter_input( INPUT_GET, 'cache_key', FILTER_SANITIZE_FULL_SPECIAL_CHARS )
 	);
+	if ( ! is_null( $wp_rest_cache ) ) {
+		$wprc_page = filter_input( INPUT_GET, 'page', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
+		$wprc_sub  = filter_input( INPUT_GET, 'sub', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
+		?>
+		<p>
+			<?php if ( $wp_rest_cache['row']['is_active'] ) : ?>
+				<a href="
+				<?php
+				printf(
+					'?page=%s&sub=%s&action=%s&cache_key=%s&wp_rest_cache_nonce=%s',
+					esc_attr( $wprc_page ),
+					esc_attr( $wprc_sub ),
+					'flush',
+					esc_attr( $wp_rest_cache['row']['cache_key'] ),
+					esc_attr( wp_create_nonce( 'wp_rest_cache_flush_cache' ) )
+				);
+				?>
+				" class="button button-primary" rel="noopener noreferrer">
+					<?php esc_html_e( 'Flush cache', 'wp-rest-cache' ); ?>
+				</a>
+			<?php endif; ?>
+			<a href="
+			<?php
+			printf(
+				'?page=%s&sub=%s&action=%s&cache_key=%s&wp_rest_cache_nonce=%s',
+				esc_attr( $wprc_page ),
+				esc_attr( $wprc_sub ),
+				'delete',
+				esc_attr( $wp_rest_cache['row']['cache_key'] ),
+				esc_attr( wp_create_nonce( 'wp_rest_cache_delete_cache' ) )
+			);
+			?>
+			" class="button button-secondary" rel="noopener noreferrer">
+				<?php esc_html_e( 'Delete cache', 'wp-rest-cache' ); ?>
+			</a>
+		</p>
+		<?php
+	}
 	?>
 	<div class="poststuff">
 		<div id="post-body" class="metabox-holder">
@@ -56,28 +94,28 @@
 								<tr valign="top">
 									<th scope="row"><?php esc_html_e( 'Active', 'wp-rest-cache' ); ?></th>
 									<td>
-									<?php
-									if ( $wp_rest_cache['row']['is_active'] ) {
-										printf(
-											'<span class="dashicons dashicons-yes" style="color:green" title="%s"></span>
+										<?php
+										if ( $wp_rest_cache['row']['is_active'] ) {
+											printf(
+												'<span class="dashicons dashicons-yes" style="color:green" title="%s"></span>
                                                     <span class="screen-reader-text">%s</span>',
-											esc_html__( 'Cache is ready to be served.', 'wp-rest-cache' ),
-											esc_html__( 'Cache is ready to be served.', 'wp-rest-cache' )
-										);
-									} else {
+												esc_html__( 'Cache is ready to be served.', 'wp-rest-cache' ),
+												esc_html__( 'Cache is ready to be served.', 'wp-rest-cache' )
+											);
+										} else {
 
-										printf(
-											'<span class="dashicons dashicons-no" style="color:red" title="%s"></span>
+											printf(
+												'<span class="dashicons dashicons-no" style="color:red" title="%s"></span>
                                                     <span class="screen-reader-text">%s</span>',
-											esc_html__( 'Cache is expired or flushed.', 'wp-rest-cache' ),
-											esc_html__( 'Cache is expired or flushed.', 'wp-rest-cache' )
-										);
-									}
-									?>
+												esc_html__( 'Cache is expired or flushed.', 'wp-rest-cache' ),
+												esc_html__( 'Cache is expired or flushed.', 'wp-rest-cache' )
+											);
+										}
+										?>
 									</td>
 								</tr>
 							</table>
-								<?php endif; ?>
+							<?php endif; ?>
 							</p>
 						</div>
 					</div>
@@ -98,8 +136,8 @@
 								<?php if ( empty( $wp_rest_cache['data'] ) ) : ?>
 									<?php esc_html_e( 'Cache is expired or flushed.', 'wp-rest-cache' ); ?>
 								<?php else : ?>
-									<pre><?php echo esc_html( wp_json_encode( $wp_rest_cache['data']['data'], JSON_PRETTY_PRINT ) ); ?></pre>
-								<?php endif; ?>
+							<pre><?php echo esc_html( wp_json_encode( $wp_rest_cache['data']['data'], JSON_PRETTY_PRINT ) ); ?></pre>
+							<?php endif; ?>
 							</p>
 						</div>
 					</div>
