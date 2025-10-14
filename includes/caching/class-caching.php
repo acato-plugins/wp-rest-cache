@@ -208,7 +208,7 @@ class Caching {
 		}
 
 		$sql =
-			"DELETE FROM `{$this->db_table_relations}` 
+			"DELETE FROM `{$this->db_table_relations}`
                 WHERE `cache_id` = %d";
 
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
@@ -238,10 +238,11 @@ class Caching {
 	 * @param string $endpoint The endpoint path to match.
 	 * @param string $strictness The match type. (Can be either \WP_Rest_Cache_Plugin\Includes\Caching\Caching::FLUSH_STRICT, \WP_Rest_Cache_Plugin\Includes\Caching\Caching::FLUSH_PARAMS or \WP_Rest_Cache_Plugin\Includes\Caching\Caching::FLUSH_LOOSE).
 	 * @param bool   $force Should the caches be deleted ($force = true) or just flushed ($force = false).
+	 * @param int    $batch_size The number of records to process per batch. Default 100000.
 	 *
 	 * @return bool|\WP_Error
 	 */
-	public function delete_cache_by_endpoint( $endpoint, $strictness = self::FLUSH_STRICT, $force = false ) {
+	public function delete_cache_by_endpoint( $endpoint, $strictness = self::FLUSH_STRICT, $force = false, $batch_size = 100000 ) {
 		global $wpdb;
 
 		$uri_parts    = wp_parse_url( $endpoint );
@@ -253,31 +254,61 @@ class Caching {
 			$request_path .= '?' . http_build_query( $params );
 		}
 
-		$sql              = "UPDATE `{$this->db_table_caches}`
-		SET `expiration` = %s,
-            `deleted` = %d
-        WHERE ";
-		$prepare_params[] = date_i18n( 'Y-m-d H:i:s', 1 );
-		$prepare_params[] = (int) $force;
+		$where_clause = '';
+		$prepare_params = [];
+
 		switch ( $strictness ) {
 			case self::FLUSH_STRICT:
-				$sql             .= ' `request_uri` = %s ';
-				$prepare_params[] = $request_path;
+				$where_clause      = ' `request_uri` = %s ';
+				$prepare_params[]  = $request_path;
 				break;
 			case self::FLUSH_PARAMS:
-				$sql             .= ' `request_uri` LIKE %s ';
-				$prepare_params[] = $request_path . '?%';
+				$where_clause      = ' `request_uri` LIKE %s ';
+				$prepare_params[]  = $request_path . '?%';
 				break;
 			case self::FLUSH_LOOSE:
-				$sql             .= ' `request_uri` LIKE %s ';
-				$prepare_params[] = $request_path . '%';
+				$where_clause      = ' `request_uri` LIKE %s ';
+				$prepare_params[]  = $request_path . '%';
 				break;
 			default:
 				return new \WP_Error( 'wp_rest_cache_invalid_strictness', __( 'Invalid strictness', 'wp-rest-cache' ) );
 		}
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		$affected_rows = $wpdb->query( $wpdb->prepare( $sql, $prepare_params ) );
+		$offset = 0;
+		$affected_rows = 0;
+
+		$expiration = date_i18n( 'Y-m-d H:i:s', 1 );
+		$deleted    = (int) $force;
+
+		do {
+			// Get up to $batch_size cache_ids matching the WHERE clause with LIMIT and OFFSET
+			$select_sql = "SELECT `cache_id` FROM `{$this->db_table_caches}` WHERE $where_clause LIMIT %d, %d";
+			$select_params = $prepare_params;
+			$select_params[] = $offset;
+			$select_params[] = $batch_size;
+
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			$cache_ids = $wpdb->get_col( $wpdb->prepare( $select_sql, $select_params ) );
+
+			if ( empty( $cache_ids ) ) {
+				break;
+			}
+
+			$in_placeholders = implode( ',', array_fill( 0, count( $cache_ids ), '%d' ) );
+			$update_sql = "UPDATE `{$this->db_table_caches}` SET `expiration` = %s, `deleted` = %d WHERE `cache_id` IN ($in_placeholders)";
+			$update_params = array_merge( array( $expiration, $deleted ), $cache_ids );
+
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			$affected_batch_rows = $wpdb->query( $wpdb->prepare( $update_sql, $update_params ) );
+			if ( false === $affected_batch_rows ) {
+				// If there is an error, stop and return false
+				return false;
+			}
+
+			$affected_rows += $affected_batch_rows;
+			$offset += $batch_size;
+
+		} while ( count( $cache_ids ) === $batch_size );
 
 		if ( 0 !== $affected_rows && false !== $affected_rows ) {
 			$this->schedule_cleanup();
@@ -290,28 +321,42 @@ class Caching {
 	 * Clear all saved caches. Possibly also delete all statistics.
 	 *
 	 * @param bool $force Whether to delete statistics.
+	 * @param int  $batch_size The number of records to process per batch. Default 100000.
 	 *
 	 * @return bool True if there were caches to delete.
 	 */
-	public function clear_caches( $force = false ) {
+	public function clear_caches( $force = false, $batch_size = 100000 ) {
 		global $wpdb;
 
-		$sql =
-			"SELECT `cache_key`
-            FROM `{$this->db_table_caches}`";
+		$offset = 0;
+		$has_deleted = false;
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		$caches = $wpdb->get_results( $sql );
+		do {
+			$sql = $wpdb->prepare(
+				"SELECT `cache_key`
+				FROM `{$this->db_table_caches}`
+				LIMIT %d, %d",
+				$offset,
+				$batch_size
+			);
 
-		if ( $caches ) {
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			$caches = $wpdb->get_results( $sql );
+
+			if ( empty( $caches ) ) {
+				break;
+			}
+
 			foreach ( $caches as $cache ) {
 				$this->delete_cache( $cache->cache_key, $force );
 			}
 
-			return true;
-		}
+			$has_deleted = true;
+			$offset += $batch_size;
 
-		return false;
+		} while ( count( $caches ) === $batch_size );
+
+		return $has_deleted;
 	}
 
 	/**
@@ -503,10 +548,11 @@ class Caching {
 	 * Delete all caches.
 	 *
 	 * @param bool $delete True if caches need to be deleted instead of flushed.
+	 * @param int  $batch_size The number of records to process per batch. Default 100000.
 	 *
 	 * @return int  The number of deleted caches.
 	 */
-	public function delete_all_caches( $delete ) {
+	public function delete_all_caches( $delete, $batch_size = 100000 ) {
 		global $wpdb;
 
 		$deleted = "( CASE
@@ -517,13 +563,35 @@ class Caching {
 			$deleted = '1';
 		}
 
-		$sql =
-			"UPDATE `{$this->db_table_caches}`
-				SET `expiration` = %s,
-					`deleted` = {$deleted}";
+		$expiration = date_i18n( 'Y-m-d H:i:s', 1 );
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		$affected_rows = $wpdb->query( $wpdb->prepare( $sql, date_i18n( 'Y-m-d H:i:s', 1 ) ) );
+		$offset = 0;
+		$affected_rows = 0;
+
+		do {
+			$select_sql = "SELECT `cache_id` FROM `{$this->db_table_caches}` LIMIT %d, %d";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			$cache_ids = $wpdb->get_col( $wpdb->prepare( $select_sql, $offset, $batch_size ) );
+
+			if ( empty( $cache_ids ) ) {
+				break;
+			}
+
+			$in_placeholders = implode( ',', array_fill( 0, count( $cache_ids ), '%d' ) );
+			$update_sql = "UPDATE `{$this->db_table_caches}` SET `expiration` = %s, `deleted` = {$deleted} WHERE `cache_id` IN ($in_placeholders)";
+			$update_params = array_merge( array( $expiration ), $cache_ids );
+
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			$affected_batch_rows = $wpdb->query( $wpdb->prepare( $update_sql, $update_params ) );
+			if ( false === $affected_batch_rows ) {
+				$affected_rows = false;
+				break;
+			}
+
+			$affected_rows += $affected_batch_rows;
+			$offset += $batch_size;
+
+		} while ( count( $cache_ids ) === $batch_size );
 
 		if ( 0 !== $affected_rows && false !== $affected_rows ) {
 			$this->schedule_cleanup();
@@ -540,10 +608,11 @@ class Caching {
 	 * @param string     $object_type The type of the object.
 	 * @param bool       $force_single_delete Whether to delete cache statistics for single endpoint caches.
 	 * @param bool       $delete True if caches need to be deleted instead of flushed.
+	 * @param int        $batch_size The number of records to process per batch. Default 100000.
 	 *
 	 * @return int       The number of deleted caches.
 	 */
-	public function delete_related_caches( $id, $object_type, $force_single_delete = false, $delete = false ) {
+	public function delete_related_caches( $id, $object_type, $force_single_delete = false, $delete = false, $batch_size = 100000 ) {
 		global $wpdb;
 
 		$set_clause = '`c`.`expiration` = %s';
@@ -554,16 +623,43 @@ class Caching {
 			$set_clause .= ', `c`.`deleted` = `c`.`is_single`';
 		}
 
-		$sql =
-			"UPDATE `{$this->db_table_caches}` AS `c`
-                JOIN `{$this->db_table_relations}` AS `r`
-                    ON `r`.`cache_id` = `c`.`cache_id`
-                SET {$set_clause}
-                WHERE `r`.`object_id` = %s
-                AND `r`.`object_type` = %s";
+		$expiration = date_i18n( 'Y-m-d H:i:s', 1 );
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		$affected_rows = $wpdb->query( $wpdb->prepare( $sql, date_i18n( 'Y-m-d H:i:s', 1 ), $id, $object_type ) );
+		$offset = 0;
+		$affected_rows = 0;
+
+		do {
+			// Select up to $batch_size cache_ids for the given object id/type
+			$select_sql = "SELECT `c`.`cache_id`
+				FROM `{$this->db_table_caches}` AS `c`
+				JOIN `{$this->db_table_relations}` AS `r`
+					ON `r`.`cache_id` = `c`.`cache_id`
+				WHERE `r`.`object_id` = %s
+				AND `r`.`object_type` = %s
+				LIMIT %d, %d";
+			$cache_ids = $wpdb->get_col( $wpdb->prepare( $select_sql, $id, $object_type, $offset, $batch_size ) );
+
+			if ( empty( $cache_ids ) ) {
+				break;
+			}
+
+			$in_placeholders = implode( ',', array_fill( 0, count( $cache_ids ), '%d' ) );
+			$update_sql = "UPDATE `{$this->db_table_caches}` AS `c`
+				SET {$set_clause}
+				WHERE `c`.`cache_id` IN ($in_placeholders)";
+			$update_params = array_merge( array( $expiration ), $cache_ids );
+
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			$affected_batch_rows = $wpdb->query( $wpdb->prepare( $update_sql, $update_params ) );
+			if ( false === $affected_batch_rows ) {
+				$affected_rows = false;
+				break;
+			}
+
+			$affected_rows += $affected_batch_rows;
+			$offset += $batch_size;
+
+		} while ( count( $cache_ids ) === $batch_size );
 
 		if ( 0 !== $affected_rows && false !== $affected_rows ) {
 			$this->schedule_cleanup();
@@ -577,10 +673,11 @@ class Caching {
 	 *
 	 * @param string $object_type The type of the object.
 	 * @param bool   $delete True if caches need to be deleted instead of flushed.
+	 * @param int    $batch_size The number of records to process per batch. Default 100000.
 	 *
 	 * @return int      The number of deleted caches.
 	 */
-	public function delete_object_type_caches( $object_type, $delete = false ) {
+	public function delete_object_type_caches( $object_type, $delete = false, $batch_size = 100000 ) {
 		global $wpdb;
 
 		if ( $delete ) {
@@ -591,15 +688,34 @@ class Caching {
 				'`expiration` = %s';
 		}
 
-		$sql =
-			"UPDATE `{$this->db_table_caches}`
-				SET {$set_clause}
-                WHERE `cache_type` = %s 
-                AND `object_type` = %s
-                AND `is_single` = %d";
+		$offset = 0;
+		$affected_rows = 0;
+		$expiration = date_i18n( 'Y-m-d H:i:s', 1 );
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		$affected_rows = $wpdb->query( $wpdb->prepare( $sql, date_i18n( 'Y-m-d H:i:s', 1 ), 'endpoint', $object_type, false ) );
+		do {
+			$select_sql = "SELECT `cache_id` FROM `{$this->db_table_caches}` WHERE `cache_type` = %s AND `object_type` = %s AND `is_single` = %d LIMIT %d, %d";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			$cache_ids = $wpdb->get_col( $wpdb->prepare( $select_sql, 'endpoint', $object_type, false, $offset, $batch_size ) );
+
+			if ( empty( $cache_ids ) ) {
+				break;
+			}
+
+			$in_placeholders = implode( ',', array_fill( 0, count( $cache_ids ), '%d' ) );
+			$update_sql = "UPDATE `{$this->db_table_caches}` SET {$set_clause} WHERE `cache_id` IN ($in_placeholders)";
+			$update_params = array_merge( array( $expiration ), $cache_ids );
+
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			$affected_batch_rows = $wpdb->query( $wpdb->prepare( $update_sql, $update_params ) );
+			if ( false === $affected_batch_rows ) {
+				$affected_rows = false;
+				break;
+			}
+
+			$affected_rows += $affected_batch_rows;
+			$offset += $batch_size;
+
+		} while ( count( $cache_ids ) === $batch_size );
 
 		if ( 0 !== $affected_rows && false !== $affected_rows ) {
 			$this->schedule_cleanup();
@@ -621,7 +737,7 @@ class Caching {
 		$sql =
 			"SELECT `cache_id`
                 FROM `{$this->db_table_caches}`
-                WHERE `cache_key` = %s 
+                WHERE `cache_key` = %s
                 LIMIT 1";
 
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
@@ -641,7 +757,7 @@ class Caching {
 		$sql =
 			"SELECT `expiration`
                 FROM `{$this->db_table_caches}`
-                WHERE `cache_key` = %s 
+                WHERE `cache_key` = %s
                 LIMIT 1";
 
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
@@ -1214,39 +1330,60 @@ class Caching {
 	/**
 	 * Cronjob to automatically regenerate expired caches.
 	 *
+	 * @param int $batch_size The number of records to process per batch. Default 100000.
+	 *
 	 * @return void
 	 */
-	public function regenerate_expired_caches() {
+	public function regenerate_expired_caches($batch_size = 100000) {
 		global $wpdb;
 
 		$regenerate_number = (int) $this->get_regenerate_number();
 
-		$sql =
-			"SELECT * 
-            FROM `{$this->db_table_caches}`
-            WHERE `cache_type` = 'endpoint'
-            ORDER BY `cache_hits` DESC";
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		$results = $wpdb->get_results( $sql, ARRAY_A );
-		foreach ( $results as &$result ) {
-			if ( 1 === strtotime( $result['expiration'] ) || false === get_transient( $this->transient_key( $result['cache_key'] ) ) ) {
-				// Regenerate.
-				$url    = Util::get_home_url() . $result['request_uri'];
-				$return = wp_remote_get(
-					$url,
-					[
-						'timeout'   => 10,
-						'sslverify' => false,
-						'headers'   => json_decode( $result['request_headers'], true ),
-					]
-				);
+		$offset = 0;
+		$processed = 0;
 
-				--$regenerate_number;
-				if ( $regenerate_number <= 0 ) {
-					break;
+		do {
+			$sql = $wpdb->prepare(
+				"SELECT *
+				FROM `{$this->db_table_caches}`
+				WHERE `cache_type` = %s
+				ORDER BY `cache_hits` DESC
+				LIMIT %d, %d",
+				'endpoint',
+				$offset,
+				$batch_size
+			);
+
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			$results = $wpdb->get_results( $sql, ARRAY_A );
+
+			if ( empty( $results ) ) {
+				break;
+			}
+
+			foreach ( $results as &$result ) {
+				if ( 1 === strtotime( $result['expiration'] ) || false === get_transient( $this->transient_key( $result['cache_key'] ) ) ) {
+					// Regenerate.
+					$url    = Util::get_home_url() . $result['request_uri'];
+					$return = wp_remote_get(
+						$url,
+						[
+							'timeout'   => 10,
+							'sslverify' => false,
+							'headers'   => json_decode( $result['request_headers'], true ),
+						]
+					);
+
+					--$regenerate_number;
+					if ( $regenerate_number <= 0 ) {
+						break 2;
+					}
 				}
 			}
-		}
+
+			$offset += $batch_size;
+			$processed += count( $results );
+		} while ( count( $results ) === $batch_size && $regenerate_number > 0 );
 	}
 
 	/**
