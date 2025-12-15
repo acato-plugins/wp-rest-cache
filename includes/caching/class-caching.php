@@ -378,6 +378,31 @@ class Caching {
 	}
 
 	/**
+	 * Fired upon WordPress 'updated_post_meta' hook. Delete all related caches.
+	 *
+	 * @param int $meta_id ID of updated metadata entry.
+	 * @param int $object_id ID of the object metadata is for.
+	 *
+	 * @return void
+	 */
+	public function updated_post_meta( $meta_id, $object_id ) {
+		$this->updated_meta( 'post', $object_id );
+	}
+
+	/**
+	 * Delete related caches when metadata is updated.
+	 *
+	 * @param string $meta_type The meta type, can be any of post, comment, term or user.
+	 * @param int    $object_id ID of the object metadata is for.
+	 *
+	 * @return void
+	 */
+	private function updated_meta( $meta_type, $object_id ) {
+		$meta_subtype = get_object_subtype( $meta_type, $object_id );
+		$this->delete_related_caches( $object_id, $meta_subtype );
+	}
+
+	/**
 	 * Fired upon WordPress 'add_attachment' hook. Delete all non-single endpoint caches for attachments.
 	 *
 	 * @return void
@@ -438,6 +463,18 @@ class Caching {
 	}
 
 	/**
+	 * Fired upon WordPress 'updated_term_meta' hook. Delete all related caches.
+	 *
+	 * @param int $meta_id ID of updated metadata entry.
+	 * @param int $object_id ID of the object metadata is for.
+	 *
+	 * @return void
+	 */
+	public function updated_term_meta( $meta_id, $object_id ) {
+		$this->updated_meta( 'term', $object_id );
+	}
+
+	/**
 	 * Fired upon WordPress 'profile_update' hook. Delete all related caches for this user.
 	 *
 	 * @param int $user_id User ID.
@@ -470,6 +507,18 @@ class Caching {
 	}
 
 	/**
+	 * Fired upon WordPress 'updated_user_meta' hook. Delete all related caches.
+	 *
+	 * @param int $meta_id ID of updated metadata entry.
+	 * @param int $object_id ID of the object metadata is for.
+	 *
+	 * @return void
+	 */
+	public function updated_user_meta( $meta_id, $object_id ) {
+		$this->updated_meta( 'user', $object_id );
+	}
+
+	/**
 	 * Fired upon WordPress 'deleted_comment', 'trashed_comment' and 'spammed_comment' hooks. Delete all related caches
 	 * for this comment, including all single cache statistics if comment is deleted.
 	 *
@@ -497,6 +546,18 @@ class Caching {
 	 */
 	public function delete_comment_type_related_caches() {
 		$this->delete_object_type_caches( 'comment' );
+	}
+
+	/**
+	 * Fired upon WordPress 'updated_comment_meta' hook. Delete all related caches.
+	 *
+	 * @param int $meta_id ID of updated metadata entry.
+	 * @param int $object_id ID of the object metadata is for.
+	 *
+	 * @return void
+	 */
+	public function updated_comment_meta( $meta_id, $object_id ) {
+		$this->updated_meta( 'comment', $object_id );
 	}
 
 	/**
@@ -785,6 +846,19 @@ class Caching {
 		if ( is_array( $object_id ) || is_array( $object_type ) ) {
 			return;
 		}
+
+		/**
+		 * Insert cache relation.
+		 *
+		 * Allows external action upon inserting a cache relation.
+		 *
+		 * @since 2025.2.0
+		 *
+		 * @param int $cache_id The row id of the current cache.
+		 * @param int $object_id The id of the object the cache has a relation with.
+		 * @param string $object_type The object type of the object the cache has a relation with.
+		 */
+		do_action( 'wp_rest_cache/insert_cache_relation', $cache_id, $object_id, $object_type );
 
 		$wpdb->replace(
 			$this->db_table_relations,
