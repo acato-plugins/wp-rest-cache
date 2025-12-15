@@ -393,7 +393,7 @@ class Caching {
 	 * Delete related caches when metadata is updated.
 	 *
 	 * @param string $meta_type The meta type, can be any of post, comment, term or user.
-	 * @param int $object_id ID of the object metadata is for.
+	 * @param int    $object_id ID of the object metadata is for.
 	 *
 	 * @return void
 	 */
@@ -846,6 +846,19 @@ class Caching {
 		if ( is_array( $object_id ) || is_array( $object_type ) ) {
 			return;
 		}
+
+		/**
+		 * Insert cache relation.
+		 *
+		 * Allows external action upon inserting a cache relation.
+		 *
+		 * @since 2025.2.0
+		 *
+		 * @param int $cache_id The row id of the current cache.
+		 * @param int $object_id The id of the object the cache has a relation with.
+		 * @param string $object_type The object type of the object the cache has a relation with.
+		 */
+		do_action( 'wp_rest_cache/insert_cache_relation', $cache_id, $object_id, $object_type );
 
 		$wpdb->replace(
 			$this->db_table_relations,
