@@ -187,57 +187,15 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 2026.1.0 =
+Release Date: January 14th, 2026
+
+Improvement: Only flush caches on meta update if filter returns true.
+
 = 2025.2.0 =
 Release Date: December 15th, 2025
 
 Improvement: Also flush caches when only the (post) meta is updated.
-
-= 2025.1.8 =
-Release Date: October 14th, 2025
-
-Improvement: Add option to flush or delete cache to cache details page.
-
-= 2025.1.7 =
-Release Date: September 1st, 2025
-
-Fix: Incorrect loading of translations in some cases.
-
-= 2025.1.6 =
-Release Date: August 19th, 2025
-
-Fix: Remove load_plugin_textdomain as it is no longer needed as of WP 4.6
-
-= 2025.1.5 =
-Release Date: August 18th, 2025
-
-Fix: incorrect url when regenerating expired caches
-Fix: PHP Notice _load_textdomain_just_in_time was called incorrectly
-
-= 2025.1.4 =
-Release Date: June 25th, 2025
-
-Fix: Better checking of existing primary key before updating it.
-
-= 2025.1.3 =
-Release Date: June 25th, 2025
-
-Fix: Check if primary key exists before dropping it.
-
-= 2025.1.2 =
-Release Date: June 11th, 2025
-
-Fix: Make sure comment endpoints are flushed when the corresponding post is deleted or unpublished.
-Improvement: Add VDP to FAQ.
-
-= 2025.1.1 =
-Release Date: June 6th, 2025
-
-Fix: A path-traversal vulnerability in the plugin was discovered and fixed. It was reported by Darius Sveikauskas.
-
-= 2025.1.0 =
-Release Date: April 10th, 2025
-
-Improvement: Flush media endpoint caches when a new media has been uploaded.
 
 = Earlier versions =
 For the changelog of earlier versions, please refer to [the changelog on Github](https://github.com/acato-plugins/wp-rest-cache/blob/master/changelog.md).
