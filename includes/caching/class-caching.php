@@ -418,6 +418,20 @@ class Caching {
 		 * @since 2026.1.0
 		 */
 		$flush = apply_filters( 'wp_rest_cache/flush_on_meta_update', false, $meta_type, $meta_id, $object_id, $meta_key, $_meta_value );
+
+		/**
+		 * Should caches be flushed on meta update? Based on meta type / meta key.
+		 *
+		 * Allows external determination if caches should be flushed when meta is updated.
+		 *
+		 * @param boolean $flush Whether the cache should be flushed (true) or not (false)
+		 * @param int $meta_id ID of updated metadata entry.
+		 * @param int $object_id ID of the object metadata is for.
+		 * @param mixed $_meta_value Metadata value.
+		 *
+		 * @since 2026.1.0
+		 */
+		$flush = apply_filters( "wp_rest_cache/flush_on_meta_update/{$meta_type}/{$meta_key}", $flush, $meta_id, $object_id, $_meta_value );
 		if ( true === $flush ) {
 			$meta_subtype = get_object_subtype( $meta_type, $object_id );
 			$this->delete_related_caches( $object_id, $meta_subtype );
