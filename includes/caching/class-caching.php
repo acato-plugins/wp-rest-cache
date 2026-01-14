@@ -380,26 +380,62 @@ class Caching {
 	/**
 	 * Fired upon WordPress 'updated_post_meta' hook. Delete all related caches.
 	 *
-	 * @param int $meta_id ID of updated metadata entry.
-	 * @param int $object_id ID of the object metadata is for.
+	 * @param int    $meta_id ID of updated metadata entry.
+	 * @param int    $object_id ID of the object metadata is for.
+	 * @param string $meta_key Metadata key.
+	 * @param mixed  $_meta_value Metadata value.
 	 *
 	 * @return void
 	 */
-	public function updated_post_meta( $meta_id, $object_id ) {
-		$this->updated_meta( 'post', $object_id );
+	public function updated_post_meta( $meta_id, $object_id, $meta_key, $_meta_value ) {
+		$this->updated_meta( 'post', $meta_id, $object_id, $meta_key, $_meta_value );
 	}
 
 	/**
 	 * Delete related caches when metadata is updated.
 	 *
 	 * @param string $meta_type The meta type, can be any of post, comment, term or user.
+	 * @param int    $meta_id ID of updated metadata entry.
 	 * @param int    $object_id ID of the object metadata is for.
+	 * @param string $meta_key Metadata key.
+	 * @param mixed  $_meta_value Metadata value.
 	 *
 	 * @return void
 	 */
-	private function updated_meta( $meta_type, $object_id ) {
-		$meta_subtype = get_object_subtype( $meta_type, $object_id );
-		$this->delete_related_caches( $object_id, $meta_subtype );
+	private function updated_meta( $meta_type, $meta_id, $object_id, $meta_key, $_meta_value ) {
+		/**
+		 * Should caches be flushed on meta update?
+		 *
+		 * Allows external determination if caches should be flushed when meta is updated.
+		 *
+		 * @param boolean $flush Whether the cache should be flushed (true) or not (false)
+		 * @param string $meta_type The meta type, can be any of post, comment, term or user.
+		 * @param int $meta_id ID of updated metadata entry.
+		 * @param int $object_id ID of the object metadata is for.
+		 * @param string $meta_key Metadata key.
+		 * @param mixed $_meta_value Metadata value.
+		 *
+		 * @since 2026.1.0
+		 */
+		$flush = apply_filters( 'wp_rest_cache/flush_on_meta_update', false, $meta_type, $meta_id, $object_id, $meta_key, $_meta_value );
+
+		/**
+		 * Should caches be flushed on meta update? Based on meta type / meta key.
+		 *
+		 * Allows external determination if caches should be flushed when meta is updated.
+		 *
+		 * @param boolean $flush Whether the cache should be flushed (true) or not (false)
+		 * @param int $meta_id ID of updated metadata entry.
+		 * @param int $object_id ID of the object metadata is for.
+		 * @param mixed $_meta_value Metadata value.
+		 *
+		 * @since 2026.1.0
+		 */
+		$flush = apply_filters( "wp_rest_cache/flush_on_meta_update/{$meta_type}/{$meta_key}", $flush, $meta_id, $object_id, $_meta_value );
+		if ( true === $flush ) {
+			$meta_subtype = get_object_subtype( $meta_type, $object_id );
+			$this->delete_related_caches( $object_id, $meta_subtype );
+		}
 	}
 
 	/**
@@ -465,13 +501,15 @@ class Caching {
 	/**
 	 * Fired upon WordPress 'updated_term_meta' hook. Delete all related caches.
 	 *
-	 * @param int $meta_id ID of updated metadata entry.
-	 * @param int $object_id ID of the object metadata is for.
+	 * @param int    $meta_id ID of updated metadata entry.
+	 * @param int    $object_id ID of the object metadata is for.
+	 * @param string $meta_key Metadata key.
+	 * @param mixed  $_meta_value Metadata value.
 	 *
 	 * @return void
 	 */
-	public function updated_term_meta( $meta_id, $object_id ) {
-		$this->updated_meta( 'term', $object_id );
+	public function updated_term_meta( $meta_id, $object_id, $meta_key, $_meta_value ) {
+		$this->updated_meta( 'term', $meta_id, $object_id, $meta_key, $_meta_value );
 	}
 
 	/**
@@ -509,13 +547,15 @@ class Caching {
 	/**
 	 * Fired upon WordPress 'updated_user_meta' hook. Delete all related caches.
 	 *
-	 * @param int $meta_id ID of updated metadata entry.
-	 * @param int $object_id ID of the object metadata is for.
+	 * @param int    $meta_id ID of updated metadata entry.
+	 * @param int    $object_id ID of the object metadata is for.
+	 * @param string $meta_key Metadata key.
+	 * @param mixed  $_meta_value Metadata value.
 	 *
 	 * @return void
 	 */
-	public function updated_user_meta( $meta_id, $object_id ) {
-		$this->updated_meta( 'user', $object_id );
+	public function updated_user_meta( $meta_id, $object_id, $meta_key, $_meta_value ) {
+		$this->updated_meta( 'user', $meta_id, $object_id, $meta_key, $_meta_value );
 	}
 
 	/**
@@ -551,13 +591,15 @@ class Caching {
 	/**
 	 * Fired upon WordPress 'updated_comment_meta' hook. Delete all related caches.
 	 *
-	 * @param int $meta_id ID of updated metadata entry.
-	 * @param int $object_id ID of the object metadata is for.
+	 * @param int    $meta_id ID of updated metadata entry.
+	 * @param int    $object_id ID of the object metadata is for.
+	 * @param string $meta_key Metadata key.
+	 * @param mixed  $_meta_value Metadata value.
 	 *
 	 * @return void
 	 */
-	public function updated_comment_meta( $meta_id, $object_id ) {
-		$this->updated_meta( 'comment', $object_id );
+	public function updated_comment_meta( $meta_id, $object_id, $meta_key, $_meta_value ) {
+		$this->updated_meta( 'comment', $meta_id, $object_id, $meta_key, $_meta_value );
 	}
 
 	/**
