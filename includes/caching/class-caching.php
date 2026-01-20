@@ -1186,6 +1186,8 @@ class Caching {
 	 * @return string The where clause.
 	 */
 	private function get_where_clause( $api_type, &$prepare_args ) {
+		global $wpdb;
+
 		$where          = '`cache_type` = %s AND `deleted` = %d';
 		$prepare_args[] = $api_type;
 		$prepare_args[] = false;
@@ -1196,8 +1198,9 @@ class Caching {
 
 		if ( ! empty( $search ) ) {
 			$where         .= ' AND ( `request_uri` LIKE %s OR `object_type` LIKE %s )';
-			$prepare_args[] = '%' . $search . '%';
-			$prepare_args[] = '%' . $search . '%';
+			$search_escaped = '%' . $wpdb->esc_like( $search ) . '%';
+			$prepare_args[] = $search_escaped;
+			$prepare_args[] = $search_escaped;
 		}
 
 		return $where;

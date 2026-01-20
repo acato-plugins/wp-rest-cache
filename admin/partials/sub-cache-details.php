@@ -9,6 +9,10 @@
  * @subpackage WP_Rest_Cache_Plugin/Admin/Partials
  */
 
+/** This filter is documented in admin/class-admin.php in the function create_menu(). */
+if ( ! current_user_can( apply_filters( 'wp_rest_cache/settings_capability', 'administrator' ) ) ) {
+	wp_die( esc_html__( 'You do not have permission to access this page.', 'wp-rest-cache' ) );
+}
 ?>
 <div class="wrap">
 	<h3><?php esc_html_e( 'Cache details', 'wp-rest-cache' ); ?></h3>
