@@ -127,7 +127,7 @@ class API_Caches_Table extends \WP_List_Table {
 			esc_attr( $page ),
 			'cache-details',
 			esc_attr( $item['cache_key'] ),
-			$item['cache_key']
+			esc_html( $item['cache_key'] )
 		);
 
 		$actions                  = [];
@@ -196,7 +196,7 @@ class API_Caches_Table extends \WP_List_Table {
 	 * @return string The output for this column.
 	 */
 	public function column_default( $item, $column_name ): string {
-		return $item[ $column_name ];
+		return esc_html( $item[ $column_name ] );
 	}
 
 	/**

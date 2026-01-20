@@ -170,13 +170,144 @@ class Admin {
 	 * @return void
 	 */
 	public function register_settings() {
-		register_setting( 'wp-rest-cache-settings', 'wp_rest_cache_timeout' );
-		register_setting( 'wp-rest-cache-settings', 'wp_rest_cache_timeout_interval' );
-		register_setting( 'wp-rest-cache-settings', 'wp_rest_cache_regenerate' );
-		register_setting( 'wp-rest-cache-settings', 'wp_rest_cache_regenerate_interval' );
-		register_setting( 'wp-rest-cache-settings', 'wp_rest_cache_regenerate_number' );
-		register_setting( 'wp-rest-cache-settings', 'wp_rest_cache_memcache_used' );
-		register_setting( 'wp-rest-cache-settings', 'wp_rest_cache_global_cacheable_request_headers' );
+		register_setting(
+			'wp-rest-cache-settings',
+			'wp_rest_cache_timeout',
+			[
+				'type'              => 'integer',
+				'sanitize_callback' => [ $this, 'sanitize_timeout' ],
+			]
+		);
+		register_setting(
+			'wp-rest-cache-settings',
+			'wp_rest_cache_timeout_interval',
+			[
+				'type'              => 'integer',
+				'sanitize_callback' => [ $this, 'sanitize_timeout_interval' ],
+			]
+		);
+		register_setting(
+			'wp-rest-cache-settings',
+			'wp_rest_cache_regenerate',
+			[
+				'type'              => 'string',
+				'sanitize_callback' => [ $this, 'sanitize_checkbox' ],
+			]
+		);
+		register_setting(
+			'wp-rest-cache-settings',
+			'wp_rest_cache_regenerate_interval',
+			[
+				'type'              => 'string',
+				'sanitize_callback' => [ $this, 'sanitize_regenerate_interval' ],
+			]
+		);
+		register_setting(
+			'wp-rest-cache-settings',
+			'wp_rest_cache_regenerate_number',
+			[
+				'type'              => 'integer',
+				'sanitize_callback' => [ $this, 'sanitize_regenerate_number' ],
+			]
+		);
+		register_setting(
+			'wp-rest-cache-settings',
+			'wp_rest_cache_memcache_used',
+			[
+				'type'              => 'string',
+				'sanitize_callback' => [ $this, 'sanitize_checkbox' ],
+			]
+		);
+		register_setting(
+			'wp-rest-cache-settings',
+			'wp_rest_cache_global_cacheable_request_headers',
+			[
+				'type'              => 'string',
+				'sanitize_callback' => [ $this, 'sanitize_cacheable_request_headers' ],
+			]
+		);
+	}
+
+	/**
+	 * Sanitize the timeout setting.
+	 *
+	 * @param mixed $value The value to sanitize.
+	 *
+	 * @return int The sanitized value.
+	 */
+	public function sanitize_timeout( $value ): int {
+		$value = absint( $value );
+		return max( 1, $value );
+	}
+
+	/**
+	 * Sanitize the timeout interval setting.
+	 *
+	 * @param mixed $value The value to sanitize.
+	 *
+	 * @return int The sanitized value.
+	 */
+	public function sanitize_timeout_interval( $value ): int {
+		$allowed = [
+			MINUTE_IN_SECONDS,
+			HOUR_IN_SECONDS,
+			DAY_IN_SECONDS,
+			WEEK_IN_SECONDS,
+			MONTH_IN_SECONDS,
+			YEAR_IN_SECONDS,
+		];
+		$value   = absint( $value );
+		return in_array( $value, $allowed, true ) ? $value : YEAR_IN_SECONDS;
+	}
+
+	/**
+	 * Sanitize a checkbox setting.
+	 *
+	 * @param mixed $value The value to sanitize.
+	 *
+	 * @return string The sanitized value ('1' or '').
+	 */
+	public function sanitize_checkbox( $value ): string {
+		return '1' === $value ? '1' : '';
+	}
+
+	/**
+	 * Sanitize the regenerate interval setting.
+	 *
+	 * @param mixed $value The value to sanitize.
+	 *
+	 * @return string The sanitized value.
+	 */
+	public function sanitize_regenerate_interval( $value ): string {
+		$schedules = wp_get_schedules();
+		$value     = sanitize_text_field( $value );
+		return isset( $schedules[ $value ] ) ? $value : 'twicedaily';
+	}
+
+	/**
+	 * Sanitize the regenerate number setting.
+	 *
+	 * @param mixed $value The value to sanitize.
+	 *
+	 * @return int The sanitized value.
+	 */
+	public function sanitize_regenerate_number( $value ): int {
+		$value = absint( $value );
+		return max( 1, $value );
+	}
+
+	/**
+	 * Sanitize the global cacheable request headers setting.
+	 *
+	 * @param mixed $value The value to sanitize.
+	 *
+	 * @return string The sanitized value.
+	 */
+	public function sanitize_cacheable_request_headers( $value ): string {
+		$value   = sanitize_text_field( $value );
+		$headers = array_map( 'trim', explode( ',', $value ) );
+		$headers = array_filter( $headers );
+		return implode( ',', $headers );
 	}
 
 	/**
@@ -185,6 +316,10 @@ class Admin {
 	 * @return void
 	 */
 	public function settings_page() {
+		/** This filter is documented in the function create_menu(). */
+		if ( ! current_user_can( apply_filters( 'wp_rest_cache/settings_capability', 'administrator' ) ) ) {
+			wp_die( esc_html__( 'You do not have permission to access this page.', 'wp-rest-cache' ) );
+		}
 		$this->settings_panels = apply_filters( 'wp_rest_cache/settings_panels', $this->settings_panels );
 
 		$sub = filter_input( INPUT_GET, 'sub', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
@@ -434,6 +569,10 @@ class Admin {
 	 */
 	public function flush_caches() {
 		check_ajax_referer( 'wp_rest_cache_clear_cache_ajax', 'wp_rest_cache_nonce' );
+		/** This filter is documented in the function create_menu(). */
+		if ( ! current_user_can( apply_filters( 'wp_rest_cache/settings_capability', 'administrator' ) ) ) {
+			wp_die( esc_html__( 'You do not have permission to perform this action.', 'wp-rest-cache' ) );
+		}
 		$delete_caches = filter_input( INPUT_POST, 'delete_caches', FILTER_VALIDATE_BOOLEAN );
 
 		$caching = Caching::get_instance();
