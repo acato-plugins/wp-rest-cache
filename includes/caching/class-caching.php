@@ -357,7 +357,7 @@ class Caching {
 
 	/**
 	 * Fired upon WordPress 'transition_post_status' hook. Delete all non-single endpoint caches for this post type if
-	 * the new or the old status is 'publish'.
+	 * the new or the old status (but not both) is 'publish'.
 	 *
 	 * @param string   $new_status The new status of the post.
 	 * @param string   $old_status The old status of the post.
@@ -366,7 +366,7 @@ class Caching {
 	 * @return void
 	 */
 	public function transition_post_status( $new_status, $old_status, $post ) {
-		if ( 'publish' !== $new_status && 'publish' !== $old_status ) {
+		if ( $new_status === $old_status || ( 'publish' !== $new_status && 'publish' !== $old_status ) ) {
 			return;
 		}
 
