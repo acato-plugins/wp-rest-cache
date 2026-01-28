@@ -513,6 +513,91 @@ class Caching {
 	}
 
 	/**
+	 * Fired upon WordPress 'set_object_terms' hook. Delete all related caches.
+	 *
+	 * @param int    $object_id ID of updated metadata entry.
+	 * @param mixed  $terms An array of object term IDs or slugs.
+	 * @param array  $tt_ids An array of term taxonomy IDs.
+	 * @param string $taxonomy Taxonomy slug.
+	 * @param bool   $append Whether to append new terms to the old terms.
+	 * @param array  $old_tt_ids Old array of term taxonomy IDs.
+	 *
+	 * @return void
+	 */
+	public function set_object_terms( $object_id, $terms, $tt_ids, $taxonomy, $append, $old_tt_ids ) {
+		/**
+		 * Should caches be flushed on setting object terms?
+		 *
+		 * Allows external determination if caches should be flushed when terms are set.
+		 *
+		 * @param boolean $flush Whether the cache should be flushed (true) or not (false)
+		 * @param int    $object_id ID of updated metadata entry.
+		 * @param mixed  $terms An array of object term IDs or slugs.
+		 * @param array  $tt_ids An array of term taxonomy IDs.
+		 * @param string $taxonomy Taxonomy slug.
+		 * @param bool   $append Whether to append new terms to the old terms.
+		 * @param array  $old_tt_ids Old array of term taxonomy IDs.
+		 *
+		 * @since 2026.1.0
+		 */
+		$flush = apply_filters( 'wp_rest_cache/flush_on_set_terms', false, $object_id, $terms, $tt_ids, $taxonomy, $append, $old_tt_ids );
+
+		if ( true !== $flush ) return;
+
+		// Get old term IDs
+		$before = get_terms([
+			'taxonomy'         => $taxonomy,
+			'term_taxonomy_id' => (array) $old_tt_ids,
+			'hide_empty'       => false,
+			'fields'           => 'ids',
+		]);
+
+		// Get new term IDs
+		$after = wp_get_object_terms($object_id, $taxonomy, ['fields' => 'ids']);
+	
+		if( $append ){
+			// added terms only
+			$affected = array_values( array_diff( $after, $before ) );
+		} else {
+			// added and removed terms
+			$affected = array_values(
+				array_unique(
+					array_merge(
+						array_diff( $after, $before ),
+						array_diff( $before, $after )
+					)
+				)
+			);
+		}
+	
+		if ( empty( $affected ) ) return;
+	
+		$to_invalidate = $affected;
+
+		// get parent term IDs
+		if ( is_taxonomy_hierarchical( $taxonomy ) ) {
+			foreach ( $affected as $term_id ) {
+				$ancestors = get_ancestors( (int) $term_id, $taxonomy );
+				if ( $ancestors ) {
+					$to_invalidate = array_merge( $to_invalidate, $ancestors );
+				}
+			}
+	
+			$affected = array_values(
+				array_unique(
+					$to_invalidate
+				)
+			);
+		}
+	
+	    $cache = \WP_Rest_Cache_Plugin\Includes\Caching\Caching::get_instance();
+	
+	    foreach ( $affected as $term_id ) {
+	        $cache->delete_related_caches( (int) $term_id, $taxonomy );
+	    }
+	}
+
+	/**
 	 * Fired upon WordPress 'profile_update' hook. Delete all related caches for this user.
 	 *
 	 * @param int $user_id User ID.
