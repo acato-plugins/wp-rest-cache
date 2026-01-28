@@ -4,7 +4,7 @@ Tags: cache, wp-rest-api, api, rest, rest cache
 Requires at least: 4.7
 Tested up to: 6.8
 Requires PHP: 7.0
-Stable tag: 2026.1.0
+Stable tag: 2026.1.1
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl.html
 
@@ -186,6 +186,12 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 5. Cache details page - Cache data.
 
 == Changelog ==
+
+= 2026.1.1 =
+Release Date: January 20th, 2026
+
+Fix: A XSS vulnerability in the plugin was discovered and fixed. It was reported by Nguyen Ba Khanh.
+Fix: Improved transition_post_status_logic. (Contribution by: Moshe Gross)
 
 = 2026.1.0 =
 Release Date: January 14th, 2026
