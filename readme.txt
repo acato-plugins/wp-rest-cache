@@ -191,6 +191,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 Release Date: January 20th, 2026
 
 Fix: A XSS vulnerability in the plugin was discovered and fixed. It was reported by Nguyen Ba Khanh.
+Fix: Improved transition_post_status_logic. (Contribution by: Moshe Gross)
 
 = 2026.1.0 =
 Release Date: January 14th, 2026
