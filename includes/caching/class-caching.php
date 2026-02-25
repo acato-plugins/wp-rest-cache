@@ -174,7 +174,7 @@ class Caching {
 
 		$this->register_endpoint_cache( $cache_key, $value, $uri, $request_headers, $request_method );
 
-		set_transient(
+		$result = set_transient(
 			$this->transient_key( $cache_key ),
 			$value,
 			$this->get_timeout(
@@ -187,6 +187,13 @@ class Caching {
 				]
 			)
 		);
+
+		if ( false === $result && defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+			// translators: %1$s: The endpoint URI, %2$s: The cache key.
+			$message = sprintf( __( 'WP REST Cache: Failed to set cache for endpoint: %1$s (cache_key: %2$s)', 'wp-rest-cache' ), $uri, $cache_key );
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			error_log( $message );
+		}
 	}
 
 	/**
