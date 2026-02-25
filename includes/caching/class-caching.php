@@ -174,7 +174,7 @@ class Caching {
 
 		$this->register_endpoint_cache( $cache_key, $value, $uri, $request_headers, $request_method );
 
-		set_transient(
+		$result = set_transient(
 			$this->transient_key( $cache_key ),
 			$value,
 			$this->get_timeout(
@@ -187,6 +187,13 @@ class Caching {
 				]
 			)
 		);
+
+		if ( false === $result && defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+			// translators: %1$s: The endpoint URI, %2$s: The cache key.
+			$message = sprintf( __( 'WP REST Cache: Failed to set cache for endpoint: %1$s (cache_key: %2$s)', 'wp-rest-cache' ), $uri, $cache_key );
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			error_log( $message );
+		}
 	}
 
 	/**
@@ -245,7 +252,7 @@ class Caching {
 		global $wpdb;
 
 		$uri_parts    = wp_parse_url( $endpoint );
-		$request_path = rtrim( $uri_parts['path'], '/' );
+		$request_path = rtrim( $uri_parts['path'] ?? '', '/' );
 
 		if ( self::FLUSH_STRICT === $strictness && isset( $uri_parts['query'] ) && ! empty( $uri_parts['query'] ) ) {
 			parse_str( $uri_parts['query'], $params );
@@ -510,6 +517,99 @@ class Caching {
 	 */
 	public function updated_term_meta( $meta_id, $object_id, $meta_key, $_meta_value ) {
 		$this->updated_meta( 'term', $meta_id, $object_id, $meta_key, $_meta_value );
+	}
+
+	/**
+	 * Fired upon WordPress 'set_object_terms' hook. Delete all related caches.
+	 *
+	 * @since 2026.1.2
+	 *
+	 * @param int               $object_id  ID of the object.
+	 * @param array<int,string> $terms      An array of object term IDs or slugs.
+	 * @param array<int,int>    $tt_ids     An array of term taxonomy IDs.
+	 * @param string            $taxonomy   Taxonomy slug.
+	 * @param bool              $append     Whether to append new terms to the old terms.
+	 * @param array<int,int>    $old_tt_ids Old array of term taxonomy IDs.
+	 *
+	 * @return void
+	 */
+	public function set_object_terms( $object_id, $terms, $tt_ids, $taxonomy, $append, $old_tt_ids ) {
+		/**
+		 * Should caches be flushed on setting object terms?
+		 *
+		 * Allows to disable cache flushing when terms are set on an object.
+		 *
+		 * @since 2026.1.2
+		 *
+		 * @param bool               $flush       Whether the cache should be flushed (true) or not (false).
+		 * @param int                $object_id   ID of the object.
+		 * @param array<int,string>  $terms       An array of object term IDs or slugs.
+		 * @param array<int,int>     $tt_ids      An array of term taxonomy IDs.
+		 * @param string             $taxonomy    Taxonomy slug.
+		 * @param bool               $append      Whether to append new terms to the old terms.
+		 * @param array<int,int>     $old_tt_ids  Old array of term taxonomy IDs.
+		 */
+		$flush = apply_filters( 'wp_rest_cache/flush_on_set_terms', true, $object_id, $terms, $tt_ids, $taxonomy, $append, $old_tt_ids );
+
+		if ( true !== $flush ) {
+			return;
+		}
+
+		// Get old term IDs.
+		$old_term_ids = get_terms(
+			[
+				'taxonomy'         => $taxonomy,
+				'term_taxonomy_id' => (array) $old_tt_ids,
+				'hide_empty'       => false,
+				'fields'           => 'ids',
+			]
+		);
+
+		if ( is_wp_error( $old_term_ids ) ) {
+			$old_term_ids = [];
+		}
+
+		// Get new term IDs.
+		$new_term_ids = wp_get_object_terms( $object_id, $taxonomy, [ 'fields' => 'ids' ] );
+
+		if ( is_wp_error( $new_term_ids ) ) {
+			$new_term_ids = [];
+		}
+
+		if ( $append ) {
+			// Added terms only.
+			$affected_term_ids = array_diff( $new_term_ids, $old_term_ids );
+		} else {
+			// Added and removed terms.
+			$affected_term_ids = array_unique(
+				array_merge(
+					array_diff( $new_term_ids, $old_term_ids ),
+					array_diff( $old_term_ids, $new_term_ids )
+				)
+			);
+		}
+
+		if ( empty( $affected_term_ids ) ) {
+			return;
+		}
+
+		$term_ids_to_invalidate = $affected_term_ids;
+
+		// Get parent term IDs for hierarchical taxonomies.
+		if ( is_taxonomy_hierarchical( $taxonomy ) ) {
+			foreach ( $affected_term_ids as $term_id ) {
+				$ancestors = get_ancestors( (int) $term_id, $taxonomy );
+				if ( $ancestors ) {
+					$term_ids_to_invalidate = array_merge( $term_ids_to_invalidate, $ancestors );
+				}
+			}
+
+			$term_ids_to_invalidate = array_unique( $term_ids_to_invalidate );
+		}
+
+		foreach ( $term_ids_to_invalidate as $term_id ) {
+			$this->delete_related_caches( (int) $term_id, $taxonomy );
+		}
 	}
 
 	/**
