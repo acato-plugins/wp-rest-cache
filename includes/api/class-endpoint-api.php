@@ -111,7 +111,7 @@ class Endpoint_Api {
 			$request_uri = substr( $request_uri, 1 );
 		}
 		$uri_parts    = wp_parse_url( $request_uri );
-		$request_path = rtrim( $uri_parts['path'], '/' );
+		$request_path = rtrim( $uri_parts['path'] ?? '', '/' );
 
 		if ( isset( $uri_parts['query'] ) && ! empty( $uri_parts['query'] ) ) {
 			parse_str( $uri_parts['query'], $params );
