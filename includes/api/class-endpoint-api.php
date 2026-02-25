@@ -336,7 +336,19 @@ class Endpoint_Api {
 
 		// Parameter to skip caching.
 		if ( true === filter_has_var( INPUT_GET, 'skip_cache' ) ) {
-			return true;
+			/**
+			 * Filter whether to allow the skip_cache parameter.
+			 *
+			 * Allows to disable or restrict the skip_cache GET parameter to prevent
+			 * unauthorized cache bypassing which could be used for denial-of-service attacks.
+			 *
+			 * @since 2026.1.2
+			 *
+			 * @param bool $allow Whether to allow skip_cache. Default true.
+			 */
+			if ( apply_filters( 'wp_rest_cache/allow_skip_cache', true ) ) {
+				return true;
+			}
 		}
 
 		// Make sure we only apply to allowed api calls.
