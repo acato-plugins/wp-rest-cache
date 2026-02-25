@@ -252,7 +252,7 @@ class Caching {
 		global $wpdb;
 
 		$uri_parts    = wp_parse_url( $endpoint );
-		$request_path = rtrim( $uri_parts['path'], '/' );
+		$request_path = rtrim( $uri_parts['path'] ?? '', '/' );
 
 		if ( self::FLUSH_STRICT === $strictness && isset( $uri_parts['query'] ) && ! empty( $uri_parts['query'] ) ) {
 			parse_str( $uri_parts['query'], $params );
