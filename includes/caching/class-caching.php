@@ -749,6 +749,16 @@ class Caching {
 	public function delete_related_caches( $id, $object_type, $force_single_delete = false, $delete = false ) {
 		global $wpdb;
 
+		/**
+		 * Fires before caches related to an object are flushed.
+		 *
+		 * @since 2024.1.0
+		 *
+		 * @param int    $id          The object ID.
+		 * @param string $object_type The object type.
+		 */
+		do_action( 'wp_rest_cache/pre_delete_related_caches', $id, $object_type );
+
 		$set_clause = '`c`.`expiration` = %s';
 
 		if ( $delete ) {
@@ -785,6 +795,15 @@ class Caching {
 	 */
 	public function delete_object_type_caches( $object_type, $delete = false ) {
 		global $wpdb;
+
+		/**
+		 * Fires before all non-single caches for an object type are flushed.
+		 *
+		 * @since 2024.1.0
+		 *
+		 * @param string $object_type The object type.
+		 */
+		do_action( 'wp_rest_cache/pre_delete_object_type_caches', $object_type );
 
 		if ( $delete ) {
 			$set_clause = '`expiration` = %s,
