@@ -555,61 +555,164 @@ class Caching {
 			return;
 		}
 
-		// Get old term IDs.
-		$old_term_ids = get_terms(
+		// Early exit if no terms changed (compare term taxonomy IDs directly to avoid database queries).
+		$tt_ids_sorted     = array_map( 'intval', (array) $tt_ids );
+		$old_tt_ids_sorted = array_map( 'intval', (array) $old_tt_ids );
+		sort( $tt_ids_sorted );
+		sort( $old_tt_ids_sorted );
+		if ( $tt_ids_sorted === $old_tt_ids_sorted ) {
+			return;
+		}
+
+		// Calculate affected terms using the difference between old and new term taxonomy IDs.
+		$added_tt_ids   = array_diff( $tt_ids_sorted, $old_tt_ids_sorted );
+		$removed_tt_ids = array_diff( $old_tt_ids_sorted, $tt_ids_sorted );
+
+		if ( $append ) {
+			$affected_tt_ids = $added_tt_ids;
+		} else {
+			$affected_tt_ids = array_unique( array_merge( $added_tt_ids, $removed_tt_ids ) );
+		}
+
+		if ( empty( $affected_tt_ids ) ) {
+			return;
+		}
+
+		// Get affected term IDs from term taxonomy IDs.
+		$affected_term_ids = get_terms(
 			[
 				'taxonomy'         => $taxonomy,
-				'term_taxonomy_id' => (array) $old_tt_ids,
+				'term_taxonomy_id' => $affected_tt_ids,
 				'hide_empty'       => false,
 				'fields'           => 'ids',
 			]
 		);
 
-		if ( is_wp_error( $old_term_ids ) ) {
-			$old_term_ids = [];
-		}
-
-		// Get new term IDs.
-		$new_term_ids = wp_get_object_terms( $object_id, $taxonomy, [ 'fields' => 'ids' ] );
-
-		if ( is_wp_error( $new_term_ids ) ) {
-			$new_term_ids = [];
-		}
-
-		if ( $append ) {
-			// Added terms only.
-			$affected_term_ids = array_diff( $new_term_ids, $old_term_ids );
-		} else {
-			// Added and removed terms.
-			$affected_term_ids = array_unique(
-				array_merge(
-					array_diff( $new_term_ids, $old_term_ids ),
-					array_diff( $old_term_ids, $new_term_ids )
-				)
-			);
-		}
-
-		if ( empty( $affected_term_ids ) ) {
+		if ( is_wp_error( $affected_term_ids ) || empty( $affected_term_ids ) ) {
 			return;
 		}
 
-		$term_ids_to_invalidate = $affected_term_ids;
+		$term_ids_to_invalidate = array_map( 'intval', $affected_term_ids );
 
-		// Get parent term IDs for hierarchical taxonomies.
+		// Get all ancestor term IDs for hierarchical taxonomies in a single query.
 		if ( is_taxonomy_hierarchical( $taxonomy ) ) {
-			foreach ( $affected_term_ids as $term_id ) {
-				$ancestors = get_ancestors( (int) $term_id, $taxonomy );
-				if ( $ancestors ) {
-					$term_ids_to_invalidate = array_merge( $term_ids_to_invalidate, $ancestors );
-				}
+			$ancestor_ids = $this->get_all_term_ancestors( $affected_term_ids, $taxonomy );
+			if ( ! empty( $ancestor_ids ) ) {
+				$term_ids_to_invalidate = array_unique( array_merge( $term_ids_to_invalidate, $ancestor_ids ) );
 			}
-
-			$term_ids_to_invalidate = array_unique( $term_ids_to_invalidate );
 		}
 
-		foreach ( $term_ids_to_invalidate as $term_id ) {
-			$this->delete_related_caches( (int) $term_id, $taxonomy );
+		// Batch delete all related caches in a single query.
+		$this->delete_related_caches_batch( $term_ids_to_invalidate, $taxonomy );
+	}
+
+	/**
+	 * Get all ancestor term IDs for a set of terms in a single query.
+	 *
+	 * @since 2026.1.3
+	 *
+	 * @param array<int,int> $term_ids  Array of term IDs to get ancestors for.
+	 * @param string         $taxonomy  Taxonomy slug.
+	 *
+	 * @return array<int,int> Array of ancestor term IDs.
+	 */
+	private function get_all_term_ancestors( $term_ids, $taxonomy ) {
+		global $wpdb;
+
+		if ( empty( $term_ids ) ) {
+			return [];
 		}
+
+		$term_ids       = array_map( 'intval', $term_ids );
+		$ancestors      = [];
+		$terms_to_check = $term_ids;
+
+		// Get the taxonomy's hierarchical term data in a single query.
+		// We'll traverse up the parent chain iteratively to avoid recursive queries.
+		$placeholders = implode( ',', array_fill( 0, count( $term_ids ), '%d' ) );
+
+		// Get all terms in this taxonomy that could be ancestors (have no parent or are parents of our terms).
+		$all_terms = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT t.term_id, tt.parent
+			FROM {$wpdb->terms} t
+			INNER JOIN {$wpdb->term_taxonomy} tt ON t.term_id = tt.term_id
+			WHERE tt.taxonomy = %s AND tt.parent > 0",
+				$taxonomy
+			)
+		);
+
+		// Build a parent lookup map.
+		$parent_map = [];
+		foreach ( $all_terms as $term ) {
+			$parent_map[ (int) $term->term_id ] = (int) $term->parent;
+		}
+
+		// Traverse up the parent chain for each affected term.
+		foreach ( $term_ids as $term_id ) {
+			$current = $term_id;
+			while ( isset( $parent_map[ $current ] ) && $parent_map[ $current ] > 0 ) {
+				$parent = $parent_map[ $current ];
+				if ( ! in_array( $parent, $ancestors, true ) ) {
+					$ancestors[] = $parent;
+				}
+				$current = $parent;
+			}
+		}
+
+		return $ancestors;
+	}
+
+	/**
+	 * Delete related caches for multiple object IDs of the same type in a single query.
+	 *
+	 * @since 2026.1.3
+	 *
+	 * @param array<int,int> $ids         Array of object IDs.
+	 * @param string         $object_type The type of the objects.
+	 *
+	 * @return int The number of affected cache rows.
+	 */
+	private function delete_related_caches_batch( $ids, $object_type ) {
+		global $wpdb;
+
+		if ( empty( $ids ) ) {
+			return 0;
+		}
+
+		$ids = array_map( 'intval', $ids );
+
+		/**
+		 * Fires before caches related to objects are flushed in batch.
+		 *
+		 * @since 2026.1.3
+		 *
+		 * @param array<int,int> $ids         The object IDs.
+		 * @param string         $object_type The object type.
+		 */
+		do_action( 'wp_rest_cache/pre_delete_related_caches_batch', $ids, $object_type );
+
+		$placeholders = implode( ',', array_fill( 0, count( $ids ), '%s' ) );
+
+		$sql = "UPDATE `{$this->db_table_caches}` AS `c`
+			INNER JOIN `{$this->db_table_relations}` AS `r`
+				ON `r`.`cache_id` = `c`.`cache_id`
+			SET `c`.`expiration` = %s
+			WHERE `r`.`object_id` IN ({$placeholders})
+			AND `r`.`object_type` = %s";
+
+		$prepare_args   = [ date_i18n( 'Y-m-d H:i:s', 1 ) ];
+		$prepare_args   = array_merge( $prepare_args, array_map( 'strval', $ids ) );
+		$prepare_args[] = $object_type;
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		$affected_rows = $wpdb->query( $wpdb->prepare( $sql, $prepare_args ) );
+
+		if ( 0 !== $affected_rows && false !== $affected_rows ) {
+			$this->schedule_cleanup();
+		}
+
+		return $affected_rows;
 	}
 
 	/**
@@ -749,6 +852,16 @@ class Caching {
 	public function delete_related_caches( $id, $object_type, $force_single_delete = false, $delete = false ) {
 		global $wpdb;
 
+		/**
+		 * Fires before caches related to an object are flushed.
+		 *
+		 * @since 2024.1.0
+		 *
+		 * @param int    $id          The object ID.
+		 * @param string $object_type The object type.
+		 */
+		do_action( 'wp_rest_cache/pre_delete_related_caches', $id, $object_type );
+
 		$set_clause = '`c`.`expiration` = %s';
 
 		if ( $delete ) {
@@ -785,6 +898,15 @@ class Caching {
 	 */
 	public function delete_object_type_caches( $object_type, $delete = false ) {
 		global $wpdb;
+
+		/**
+		 * Fires before all non-single caches for an object type are flushed.
+		 *
+		 * @since 2024.1.0
+		 *
+		 * @param string $object_type The object type.
+		 */
+		do_action( 'wp_rest_cache/pre_delete_object_type_caches', $object_type );
 
 		if ( $delete ) {
 			$set_clause = '`expiration` = %s,
