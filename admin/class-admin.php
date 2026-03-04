@@ -322,6 +322,16 @@ class Admin {
 		}
 		$this->settings_panels = apply_filters( 'wp_rest_cache/settings_panels', $this->settings_panels );
 
+		// Sort panels by position.
+		uasort(
+			$this->settings_panels,
+			function ( $a, $b ) {
+				$pos_a = $a['position'] ?? 100;
+				$pos_b = $b['position'] ?? 100;
+				return $pos_a <=> $pos_b;
+			}
+		);
+
 		$sub = filter_input( INPUT_GET, 'sub', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
 		if ( empty( $sub ) ) {
 			$sub = 'settings';
@@ -660,9 +670,18 @@ class Admin {
 	 */
 	public function filter_settings_panels( $panels ) {
 		$settings_panels = [
-			'settings'     => [ 'label' => __( 'Settings', 'wp-rest-cache' ) ],
-			'endpoint-api' => [ 'label' => __( 'Endpoint API Caches', 'wp-rest-cache' ) ],
-			'clear-cache'  => [ 'label' => __( 'Clear Caches', 'wp-rest-cache' ) ],
+			'settings'     => [
+				'label'    => __( 'Settings', 'wp-rest-cache' ),
+				'position' => 10,
+			],
+			'endpoint-api' => [
+				'label'    => __( 'Endpoint API Caches', 'wp-rest-cache' ),
+				'position' => 20,
+			],
+			'clear-cache'  => [
+				'label'    => __( 'Clear Caches', 'wp-rest-cache' ),
+				'position' => 30,
+			],
 		];
 
 		return array_merge( $panels, $settings_panels );
