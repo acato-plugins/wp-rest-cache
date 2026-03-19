@@ -1374,7 +1374,17 @@ class Caching {
 			}
 		}
 
-		return $results;
+		/**
+		 * Filter the cache data returned for the API Caches table.
+		 *
+		 * Allows adding custom data to each cache item for display in the admin table.
+		 *
+		 * @since 2026.2.0
+		 *
+		 * @param array<int,array<string,mixed>> $results  The cache data.
+		 * @param string                         $api_type The API type (endpoint).
+		 */
+		return apply_filters( 'wp_rest_cache/api_caches_table_data', $results, $api_type );
 	}
 
 	/**

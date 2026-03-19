@@ -196,7 +196,22 @@ class API_Caches_Table extends \WP_List_Table {
 	 * @return string The output for this column.
 	 */
 	public function column_default( $item, $column_name ): string {
-		return esc_html( $item[ $column_name ] );
+		/**
+		 * Filter the output for a custom column in the API Caches table.
+		 *
+		 * @since 2026.2.0
+		 *
+		 * @param string|null         $output      The column output. Return non-null to use custom output.
+		 * @param array<string,mixed> $item        The cache item data.
+		 * @param string              $column_name The column name.
+		 */
+		$custom_output = apply_filters( 'wp_rest_cache/api_caches_table_column_output', null, $item, $column_name );
+
+		if ( null !== $custom_output ) {
+			return esc_html( $custom_output );
+		}
+
+		return esc_html( $item[ $column_name ] ?? '' );
 	}
 
 	/**
@@ -231,7 +246,14 @@ class API_Caches_Table extends \WP_List_Table {
 			'is_active'       => __( 'Active', 'wp-rest-cache' ),
 		];
 
-		return $columns;
+		/**
+		 * Filter the columns displayed in the API Caches table.
+		 *
+		 * @since 2026.2.0
+		 *
+		 * @param array<string,string> $columns The columns to display.
+		 */
+		return apply_filters( 'wp_rest_cache/api_caches_table_columns', $columns );
 	}
 
 	/**
