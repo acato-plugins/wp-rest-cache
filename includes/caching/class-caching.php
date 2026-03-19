@@ -1571,6 +1571,18 @@ class Caching {
 		$results = $wpdb->get_results( $sql, ARRAY_A );
 		foreach ( $results as &$result ) {
 			if ( 1 === strtotime( $result['expiration'] ) || false === get_transient( $this->transient_key( $result['cache_key'] ) ) ) {
+				/**
+				 * Filter whether to skip regeneration for a specific cache.
+				 *
+				 * @since 2026.2.0
+				 *
+				 * @param bool                $skip   Whether to skip regeneration. Default false.
+				 * @param array<string,mixed> $result The cache data.
+				 */
+				if ( apply_filters( 'wp_rest_cache/skip_cache_regeneration', false, $result ) ) {
+					continue;
+				}
+
 				// Regenerate.
 				$url    = Util::get_home_url() . $result['request_uri'];
 				$return = wp_remote_get(
