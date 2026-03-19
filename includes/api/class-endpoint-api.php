@@ -190,6 +190,21 @@ class Endpoint_Api {
 		}
 
 		$this->cache_key = md5( $this->request_uri . wp_json_encode( $this->request_headers ) . $request_method );
+
+		/**
+		 * Filter the generated cache key.
+		 *
+		 * Allows modification of the cache key before it is used for caching.
+		 * Useful for adding user-specific or role-based cache separation.
+		 *
+		 * @since 2026.2.0
+		 *
+		 * @param string $cache_key       The generated cache key.
+		 * @param string $request_uri     The request URI.
+		 * @param array  $request_headers The cacheable request headers.
+		 * @param string $request_method  The request method.
+		 */
+		$this->cache_key = apply_filters( 'wp_rest_cache/cache_key', $this->cache_key, $this->request_uri, $this->request_headers, $request_method );
 	}
 
 	/**
