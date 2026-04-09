@@ -584,9 +584,10 @@ class Admin {
 			wp_die( esc_html__( 'You do not have permission to perform this action.', 'wp-rest-cache' ) );
 		}
 		$delete_caches = filter_input( INPUT_POST, 'delete_caches', FILTER_VALIDATE_BOOLEAN );
+		$cache_filter  = filter_input( INPUT_POST, 'cache_filter', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
 
 		$caching = Caching::get_instance();
-		$caching->delete_all_caches( $delete_caches );
+		$caching->delete_all_caches( $delete_caches, ! empty( $cache_filter ) ? $cache_filter : false );
 
 		$result = [ 'percentage' => 100 ]; // deprecated, since we delete all caches at once, we should remove the progress bar.
 

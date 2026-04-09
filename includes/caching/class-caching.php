@@ -808,11 +808,12 @@ class Caching {
 	/**
 	 * Delete all caches.
 	 *
-	 * @param bool $delete True if caches need to be deleted instead of flushed.
+	 * @param bool         $delete       True if caches need to be deleted instead of flushed.
+	 * @param string|false $cache_filter Optional filter identifier passed to wp_rest_cache/filtered_cache_keys.
 	 *
 	 * @return int  The number of deleted caches.
 	 */
-	public function delete_all_caches( $delete ) {
+	public function delete_all_caches( $delete, $cache_filter = false ) {
 		global $wpdb;
 
 		$deleted = "( CASE
@@ -823,10 +824,52 @@ class Caching {
 			$deleted = '1';
 		}
 
+		$where_clause = '';
+
+		// Apply cache filter if specified.
+		if ( false !== $cache_filter ) {
+			/**
+			 * Filter to get cache keys matching a specific filter type.
+			 *
+			 * Returns an array of cache keys that match the filter criteria.
+			 * Used for filtering which caches to clear based on custom criteria.
+			 * If an empty array is returned, no caches will be cleared for this filter.
+			 *
+			 * @since 2026.2.0
+			 *
+			 * @param array  $cache_keys   Array of cache keys matching the filter (empty by default).
+			 * @param string $cache_filter The filter type identifier.
+			 */
+			$filtered_cache_keys = apply_filters( 'wp_rest_cache/filtered_cache_keys', [], $cache_filter );
+
+			if ( ! empty( $filtered_cache_keys ) ) {
+				// Sanitize cache keys - they should be MD5 hashes (32 hex chars).
+				$safe_keys = array_filter(
+					$filtered_cache_keys,
+					function ( $key ) {
+						return preg_match( '/^[a-f0-9]{32}$/i', $key );
+					}
+				);
+
+				if ( ! empty( $safe_keys ) ) {
+					$placeholders = implode( ',', array_fill( 0, count( $safe_keys ), '%s' ) );
+					// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+					$where_clause = $wpdb->prepare( "WHERE `cache_key` IN ({$placeholders})", $safe_keys );
+				} else {
+					// All keys were filtered out as invalid, nothing to clear.
+					return 0;
+				}
+			} else {
+				// Filter returned empty array, nothing to clear for this filter type.
+				return 0;
+			}
+		}
+
 		$sql =
 			"UPDATE `{$this->db_table_caches}`
 				SET `expiration` = %s,
-					`deleted` = {$deleted}";
+					`deleted` = {$deleted}
+				{$where_clause}";
 
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		$affected_rows = $wpdb->query( $wpdb->prepare( $sql, date_i18n( 'Y-m-d H:i:s', 1 ) ) );
