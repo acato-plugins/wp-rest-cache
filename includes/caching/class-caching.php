@@ -27,7 +27,7 @@ class Caching {
 	 *
 	 * @var string DB_VERSION The current version of the database tables.
 	 */
-	const DB_VERSION = '2025.1.0';
+	const DB_VERSION = '2026.1.0';
 
 	/**
 	 * The table name for the table where caches are stored together with their statistics.
@@ -1774,6 +1774,10 @@ class Caching {
 
 		$version = get_option( 'wp_rest_cache_database_version' );
 
+		if ( version_compare( '2026.1.0', $version, '>' ) ) {
+			$this->upgrade_2026_1_0();
+		}
+
 		$query = $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $this->db_table_caches ) );
 
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
@@ -1788,7 +1792,7 @@ class Caching {
 					`request_uri` LONGTEXT NOT NULL,
 					`request_headers` LONGTEXT NOT NULL,
 					`request_method` VARCHAR(10) NOT NULL,
-					`object_type` VARCHAR(191) NOT NULL,
+					`object_type` VARCHAR(50) NOT NULL,
 					`cache_hits` BIGINT(20) NOT NULL,
 					`is_single` TINYINT(1) NOT NULL,
 					`expiration` DATETIME NOT NULL,
@@ -1843,11 +1847,11 @@ class Caching {
 			$sql_relations =
 				"CREATE TABLE `{$this->db_table_relations}` (
 					`cache_id` BIGINT(20) NOT NULL,
-					`object_id` VARCHAR(191) NOT NULL,
-					`object_type` VARCHAR(191) NOT NULL,
+					`object_id` VARCHAR(100) NOT NULL,
+					`object_type` VARCHAR(50) NOT NULL,
 					PRIMARY KEY (`cache_id`, `object_id`, `object_type`),
 					KEY `cache_id` (`cache_id`),
-					KEY `object` (`object_id`(100), `object_type`(100))
+					KEY `object` (`object_id`, `object_type`)
 				)";
 
 			dbDelta( $sql_relations );
@@ -1871,6 +1875,49 @@ class Caching {
 			$item_caches = $this->get_api_data( 'item', 100, $count + 1 );
 			foreach ( $item_caches as $item_cache ) {
 				$this->delete_cache( $item_cache['cache_key'], true );
+			}
+		}
+	}
+
+	/**
+	 * Drop indexes that prevent shrinking `object_id` and `object_type` columns.
+	 *
+	 * The composite PRIMARY KEY added in 2025.1.0 combined with VARCHAR(191) columns produced a key
+	 * larger than the 1000-byte MyISAM / 767-byte InnoDB-without-large-prefix limit. dbDelta cannot
+	 * alter a column that is part of an index, so the affected indexes are dropped here; dbDelta
+	 * then recreates them with the shrunk column sizes.
+	 *
+	 * @return void
+	 */
+	private function upgrade_2026_1_0() {
+		global $wpdb;
+
+		$query = $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $this->db_table_caches ) );
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		if ( $this->db_table_caches === $wpdb->get_var( $query ) ) {
+			$check_index_query = "SHOW KEYS FROM `{$this->db_table_caches}` WHERE Key_name = 'non_single_caches'";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			if ( $wpdb->get_results( $check_index_query ) ) {
+				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+				$wpdb->query( "ALTER TABLE `{$this->db_table_caches}` DROP INDEX `non_single_caches`;" );
+			}
+		}
+
+		$query = $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $this->db_table_relations ) );
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		if ( $this->db_table_relations === $wpdb->get_var( $query ) ) {
+			$check_primary_query = "SHOW KEYS FROM `{$this->db_table_relations}` WHERE Key_name = 'PRIMARY'";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			if ( $wpdb->get_results( $check_primary_query ) ) {
+				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+				$wpdb->query( "ALTER TABLE `{$this->db_table_relations}` DROP PRIMARY KEY;" );
+			}
+
+			$check_object_query = "SHOW KEYS FROM `{$this->db_table_relations}` WHERE Key_name = 'object'";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			if ( $wpdb->get_results( $check_object_query ) ) {
+				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+				$wpdb->query( "ALTER TABLE `{$this->db_table_relations}` DROP INDEX `object`;" );
 			}
 		}
 	}
