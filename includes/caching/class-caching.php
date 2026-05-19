@@ -1816,34 +1816,6 @@ class Caching {
 		if ( self::DB_VERSION !== $version || $this->db_table_relations !== $current_db_version ) {
 			include_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
-			if ( $this->db_table_relations === $current_db_version && version_compare( '2020.1.1', $version, '>' ) ) {
-				// Added column lengths to INDEX, dbDelta doesn't detect it, so drop INDEX first.
-				$drop_query = "ALTER TABLE `{$this->db_table_relations}` DROP INDEX `object`;";
-				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-				$wpdb->query( $drop_query );
-			}
-
-			if ( $this->db_table_relations === $current_db_version && version_compare( '2025.1.0', $version, '>' ) ) {
-				// Added column to PRIMARY KEY, dbDelta doesn't detect it, so drop PRIMARY KEY first if it exists.
-				$check_primary_query = "SHOW KEYS FROM `{$this->db_table_relations}` WHERE Key_name = 'PRIMARY'";
-				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-				$current_pk_columns = $wpdb->get_results( $check_primary_query );
-
-				$current_pk_names = [];
-				foreach ( $current_pk_columns as $column ) {
-					// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
-					$current_pk_names[] = $column->Column_name;
-				}
-
-				$expected_pk_names = [ 'cache_id', 'object_id', 'object_type' ];
-
-				if ( $current_pk_names !== $expected_pk_names ) {
-					$drop_query = "ALTER TABLE `{$this->db_table_relations}` DROP PRIMARY KEY;";
-					// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-					$wpdb->query( $drop_query );
-				}
-			}
-
 			$sql_relations =
 				"CREATE TABLE `{$this->db_table_relations}` (
 					`cache_id` BIGINT(20) NOT NULL,
