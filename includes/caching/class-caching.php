@@ -261,11 +261,12 @@ class Caching {
 		}
 
 		$sql              = "UPDATE `{$this->db_table_caches}`
-		SET `expiration` = %s,
-            `deleted` = %d
-        WHERE ";
+		SET `expiration` = %s";
 		$prepare_params[] = date_i18n( 'Y-m-d H:i:s', 1 );
-		$prepare_params[] = (int) $force;
+		if ( $force ) {
+			$sql .= ', `deleted` = 1';
+		}
+		$sql .= ' WHERE ';
 		switch ( $strictness ) {
 			case self::FLUSH_STRICT:
 				$sql             .= ' `request_uri` = %s ';
