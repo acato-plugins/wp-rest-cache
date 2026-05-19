@@ -27,7 +27,7 @@ class Caching {
 	 *
 	 * @var string DB_VERSION The current version of the database tables.
 	 */
-	const DB_VERSION = '2025.1.0';
+	const DB_VERSION = '2026.1.0';
 
 	/**
 	 * The table name for the table where caches are stored together with their statistics.
@@ -808,11 +808,12 @@ class Caching {
 	/**
 	 * Delete all caches.
 	 *
-	 * @param bool $delete True if caches need to be deleted instead of flushed.
+	 * @param bool         $delete       True if caches need to be deleted instead of flushed.
+	 * @param string|false $cache_filter Optional filter identifier passed to wp_rest_cache/filtered_cache_keys.
 	 *
 	 * @return int  The number of deleted caches.
 	 */
-	public function delete_all_caches( $delete ) {
+	public function delete_all_caches( $delete, $cache_filter = false ) {
 		global $wpdb;
 
 		$deleted = "( CASE
@@ -823,10 +824,52 @@ class Caching {
 			$deleted = '1';
 		}
 
+		$where_clause = '';
+
+		// Apply cache filter if specified.
+		if ( false !== $cache_filter ) {
+			/**
+			 * Filter to get cache keys matching a specific filter type.
+			 *
+			 * Returns an array of cache keys that match the filter criteria.
+			 * Used for filtering which caches to clear based on custom criteria.
+			 * If an empty array is returned, no caches will be cleared for this filter.
+			 *
+			 * @since 2026.2.0
+			 *
+			 * @param array  $cache_keys   Array of cache keys matching the filter (empty by default).
+			 * @param string $cache_filter The filter type identifier.
+			 */
+			$filtered_cache_keys = apply_filters( 'wp_rest_cache/filtered_cache_keys', [], $cache_filter );
+
+			if ( ! empty( $filtered_cache_keys ) ) {
+				// Sanitize cache keys - they should be MD5 hashes (32 hex chars).
+				$safe_keys = array_filter(
+					$filtered_cache_keys,
+					function ( $key ) {
+						return preg_match( '/^[a-f0-9]{32}$/i', $key );
+					}
+				);
+
+				if ( ! empty( $safe_keys ) ) {
+					$placeholders = implode( ',', array_fill( 0, count( $safe_keys ), '%s' ) );
+					// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+					$where_clause = $wpdb->prepare( "WHERE `cache_key` IN ({$placeholders})", $safe_keys );
+				} else {
+					// All keys were filtered out as invalid, nothing to clear.
+					return 0;
+				}
+			} else {
+				// Filter returned empty array, nothing to clear for this filter type.
+				return 0;
+			}
+		}
+
 		$sql =
 			"UPDATE `{$this->db_table_caches}`
 				SET `expiration` = %s,
-					`deleted` = {$deleted}";
+					`deleted` = {$deleted}
+				{$where_clause}";
 
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		$affected_rows = $wpdb->query( $wpdb->prepare( $sql, date_i18n( 'Y-m-d H:i:s', 1 ) ) );
@@ -1374,7 +1417,17 @@ class Caching {
 			}
 		}
 
-		return $results;
+		/**
+		 * Filter the cache data returned for the API Caches table.
+		 *
+		 * Allows adding custom data to each cache item for display in the admin table.
+		 *
+		 * @since 2026.2.0
+		 *
+		 * @param array<int,array<string,mixed>> $results  The cache data.
+		 * @param string                         $api_type The API type (endpoint).
+		 */
+		return apply_filters( 'wp_rest_cache/api_caches_table_data', $results, $api_type );
 	}
 
 	/**
@@ -1571,6 +1624,18 @@ class Caching {
 		$results = $wpdb->get_results( $sql, ARRAY_A );
 		foreach ( $results as &$result ) {
 			if ( 1 === strtotime( $result['expiration'] ) || false === get_transient( $this->transient_key( $result['cache_key'] ) ) ) {
+				/**
+				 * Filter whether to skip regeneration for a specific cache.
+				 *
+				 * @since 2026.2.0
+				 *
+				 * @param bool                $skip   Whether to skip regeneration. Default false.
+				 * @param array<string,mixed> $result The cache data.
+				 */
+				if ( apply_filters( 'wp_rest_cache/skip_cache_regeneration', false, $result ) ) {
+					continue;
+				}
+
 				// Regenerate.
 				$url    = Util::get_home_url() . $result['request_uri'];
 				$return = wp_remote_get(
@@ -1709,6 +1774,10 @@ class Caching {
 
 		$version = get_option( 'wp_rest_cache_database_version' );
 
+		if ( version_compare( '2026.1.0', $version, '>' ) ) {
+			$this->upgrade_2026_1_0();
+		}
+
 		$query = $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $this->db_table_caches ) );
 
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
@@ -1723,7 +1792,7 @@ class Caching {
 					`request_uri` LONGTEXT NOT NULL,
 					`request_headers` LONGTEXT NOT NULL,
 					`request_method` VARCHAR(10) NOT NULL,
-					`object_type` VARCHAR(191) NOT NULL,
+					`object_type` VARCHAR(50) NOT NULL,
 					`cache_hits` BIGINT(20) NOT NULL,
 					`is_single` TINYINT(1) NOT NULL,
 					`expiration` DATETIME NOT NULL,
@@ -1778,11 +1847,11 @@ class Caching {
 			$sql_relations =
 				"CREATE TABLE `{$this->db_table_relations}` (
 					`cache_id` BIGINT(20) NOT NULL,
-					`object_id` VARCHAR(191) NOT NULL,
-					`object_type` VARCHAR(191) NOT NULL,
+					`object_id` VARCHAR(100) NOT NULL,
+					`object_type` VARCHAR(50) NOT NULL,
 					PRIMARY KEY (`cache_id`, `object_id`, `object_type`),
 					KEY `cache_id` (`cache_id`),
-					KEY `object` (`object_id`(100), `object_type`(100))
+					KEY `object` (`object_id`, `object_type`)
 				)";
 
 			dbDelta( $sql_relations );
@@ -1806,6 +1875,52 @@ class Caching {
 			$item_caches = $this->get_api_data( 'item', 100, $count + 1 );
 			foreach ( $item_caches as $item_cache ) {
 				$this->delete_cache( $item_cache['cache_key'], true );
+			}
+		}
+	}
+
+	/**
+	 * Drop indexes that prevent shrinking `object_id` and `object_type` columns.
+	 *
+	 * The composite PRIMARY KEY added in 2025.1.0 combined with VARCHAR(191) columns produced a key
+	 * larger than the 1000-byte MyISAM / 767-byte InnoDB-without-large-prefix limit. dbDelta cannot
+	 * alter a column that is part of an index, so the affected indexes are dropped here; dbDelta
+	 * then recreates them with the shrunk column sizes.
+	 *
+	 * @return void
+	 */
+	private function upgrade_2026_1_0() {
+		global $wpdb;
+
+		$query = $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $this->db_table_caches ) );
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		if ( $this->db_table_caches === $wpdb->get_var( $query ) ) {
+			$check_index_query = "SHOW KEYS FROM `{$this->db_table_caches}` WHERE Key_name = 'non_single_caches'";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			if ( $wpdb->get_results( $check_index_query ) ) {
+				$drop_query = "ALTER TABLE `{$this->db_table_caches}` DROP INDEX `non_single_caches`;";
+				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+				$wpdb->query( $drop_query );
+			}
+		}
+
+		$query = $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $this->db_table_relations ) );
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		if ( $this->db_table_relations === $wpdb->get_var( $query ) ) {
+			$check_primary_query = "SHOW KEYS FROM `{$this->db_table_relations}` WHERE Key_name = 'PRIMARY'";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			if ( $wpdb->get_results( $check_primary_query ) ) {
+				$drop_query = "ALTER TABLE `{$this->db_table_relations}` DROP PRIMARY KEY;";
+				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+				$wpdb->query( $drop_query );
+			}
+
+			$check_object_query = "SHOW KEYS FROM `{$this->db_table_relations}` WHERE Key_name = 'object'";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			if ( $wpdb->get_results( $check_object_query ) ) {
+				$drop_query = "ALTER TABLE `{$this->db_table_relations}` DROP INDEX `object`;";
+				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+				$wpdb->query( $drop_query );
 			}
 		}
 	}

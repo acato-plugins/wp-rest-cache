@@ -118,20 +118,47 @@ if ( ! current_user_can( apply_filters( 'wp_rest_cache/settings_capability', 'ad
 										?>
 									</td>
 								</tr>
+									<?php
+									/**
+									 * Action to add extra rows to the cache details info table.
+									 *
+									 * @since 2026.2.0
+									 *
+									 * @param array $wp_rest_cache The cache data array.
+									 */
+									do_action( 'wp_rest_cache/cache_details_info_rows', $wp_rest_cache );
+									?>
 							</table>
 							<?php endif; ?>
 							</p>
 						</div>
 					</div>
 					<?php if ( $wp_rest_cache['row']['request_headers'] ) : ?>
+						<?php
+						$wprc_request_headers = json_decode( $wp_rest_cache['row']['request_headers'], true );
+
+						/**
+						 * Filter the request headers before displaying in cache details.
+						 *
+						 * Use this to sanitize or mask sensitive headers like Authorization tokens.
+						 *
+						 * @since 2026.2.0
+						 *
+						 * @param array $wprc_request_headers The request headers array.
+						 * @param array $wp_rest_cache        The full cache data array.
+						 */
+						$wprc_request_headers = apply_filters( 'wp_rest_cache/cache_details_request_headers', $wprc_request_headers, $wp_rest_cache );
+						?>
+						<?php if ( ! empty( $wprc_request_headers ) ) : ?>
 						<div class="postbox">
 							<h3 class="hndle"><?php esc_html_e( 'Cached request headers', 'wp-rest-cache' ); ?></h3>
 							<div class="inside">
 								<p>
-								<pre><?php echo esc_html( wp_json_encode( json_decode( $wp_rest_cache['row']['request_headers'], true ), JSON_PRETTY_PRINT ) ); ?></pre>
+								<pre><?php echo esc_html( wp_json_encode( $wprc_request_headers, JSON_PRETTY_PRINT ) ); ?></pre>
 								</p>
 							</div>
 						</div>
+						<?php endif; ?>
 					<?php endif; ?>
 					<div class="postbox">
 						<h3 class="hndle"><?php esc_html_e( 'Cache data', 'wp-rest-cache' ); ?></h3>
