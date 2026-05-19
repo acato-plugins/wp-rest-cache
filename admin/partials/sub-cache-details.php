@@ -118,16 +118,16 @@ if ( ! current_user_can( apply_filters( 'wp_rest_cache/settings_capability', 'ad
 										?>
 									</td>
 								</tr>
-								<?php
-								/**
-								 * Action to add extra rows to the cache details info table.
-								 *
-								 * @since 2026.2.0
-								 *
-								 * @param array $wp_rest_cache The cache data array.
-								 */
-								do_action( 'wp_rest_cache/cache_details_info_rows', $wp_rest_cache );
-								?>
+									<?php
+									/**
+									 * Action to add extra rows to the cache details info table.
+									 *
+									 * @since 2026.2.0
+									 *
+									 * @param array $wp_rest_cache The cache data array.
+									 */
+									do_action( 'wp_rest_cache/cache_details_info_rows', $wp_rest_cache );
+									?>
 							</table>
 							<?php endif; ?>
 							</p>

@@ -853,7 +853,7 @@ class Caching {
 
 				if ( ! empty( $safe_keys ) ) {
 					$placeholders = implode( ',', array_fill( 0, count( $safe_keys ), '%s' ) );
-					// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+					// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 					$where_clause = $wpdb->prepare( "WHERE `cache_key` IN ({$placeholders})", $safe_keys );
 				} else {
 					// All keys were filtered out as invalid, nothing to clear.
@@ -1898,8 +1898,9 @@ class Caching {
 			$check_index_query = "SHOW KEYS FROM `{$this->db_table_caches}` WHERE Key_name = 'non_single_caches'";
 			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 			if ( $wpdb->get_results( $check_index_query ) ) {
+				$drop_query = "ALTER TABLE `{$this->db_table_caches}` DROP INDEX `non_single_caches`;";
 				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-				$wpdb->query( "ALTER TABLE `{$this->db_table_caches}` DROP INDEX `non_single_caches`;" );
+				$wpdb->query( $drop_query );
 			}
 		}
 
@@ -1909,15 +1910,17 @@ class Caching {
 			$check_primary_query = "SHOW KEYS FROM `{$this->db_table_relations}` WHERE Key_name = 'PRIMARY'";
 			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 			if ( $wpdb->get_results( $check_primary_query ) ) {
+				$drop_query = "ALTER TABLE `{$this->db_table_relations}` DROP PRIMARY KEY;";
 				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-				$wpdb->query( "ALTER TABLE `{$this->db_table_relations}` DROP PRIMARY KEY;" );
+				$wpdb->query( $drop_query );
 			}
 
 			$check_object_query = "SHOW KEYS FROM `{$this->db_table_relations}` WHERE Key_name = 'object'";
 			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 			if ( $wpdb->get_results( $check_object_query ) ) {
+				$drop_query = "ALTER TABLE `{$this->db_table_relations}` DROP INDEX `object`;";
 				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-				$wpdb->query( "ALTER TABLE `{$this->db_table_relations}` DROP INDEX `object`;" );
+				$wpdb->query( $drop_query );
 			}
 		}
 	}
