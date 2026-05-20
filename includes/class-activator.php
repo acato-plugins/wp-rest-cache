@@ -46,7 +46,7 @@ class Activator {
 		if ( ! get_option( 'wp_rest_cache_uncached_parameters' ) ) {
 			add_option( 'wp_rest_cache_uncached_parameters', [], '', false );
 		}
-		if ( ! is_null( get_option( 'wp_rest_cache_hit_recording', null ) ) ) {
+		if ( is_null( get_option( 'wp_rest_cache_hit_recording', null ) ) ) {
 			add_option( 'wp_rest_cache_hit_recording', 1, '', true );
 		}
 
