@@ -1116,7 +1116,9 @@ class Caching {
 	private function update_cache_expiration( $cache_id, $expiration = null, $cleaned = false, $options = [] ) {
 		global $wpdb;
 
-		if ( is_null( $expiration ) ) {
+		$is_renew = is_null( $expiration );
+
+		if ( $is_renew ) {
 			$timeout = $this->get_timeout( true, $options );
 			if ( 0 !== $timeout && ! $this->get_memcache_used() ) {
 				// phpcs:ignore WordPress.DateTime.CurrentTimeTimestamp.Requested
@@ -1125,15 +1127,25 @@ class Caching {
 			$expiration = date_i18n( 'Y-m-d H:i:s', $timeout );
 		}
 
+		$data    = [
+			'expiration' => $expiration,
+			'cleaned'    => (int) $cleaned,
+		];
+		$formats = [ '%s', '%d' ];
+
+		// Only clear `deleted` when renewing the cache (an existing key being re-cached). On an
+		// explicit-expiration call from delete_cache(), leave `deleted` alone so a previously
+		// hard-flagged row isn't accidentally resurrected.
+		if ( $is_renew ) {
+			$data['deleted'] = 0;
+			$formats[]       = '%d';
+		}
+
 		$wpdb->update(
 			$this->db_table_caches,
-			[
-				'expiration' => $expiration,
-				'deleted'    => 0,
-				'cleaned'    => (int) $cleaned,
-			],
+			$data,
 			[ 'cache_id' => $cache_id ],
-			[ '%s', '%d', '%d' ],
+			$formats,
 			[ '%d' ]
 		);
 	}
