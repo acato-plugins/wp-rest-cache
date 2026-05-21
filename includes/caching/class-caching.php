@@ -1089,6 +1089,10 @@ class Caching {
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		$result = $wpdb->get_row( $wpdb->prepare( $sql, $cache_key ), ARRAY_A );
 
+		if ( ! $result ) {
+			return null;
+		}
+
 		$result['is_active'] = ( false !== get_transient( $this->transient_key( $result['cache_key'] ) ) && 1 !== strtotime( $result['expiration'] ) );
 		if ( ! $result['is_active'] ) {
 			if ( 1 === strtotime( $result['expiration'] ) ) {
