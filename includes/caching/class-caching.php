@@ -1479,9 +1479,11 @@ class Caching {
 		$where          = '`cache_type` = %s AND `deleted` = %d';
 		$prepare_args[] = $api_type;
 		$prepare_args[] = false;
-		$search         = filter_input( INPUT_POST, 's', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only search filter from the list table form.
+		$search = isset( $_POST['s'] ) ? filter_var( $_POST['s'], FILTER_SANITIZE_FULL_SPECIAL_CHARS ) : null;
 		if ( ! $search ) {
-			$search = filter_input( INPUT_GET, 's', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			$search = isset( $_GET['s'] ) ? filter_var( $_GET['s'], FILTER_SANITIZE_FULL_SPECIAL_CHARS ) : null;
 		}
 
 		if ( ! empty( $search ) ) {
@@ -1501,7 +1503,8 @@ class Caching {
 	 */
 	private function get_orderby_clause() {
 		$order   = '`cache_id` DESC';
-		$orderby = filter_input( INPUT_GET, 'orderby', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only sort param from the list table.
+		$orderby = isset( $_GET['orderby'] ) ? filter_var( $_GET['orderby'], FILTER_SANITIZE_FULL_SPECIAL_CHARS ) : null;
 
 		if ( in_array(
 			$orderby,
@@ -1515,7 +1518,9 @@ class Caching {
 			true
 		)
 		) {
-			$order = '`' . $orderby . '` ' . ( filter_input( INPUT_GET, 'order', FILTER_SANITIZE_FULL_SPECIAL_CHARS ) === 'desc' ? 'DESC' : 'ASC' );
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			$order_param = isset( $_GET['order'] ) ? filter_var( $_GET['order'], FILTER_SANITIZE_FULL_SPECIAL_CHARS ) : null;
+			$order       = '`' . $orderby . '` ' . ( 'desc' === $order_param ? 'DESC' : 'ASC' );
 		}
 
 		return $order;

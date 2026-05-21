@@ -17,12 +17,13 @@ if ( ! current_user_can( apply_filters( 'wp_rest_cache/settings_capability', 'ad
 <div class="wrap">
 	<h3><?php esc_html_e( 'Cache details', 'wp-rest-cache' ); ?></h3>
 	<?php
-	$wp_rest_cache = \WP_Rest_Cache_Plugin\Includes\Caching\Caching::get_instance()->get_cache_data(
-		filter_input( INPUT_GET, 'cache_key', FILTER_SANITIZE_FULL_SPECIAL_CHARS )
-	);
+	// phpcs:disable WordPress.Security.NonceVerification.Recommended -- read-only navigation markers; flush/delete actions below verify their own nonces.
+	$wprc_cache_key = isset( $_GET['cache_key'] ) ? filter_var( $_GET['cache_key'], FILTER_SANITIZE_FULL_SPECIAL_CHARS ) : null;
+	$wp_rest_cache  = \WP_Rest_Cache_Plugin\Includes\Caching\Caching::get_instance()->get_cache_data( $wprc_cache_key );
 	if ( ! is_null( $wp_rest_cache ) ) {
-		$wprc_page = filter_input( INPUT_GET, 'page', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
-		$wprc_sub  = filter_input( INPUT_GET, 'sub', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
+		$wprc_page = isset( $_GET['page'] ) ? filter_var( $_GET['page'], FILTER_SANITIZE_FULL_SPECIAL_CHARS ) : null;
+		$wprc_sub  = isset( $_GET['sub'] ) ? filter_var( $_GET['sub'], FILTER_SANITIZE_FULL_SPECIAL_CHARS ) : null;
+	// phpcs:enable WordPress.Security.NonceVerification.Recommended
 		?>
 		<p>
 			<?php if ( $wp_rest_cache['row']['is_active'] ) : ?>

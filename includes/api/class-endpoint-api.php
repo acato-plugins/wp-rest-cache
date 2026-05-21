@@ -350,7 +350,8 @@ class Endpoint_Api {
 		}
 
 		// Parameter to skip caching.
-		if ( true === filter_has_var( INPUT_GET, 'skip_cache' ) ) {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only check on a GET marker.
+		if ( isset( $_GET['skip_cache'] ) ) {
 			/**
 			 * Filter whether to allow the skip_cache parameter.
 			 *

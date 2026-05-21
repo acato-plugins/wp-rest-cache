@@ -81,8 +81,14 @@ if ( isset( $_REQUEST['wp_rest_cache_nonce'] ) && wp_verify_nonce( sanitize_key(
 				progressLabel = jQuery(".progress-label");
 			var ajaxurl = '<?php echo esc_js( admin_url( 'admin-ajax.php' ) ); ?>';
 			var ajaxnonce = '<?php echo esc_js( wp_create_nonce( 'wp_rest_cache_clear_cache_ajax' ) ); ?>';
-			var deletecaches = '<?php echo esc_js( (string) filter_input( INPUT_GET, 'delete_caches', FILTER_VALIDATE_BOOLEAN ) ); ?>';
-			var cachefilter = '<?php echo esc_js( (string) filter_input( INPUT_GET, 'cache_filter', FILTER_SANITIZE_FULL_SPECIAL_CHARS ) ); ?>';
+			<?php
+			// phpcs:disable WordPress.Security.NonceVerification.Recommended -- nonce verified above; these only drive the JS payload.
+			$wprc_delete = isset( $_GET['delete_caches'] ) ? (string) filter_var( $_GET['delete_caches'], FILTER_VALIDATE_BOOLEAN ) : '';
+			$wprc_filter = isset( $_GET['cache_filter'] ) ? (string) filter_var( $_GET['cache_filter'], FILTER_SANITIZE_FULL_SPECIAL_CHARS ) : '';
+			// phpcs:enable WordPress.Security.NonceVerification.Recommended
+			?>
+			var deletecaches = '<?php echo esc_js( $wprc_delete ); ?>';
+			var cachefilter = '<?php echo esc_js( $wprc_filter ); ?>';
 
 			progressbar.progressbar({
 				value: false,

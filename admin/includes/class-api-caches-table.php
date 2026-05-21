@@ -118,8 +118,10 @@ class API_Caches_Table extends \WP_List_Table {
 	 * @return string The HTML output.
 	 */
 	public function column_cache_key( $item ): string {
-		$page         = filter_input( INPUT_GET, 'page', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
-		$sub          = filter_input( INPUT_GET, 'sub', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- read-only navigation markers.
+		$page = isset( $_GET['page'] ) ? filter_var( $_GET['page'], FILTER_SANITIZE_FULL_SPECIAL_CHARS ) : null;
+		$sub  = isset( $_GET['sub'] ) ? filter_var( $_GET['sub'], FILTER_SANITIZE_FULL_SPECIAL_CHARS ) : null;
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
 		$flush_nonce  = wp_create_nonce( 'wp_rest_cache_flush_cache' );
 		$delete_nonce = wp_create_nonce( 'wp_rest_cache_delete_cache' );
 		$title        = sprintf(
@@ -342,7 +344,8 @@ class API_Caches_Table extends \WP_List_Table {
 		if ( ! isset( $_GET['wp_rest_cache_nonce'] ) || ! wp_verify_nonce( sanitize_key( $_GET['wp_rest_cache_nonce'] ), 'wp_rest_cache_' . $action . '_cache' ) ) {
 			return;
 		}
-		$cache_key = filter_input( INPUT_GET, 'cache_key', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- nonce verified above.
+		$cache_key = isset( $_GET['cache_key'] ) ? filter_var( $_GET['cache_key'], FILTER_SANITIZE_FULL_SPECIAL_CHARS ) : null;
 		self::clear_cache( $cache_key, ( 'delete' === $action ) );
 
 		wp_safe_redirect( admin_url( 'options-general.php?page=wp-rest-cache&sub=endpoint-api' ) );
@@ -359,7 +362,10 @@ class API_Caches_Table extends \WP_List_Table {
 		if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_key( $_GET['_wpnonce'] ), 'bulk-' . sanitize_key( __( 'Endpoint API Caches', 'wp-rest-cache' ) ) ) ) {
 			return;
 		}
-		$caches = filter_input( INPUT_GET, 'bulk-flush', FILTER_SANITIZE_FULL_SPECIAL_CHARS, FILTER_REQUIRE_ARRAY );
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- nonce verified above.
+		$caches = isset( $_GET['bulk-flush'] ) && is_array( $_GET['bulk-flush'] )
+			? filter_var( $_GET['bulk-flush'], FILTER_SANITIZE_FULL_SPECIAL_CHARS, FILTER_REQUIRE_ARRAY )
+			: [];
 		foreach ( $caches as $cache_key ) {
 			self::clear_cache( $cache_key, ( 'bulk-delete' === $action ) );
 		}
