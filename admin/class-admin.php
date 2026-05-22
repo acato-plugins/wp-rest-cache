@@ -600,10 +600,8 @@ class Admin {
 		$caching = Caching::get_instance();
 		$caching->delete_all_caches( $delete_caches, ! empty( $cache_filter ) ? $cache_filter : false );
 
-		$result = [ 'percentage' => 100 ]; // deprecated, since we delete all caches at once, we should remove the progress bar.
-
-		echo wp_json_encode( $result );
-		exit;
+		// `percentage` is deprecated: we delete all caches at once now, so the progress bar should be removed.
+		wp_send_json( [ 'percentage' => 100 ] );
 	}
 
 	/**
