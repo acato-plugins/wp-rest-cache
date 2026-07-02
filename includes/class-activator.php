@@ -70,9 +70,7 @@ class Activator {
 		$request_uri = filter_var( $_SERVER['REQUEST_URI'], FILTER_SANITIZE_URL );
 		$url         = Util::get_home_url() . $request_uri;
 		$creds       = request_filesystem_credentials( $url );
-		if ( ! WP_Filesystem( $creds ) ) {
-			return;
-		}
+		WP_Filesystem( $creds );
 		global $wp_filesystem;
 
 		if ( ! $wp_filesystem->is_dir( WPMU_PLUGIN_DIR ) ) {

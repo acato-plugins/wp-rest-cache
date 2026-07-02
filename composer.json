@@ -7,13 +7,47 @@
         "composer/installers": "~1.0",
         "wp-cli/wp-cli-bundle": "*",
 		"szepeviktor/phpstan-wordpress": "^1.1",
-		"phpstan/extension-installer": "^1.1"
+		"phpstan/extension-installer": "^1.1",
+		"phpunit/phpunit": "^9.6",
+		"phpunit/phpcov": "^8.2",
+		"yoast/phpunit-polyfills": "^2.0"
     },
 	"config": {
 		"allow-plugins": {
 			"composer/installers": true,
 			"dealerdirect/phpcodesniffer-composer-installer": true,
 			"phpstan/extension-installer": true
-		}
+		},
+		"process-timeout": 0
+	},
+	"scripts": {
+		"install-wp-tests": "bash bin/install-wp-tests.sh",
+		"install-wp-tests-multisite": [
+			"@putenv WP_TESTS_DIR=/tmp/wordpress-tests-lib-ms",
+			"bash bin/install-wp-tests.sh"
+		],
+		"test": "phpunit",
+		"test-multisite": [
+			"@putenv WP_TESTS_DIR=/tmp/wordpress-tests-lib-ms",
+			"phpunit -c phpunit-multisite.xml.dist"
+		],
+		"test-all": [
+			"@test",
+			"@test-multisite"
+		],
+		"coverage": [
+			"@php -r \"if (!is_dir('coverage')) mkdir('coverage', 0755, true);\"",
+			"phpunit --coverage-php=coverage/single.cov",
+			"@putenv WP_TESTS_DIR=/tmp/wordpress-tests-lib-ms",
+			"phpunit -c phpunit-multisite.xml.dist --coverage-php=coverage/multisite.cov",
+			"phpcov merge --html=coverage/html coverage/"
+		],
+		"coverage-text": [
+			"@php -r \"if (!is_dir('coverage')) mkdir('coverage', 0755, true);\"",
+			"phpunit --coverage-php=coverage/single.cov",
+			"@putenv WP_TESTS_DIR=/tmp/wordpress-tests-lib-ms",
+			"phpunit -c phpunit-multisite.xml.dist --coverage-php=coverage/multisite.cov",
+			"phpcov merge --text=php://stdout coverage/"
+		]
 	}
 }
