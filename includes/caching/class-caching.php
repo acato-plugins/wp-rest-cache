@@ -18,7 +18,7 @@ use WP_Rest_Cache_Plugin\Includes\Util;
  *
  * @package    WP_Rest_Cache_Plugin
  * @subpackage WP_Rest_Cache_Plugin/Includes/Caching
- * @author:    Richard Korthuis - Acato <richardkorthuis@acato.nl>
+ * @author     Richard Korthuis - Acato <richardkorthuis@acato.nl>
  */
 class Caching {
 
@@ -1483,10 +1483,10 @@ class Caching {
 		$where          = '`cache_type` = %s AND `deleted` = %d';
 		$prepare_args[] = $api_type;
 		$prepare_args[] = false;
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only search filter from the list table form.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.NonceVerification.Missing -- read-only search filter from the list table form.
 		$search = isset( $_POST['s'] ) ? filter_var( $_POST['s'], FILTER_SANITIZE_FULL_SPECIAL_CHARS ) : null;
 		if ( ! $search ) {
-			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.NonceVerification.Missing
 			$search = isset( $_GET['s'] ) ? filter_var( $_GET['s'], FILTER_SANITIZE_FULL_SPECIAL_CHARS ) : null;
 		}
 
@@ -1506,8 +1506,8 @@ class Caching {
 	 * @return string The order by clause.
 	 */
 	private function get_orderby_clause() {
-		$order   = '`cache_id` DESC';
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only sort param from the list table.
+		$order = '`cache_id` DESC';
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.NonceVerification.Missing
 		$orderby = isset( $_GET['orderby'] ) ? filter_var( $_GET['orderby'], FILTER_SANITIZE_FULL_SPECIAL_CHARS ) : null;
 
 		if ( in_array(
