@@ -46,7 +46,7 @@ class Activator {
 		if ( ! get_option( 'wp_rest_cache_uncached_parameters' ) ) {
 			add_option( 'wp_rest_cache_uncached_parameters', [], '', false );
 		}
-		if ( ! is_null( get_option( 'wp_rest_cache_hit_recording', null ) ) ) {
+		if ( is_null( get_option( 'wp_rest_cache_hit_recording', null ) ) ) {
 			add_option( 'wp_rest_cache_hit_recording', 1, '', true );
 		}
 
@@ -70,9 +70,7 @@ class Activator {
 		$request_uri = filter_var( $_SERVER['REQUEST_URI'], FILTER_SANITIZE_URL );
 		$url         = Util::get_home_url() . $request_uri;
 		$creds       = request_filesystem_credentials( $url );
-		if ( ! WP_Filesystem( $creds ) ) {
-			return;
-		}
+		WP_Filesystem( $creds );
 		global $wp_filesystem;
 
 		if ( ! $wp_filesystem->is_dir( WPMU_PLUGIN_DIR ) ) {

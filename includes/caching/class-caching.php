@@ -18,7 +18,7 @@ use WP_Rest_Cache_Plugin\Includes\Util;
  *
  * @package    WP_Rest_Cache_Plugin
  * @subpackage WP_Rest_Cache_Plugin/Includes/Caching
- * @author:    Richard Korthuis - Acato <richardkorthuis@acato.nl>
+ * @author     Richard Korthuis - Acato <richardkorthuis@acato.nl>
  */
 class Caching {
 
@@ -261,11 +261,12 @@ class Caching {
 		}
 
 		$sql              = "UPDATE `{$this->db_table_caches}`
-		SET `expiration` = %s,
-            `deleted` = %d
-        WHERE ";
+		SET `expiration` = %s";
 		$prepare_params[] = date_i18n( 'Y-m-d H:i:s', 1 );
-		$prepare_params[] = (int) $force;
+		if ( $force ) {
+			$sql .= ', `deleted` = 1';
+		}
+		$sql .= ' WHERE ';
 		switch ( $strictness ) {
 			case self::FLUSH_STRICT:
 				$sql             .= ' `request_uri` = %s ';
@@ -1088,6 +1089,10 @@ class Caching {
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		$result = $wpdb->get_row( $wpdb->prepare( $sql, $cache_key ), ARRAY_A );
 
+		if ( ! $result ) {
+			return null;
+		}
+
 		$result['is_active'] = ( false !== get_transient( $this->transient_key( $result['cache_key'] ) ) && 1 !== strtotime( $result['expiration'] ) );
 		if ( ! $result['is_active'] ) {
 			if ( 1 === strtotime( $result['expiration'] ) ) {
@@ -1115,7 +1120,9 @@ class Caching {
 	private function update_cache_expiration( $cache_id, $expiration = null, $cleaned = false, $options = [] ) {
 		global $wpdb;
 
-		if ( is_null( $expiration ) ) {
+		$is_renew = is_null( $expiration );
+
+		if ( $is_renew ) {
 			$timeout = $this->get_timeout( true, $options );
 			if ( 0 !== $timeout && ! $this->get_memcache_used() ) {
 				// phpcs:ignore WordPress.DateTime.CurrentTimeTimestamp.Requested
@@ -1124,15 +1131,25 @@ class Caching {
 			$expiration = date_i18n( 'Y-m-d H:i:s', $timeout );
 		}
 
+		$data    = [
+			'expiration' => $expiration,
+			'cleaned'    => (int) $cleaned,
+		];
+		$formats = [ '%s', '%d' ];
+
+		// Only clear `deleted` when renewing the cache (an existing key being re-cached). On an
+		// explicit-expiration call from delete_cache(), leave `deleted` alone so a previously
+		// hard-flagged row isn't accidentally resurrected.
+		if ( $is_renew ) {
+			$data['deleted'] = 0;
+			$formats[]       = '%d';
+		}
+
 		$wpdb->update(
 			$this->db_table_caches,
-			[
-				'expiration' => $expiration,
-				'deleted'    => 0,
-				'cleaned'    => (int) $cleaned,
-			],
+			$data,
 			[ 'cache_id' => $cache_id ],
-			[ '%s', '%d', '%d' ],
+			$formats,
 			[ '%d' ]
 		);
 	}
@@ -1466,9 +1483,11 @@ class Caching {
 		$where          = '`cache_type` = %s AND `deleted` = %d';
 		$prepare_args[] = $api_type;
 		$prepare_args[] = false;
-		$search         = filter_input( INPUT_POST, 's', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.NonceVerification.Missing -- read-only search filter from the list table form.
+		$search = isset( $_POST['s'] ) ? filter_var( $_POST['s'], FILTER_SANITIZE_FULL_SPECIAL_CHARS ) : null;
 		if ( ! $search ) {
-			$search = filter_input( INPUT_GET, 's', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.NonceVerification.Missing
+			$search = isset( $_GET['s'] ) ? filter_var( $_GET['s'], FILTER_SANITIZE_FULL_SPECIAL_CHARS ) : null;
 		}
 
 		if ( ! empty( $search ) ) {
@@ -1487,8 +1506,9 @@ class Caching {
 	 * @return string The order by clause.
 	 */
 	private function get_orderby_clause() {
-		$order   = '`cache_id` DESC';
-		$orderby = filter_input( INPUT_GET, 'orderby', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
+		$order = '`cache_id` DESC';
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended,WordPress.Security.NonceVerification.Missing
+		$orderby = isset( $_GET['orderby'] ) ? filter_var( $_GET['orderby'], FILTER_SANITIZE_FULL_SPECIAL_CHARS ) : null;
 
 		if ( in_array(
 			$orderby,
@@ -1502,7 +1522,9 @@ class Caching {
 			true
 		)
 		) {
-			$order = '`' . $orderby . '` ' . ( filter_input( INPUT_GET, 'order', FILTER_SANITIZE_FULL_SPECIAL_CHARS ) === 'desc' ? 'DESC' : 'ASC' );
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			$order_param = isset( $_GET['order'] ) ? filter_var( $_GET['order'], FILTER_SANITIZE_FULL_SPECIAL_CHARS ) : null;
+			$order       = '`' . $orderby . '` ' . ( 'desc' === $order_param ? 'DESC' : 'ASC' );
 		}
 
 		return $order;
@@ -1815,34 +1837,6 @@ class Caching {
 
 		if ( self::DB_VERSION !== $version || $this->db_table_relations !== $current_db_version ) {
 			include_once ABSPATH . 'wp-admin/includes/upgrade.php';
-
-			if ( $this->db_table_relations === $current_db_version && version_compare( '2020.1.1', $version, '>' ) ) {
-				// Added column lengths to INDEX, dbDelta doesn't detect it, so drop INDEX first.
-				$drop_query = "ALTER TABLE `{$this->db_table_relations}` DROP INDEX `object`;";
-				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-				$wpdb->query( $drop_query );
-			}
-
-			if ( $this->db_table_relations === $current_db_version && version_compare( '2025.1.0', $version, '>' ) ) {
-				// Added column to PRIMARY KEY, dbDelta doesn't detect it, so drop PRIMARY KEY first if it exists.
-				$check_primary_query = "SHOW KEYS FROM `{$this->db_table_relations}` WHERE Key_name = 'PRIMARY'";
-				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-				$current_pk_columns = $wpdb->get_results( $check_primary_query );
-
-				$current_pk_names = [];
-				foreach ( $current_pk_columns as $column ) {
-					// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
-					$current_pk_names[] = $column->Column_name;
-				}
-
-				$expected_pk_names = [ 'cache_id', 'object_id', 'object_type' ];
-
-				if ( $current_pk_names !== $expected_pk_names ) {
-					$drop_query = "ALTER TABLE `{$this->db_table_relations}` DROP PRIMARY KEY;";
-					// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-					$wpdb->query( $drop_query );
-				}
-			}
 
 			$sql_relations =
 				"CREATE TABLE `{$this->db_table_relations}` (

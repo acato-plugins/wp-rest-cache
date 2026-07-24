@@ -2,9 +2,13 @@
 /.wordpress-org export-ignore
 /.github export-ignore
 /vendor export-ignore
+/tests export-ignore
 
 # Files
 /.gitattributes export-ignore
 /.gitignore export-ignore
 /composer.json export-ignore
 /phpcs.xml.dist export-ignore
+/phpstan.neon export-ignore
+/phpunit.xml.dist export-ignore
+/phpunit-multisite.xml.dist export-ignore

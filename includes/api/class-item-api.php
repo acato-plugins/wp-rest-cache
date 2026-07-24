@@ -42,7 +42,10 @@ class Item_Api {
 			return $args;
 		}
 
-		if ( \WP_REST_Attachments_Controller::class === $rest_controller ) {
+		if (
+			\WP_REST_Attachments_Controller::class === $rest_controller
+			|| \WP_Rest_Cache_Plugin\Includes\Controller\Attachment_Controller::class === $rest_controller
+		) {
 			$args['rest_controller_class'] = \WP_Rest_Cache_Plugin\Includes\Controller\Attachment_Controller::class;
 		} else {
 			$args['rest_controller_class'] = \WP_Rest_Cache_Plugin\Includes\Controller\Post_Controller::class;

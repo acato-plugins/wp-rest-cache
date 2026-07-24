@@ -131,7 +131,15 @@ class Oembed_Api {
 			if ( isset( $uri_parts['query'] ) && ! empty( $uri_parts['query'] ) ) {
 				parse_str( $uri_parts['query'], $params );
 				if ( isset( $params['url'] ) ) {
-					$post_id = url_to_postid( Util::get_home_url() . $params['url'] );
+					// The oembed endpoint receives `url` as an absolute URL. Only prepend the
+					// home URL when the value is a path (preserves behavior for any consumer
+					// passing a path-only value, but no longer produces malformed URLs like
+					// "https://example.orghttps://example.org/..." for the normal case).
+					$url_param = $params['url'];
+					if ( ! preg_match( '#^https?://#i', $url_param ) ) {
+						$url_param = Util::get_home_url() . $url_param;
+					}
+					$post_id = url_to_postid( $url_param );
 
 					// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
 					$post_id = apply_filters( 'oembed_request_post_id', $post_id, $params['url'] );

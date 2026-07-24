@@ -68,8 +68,11 @@ class Admin {
 	 */
 	public function enqueue_styles() {
 		wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'css/wp-rest-cache-admin.css', [], $this->version, 'all' );
-		if ( 'wp-rest-cache' === filter_input( INPUT_GET, 'page', FILTER_SANITIZE_FULL_SPECIAL_CHARS )
-			&& 'clear-cache' === filter_input( INPUT_GET, 'sub', FILTER_SANITIZE_FULL_SPECIAL_CHARS ) ) {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- read-only page/sub markers.
+		$page = isset( $_GET['page'] ) ? filter_var( $_GET['page'], FILTER_SANITIZE_FULL_SPECIAL_CHARS ) : null;
+		$sub  = isset( $_GET['sub'] ) ? filter_var( $_GET['sub'], FILTER_SANITIZE_FULL_SPECIAL_CHARS ) : null;
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
+		if ( 'wp-rest-cache' === $page && 'clear-cache' === $sub ) {
 			wp_enqueue_style( 'jquery-ui-progressbar', plugin_dir_url( __FILE__ ) . 'css/jquery-ui.css', [], $this->version, 'all' );
 		}
 	}
@@ -80,8 +83,11 @@ class Admin {
 	 * @return void
 	 */
 	public function enqueue_scripts() {
-		if ( 'wp-rest-cache' === filter_input( INPUT_GET, 'page', FILTER_SANITIZE_FULL_SPECIAL_CHARS )
-			&& 'clear-cache' === filter_input( INPUT_GET, 'sub', FILTER_SANITIZE_FULL_SPECIAL_CHARS ) ) {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- read-only page/sub markers.
+		$page = isset( $_GET['page'] ) ? filter_var( $_GET['page'], FILTER_SANITIZE_FULL_SPECIAL_CHARS ) : null;
+		$sub  = isset( $_GET['sub'] ) ? filter_var( $_GET['sub'], FILTER_SANITIZE_FULL_SPECIAL_CHARS ) : null;
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
+		if ( 'wp-rest-cache' === $page && 'clear-cache' === $sub ) {
 			wp_enqueue_script( 'jquery-ui-progressbar' );
 		}
 	}
@@ -332,7 +338,8 @@ class Admin {
 			}
 		);
 
-		$sub = filter_input( INPUT_GET, 'sub', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only sub marker.
+		$sub = isset( $_GET['sub'] ) ? filter_var( $_GET['sub'], FILTER_SANITIZE_FULL_SPECIAL_CHARS ) : null;
 		if ( empty( $sub ) ) {
 			$sub = 'settings';
 		}
@@ -401,16 +408,18 @@ class Admin {
 	 * @return void
 	 */
 	public function handle_actions() {
-		if ( isset( $_GET['wp_rest_cache_dismiss'] )
-			&& check_admin_referer( 'wp-rest-cache-dismiss-notice-' . filter_input( INPUT_GET, 'wp_rest_cache_dismiss' ) )
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- nonce verified below via check_admin_referer.
+		$dismiss = isset( $_GET['wp_rest_cache_dismiss'] ) ? sanitize_text_field( wp_unslash( $_GET['wp_rest_cache_dismiss'] ) ) : null;
+		if ( null !== $dismiss
+			&& check_admin_referer( 'wp-rest-cache-dismiss-notice-' . $dismiss )
 		) {
 			$user_id           = get_current_user_id();
 			$dismissed_notices = get_user_meta( $user_id, 'wp_rest_cache_dismissed_notices', true );
 			if ( ! is_array( $dismissed_notices ) ) {
 				$dismissed_notices = [];
 			}
-			if ( ! in_array( filter_input( INPUT_GET, 'wp_rest_cache_dismiss' ), $dismissed_notices, true ) ) {
-				$dismissed_notices[] = filter_input( INPUT_GET, 'wp_rest_cache_dismiss' );
+			if ( ! in_array( $dismiss, $dismissed_notices, true ) ) {
+				$dismissed_notices[] = $dismiss;
 				update_user_meta( $user_id, 'wp_rest_cache_dismissed_notices', $dismissed_notices );
 			}
 		}
@@ -583,16 +592,16 @@ class Admin {
 		if ( ! current_user_can( apply_filters( 'wp_rest_cache/settings_capability', 'administrator' ) ) ) {
 			wp_die( esc_html__( 'You do not have permission to perform this action.', 'wp-rest-cache' ) );
 		}
-		$delete_caches = filter_input( INPUT_POST, 'delete_caches', FILTER_VALIDATE_BOOLEAN );
-		$cache_filter  = filter_input( INPUT_POST, 'cache_filter', FILTER_SANITIZE_FULL_SPECIAL_CHARS );
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- nonce verified above via check_ajax_referer.
+		$delete_caches = isset( $_POST['delete_caches'] ) ? filter_var( $_POST['delete_caches'], FILTER_VALIDATE_BOOLEAN ) : false;
+		$cache_filter  = isset( $_POST['cache_filter'] ) ? filter_var( $_POST['cache_filter'], FILTER_SANITIZE_FULL_SPECIAL_CHARS ) : '';
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 		$caching = Caching::get_instance();
 		$caching->delete_all_caches( $delete_caches, ! empty( $cache_filter ) ? $cache_filter : false );
 
-		$result = [ 'percentage' => 100 ]; // deprecated, since we delete all caches at once, we should remove the progress bar.
-
-		echo wp_json_encode( $result );
-		exit;
+		// `percentage` is deprecated: we delete all caches at once now, so the progress bar should be removed.
+		wp_send_json( [ 'percentage' => 100 ] );
 	}
 
 	/**

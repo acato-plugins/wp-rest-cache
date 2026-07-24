@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<phpunit
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.6/phpunit.xsd"
+	bootstrap="tests/bootstrap-multisite.php"
+	backupGlobals="false"
+	colors="true"
+	convertErrorsToExceptions="true"
+	convertNoticesToExceptions="true"
+	convertWarningsToExceptions="true"
+	beStrictAboutTestsThatDoNotTestAnything="true"
+	verbose="true"
+>
+	<testsuites>
+		<testsuite name="wp-rest-cache-multisite">
+			<directory suffix=".php">./tests/multisite/</directory>
+		</testsuite>
+	</testsuites>
+
+	<coverage>
+		<include>
+			<directory suffix=".php">./includes</directory>
+			<directory suffix=".php">./admin</directory>
+		</include>
+		<exclude>
+			<directory suffix=".php">./includes/cli</directory>
+			<directory suffix=".php">./admin/partials</directory>
+		</exclude>
+	</coverage>
+</phpunit>
