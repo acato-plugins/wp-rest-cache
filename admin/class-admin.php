@@ -457,14 +457,19 @@ class Admin {
 	}
 
 	/**
-	 * Check if the MU plugin was created, if not display a warning.
+	 * Check whether the MU plugin is installed and in sync with the source template.
+	 *
+	 * Also handles version bumps: if the main plugin's version changes, the previously
+	 * installed mu-plugin will no longer match the desired stamped content and will be
+	 * re-copied here. On non-direct filesystems (where automatic install is skipped), a
+	 * warning notice asks the site owner to copy the file manually.
 	 *
 	 * @return void
 	 */
 	public function check_muplugin_existence() {
-		if ( ! file_exists( WPMU_PLUGIN_DIR . '/wp-rest-cache.php' ) ) {
+		if ( \WP_Rest_Cache_Plugin\Includes\Activator::mu_plugin_needs_install() ) {
 			\WP_Rest_Cache_Plugin\Includes\Activator::create_mu_plugin();
-			if ( ! file_exists( WPMU_PLUGIN_DIR . '/wp-rest-cache.php' ) ) {
+			if ( \WP_Rest_Cache_Plugin\Includes\Activator::mu_plugin_needs_install() ) {
 
 				$from = '<code>' . substr(
 					plugin_dir_path( __DIR__ ) . 'sources/wp-rest-cache.php',
