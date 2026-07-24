@@ -2,9 +2,9 @@
 Contributors: acato, rockfire, yoeridekker
 Tags: cache, wp-rest-api, api, rest, rest cache
 Requires at least: 4.7
-Tested up to: 6.9
+Tested up to: 7.0
 Requires PHP: 7.0
-Stable tag: 2026.2.0
+Stable tag: 2026.3.0
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl.html
 
@@ -186,6 +186,12 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 5. Cache details page - Cache data.
 
 == Changelog ==
+
+= 2026.3.0 =
+Release Date: July 24th, 2026
+
+Fix: several small fixes and improvements.
+Improvement: Add support for using regex inside wp_rest_cache/allowed_endpoints and wp_rest_cache/disallowed_endpoints filters.
 
 = 2026.2.0 =
 Release Date: May 19th, 2026
