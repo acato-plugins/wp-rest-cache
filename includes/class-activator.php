@@ -56,6 +56,9 @@ class Activator {
 	/**
 	 * Create a Must-Use plugin to handle caching asap. Before loading of other plugins and/or theme.
 	 *
+	 * The mu-plugin's `Version:` header is stamped with the main plugin's current version so it
+	 * automatically stays in sync when the main plugin is upgraded.
+	 *
 	 * @return void
 	 */
 	public static function create_mu_plugin() {
@@ -66,6 +69,12 @@ class Activator {
 		if ( 'direct' !== $access_type ) {
 			return;
 		}
+
+		$desired = self::get_desired_mu_plugin_content();
+		if ( false === $desired ) {
+			return;
+		}
+
 		// No filter_input, see https://stackoverflow.com/questions/25232975/php-filter-inputinput-server-request-method-returns-null/36205923.
 		$request_uri = filter_var( $_SERVER['REQUEST_URI'], FILTER_SANITIZE_URL );
 		$url         = Util::get_home_url() . $request_uri;
@@ -77,8 +86,59 @@ class Activator {
 			$wp_filesystem->mkdir( WPMU_PLUGIN_DIR );
 		}
 
-		$source = plugin_dir_path( __DIR__ ) . 'sources/wp-rest-cache.php';
 		$target = WPMU_PLUGIN_DIR . '/wp-rest-cache.php';
-		$wp_filesystem->copy( $source, $target );
+		$wp_filesystem->put_contents( $target, $desired );
+	}
+
+	/**
+	 * Determine whether the installed mu-plugin is missing or differs from the desired source.
+	 *
+	 * Used by the admin_init drift check to detect both first-run installs and version bumps.
+	 *
+	 * @return bool True when the mu-plugin needs to be (re-)installed.
+	 */
+	public static function mu_plugin_needs_install() {
+		$target = WPMU_PLUGIN_DIR . '/wp-rest-cache.php';
+		if ( ! file_exists( $target ) ) {
+			return true;
+		}
+
+		$desired = self::get_desired_mu_plugin_content();
+		if ( false === $desired ) {
+			// Cannot determine desired state — treat as in-sync to avoid a spurious warning.
+			return false;
+		}
+
+		return md5_file( $target ) !== md5( $desired );
+	}
+
+	/**
+	 * Build the desired mu-plugin file contents by stamping the main plugin's current
+	 * `Version:` header value onto the source template.
+	 *
+	 * @return string|false Content to write, or false when the source cannot be read.
+	 */
+	private static function get_desired_mu_plugin_content() {
+		$source   = plugin_dir_path( __DIR__ ) . 'sources/wp-rest-cache.php';
+		$contents = file_get_contents( $source ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading a plugin-owned template file.
+		if ( false === $contents ) {
+			return false;
+		}
+
+		$plugin_data = get_file_data(
+			plugin_dir_path( __DIR__ ) . 'wp-rest-cache.php',
+			[ 'Version' => 'Version' ]
+		);
+
+		if ( ! empty( $plugin_data['Version'] ) ) {
+			$contents = preg_replace(
+				'/^(\s*\*\s*Version:\s*)[^\r\n]+/m',
+				'${1}' . $plugin_data['Version'],
+				$contents,
+				1
+			);
+		}
+
+		return $contents;
 	}
 }

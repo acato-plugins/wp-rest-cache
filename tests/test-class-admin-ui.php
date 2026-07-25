@@ -218,6 +218,47 @@ class Test_Admin_Ui extends Caching_Test_Case {
 		);
 	}
 
+	public function test_check_muplugin_existence_reinstalls_when_installed_content_is_stale() {
+		$mu_file = WPMU_PLUGIN_DIR . '/wp-rest-cache.php';
+
+		if ( ! is_dir( WPMU_PLUGIN_DIR ) ) {
+			mkdir( WPMU_PLUGIN_DIR, 0755, true );
+		}
+
+		// Simulate a previously-installed mu-plugin whose Version header no longer matches
+		// the main plugin (as would happen after the main plugin is upgraded to a new version).
+		file_put_contents(
+			$mu_file,
+			"<?php\n/**\n * Plugin Name: WP REST Cache - Must-Use Plugin\n * Version:           0.0.0-stale\n */\n"
+		);
+
+		$plugin_data = get_file_data(
+			dirname( __DIR__ ) . '/wp-rest-cache.php',
+			[ 'Version' => 'Version' ]
+		);
+		$this->assertNotEmpty( $plugin_data['Version'], 'Sanity: main plugin must expose a Version header' );
+
+		$this->admin->check_muplugin_existence();
+
+		$written = file_get_contents( $mu_file );
+		$this->assertStringNotContainsString(
+			'0.0.0-stale',
+			$written,
+			'Stale mu-plugin content should have been overwritten by the drift-check.'
+		);
+		$this->assertStringContainsString(
+			$plugin_data['Version'],
+			$written,
+			'Re-installed mu-plugin should carry the main plugin\'s current Version.'
+		);
+
+		$notices = get_option( 'wp_rest_cache_admin_notices', [] );
+		$this->assertEmpty(
+			$notices['warning'] ?? [],
+			'Successful re-install should not add a warning notice.'
+		);
+	}
+
 	// ---------- check_memcache_ext_object_caching ----------
 
 	public function test_check_memcache_does_not_warn_when_no_memcache_class_is_loaded() {
