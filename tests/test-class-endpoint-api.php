@@ -31,7 +31,8 @@ class Test_Endpoint_Api extends Caching_Test_Case {
 		parent::set_up();
 		$this->server_backup = [
 			'REQUEST_URI'    => $_SERVER['REQUEST_URI']    ?? null,
-			'REQUEST_METHOD' => $_SERVER['REQUEST_METHOD'] ?? null,
+			'REQUEST_METHOD'  => $_SERVER['REQUEST_METHOD'] ?? null,
+			'HTTP_X_WP_NONCE' => $_SERVER['HTTP_X_WP_NONCE'] ?? null,
 		];
 	}
 
@@ -160,6 +161,40 @@ class Test_Endpoint_Api extends Caching_Test_Case {
 		$this->assertStringStartsWith( 'overridden-', $key );
 	}
 
+	public function test_build_cache_key_is_unique_per_session_for_nonce_requests() {
+		$_SERVER['REQUEST_URI']     = '/wp-json/wp/v2/posts';
+		$_SERVER['REQUEST_METHOD']  = 'GET';
+		$_SERVER['HTTP_X_WP_NONCE'] = 'some-nonce-value';
+
+		$key_anonymous = $this->build_key();
+
+		$_COOKIE['wordpress_logged_in_abc'] = 'admin|123|token|hmac';
+		$key_session_a                      = $this->build_key();
+
+		$_COOKIE['wordpress_logged_in_abc'] = 'editor|456|token|hmac';
+		$key_session_b                      = $this->build_key();
+
+		unset( $_COOKIE['wordpress_logged_in_abc'] );
+
+		$this->assertNotSame( $key_anonymous, $key_session_a );
+		$this->assertNotSame( $key_session_a, $key_session_b );
+	}
+
+	public function test_build_cache_key_ignores_session_cookie_without_nonce() {
+		// Without a nonce WordPress treats the request as anonymous, so it should share the anonymous cache.
+		$_SERVER['REQUEST_URI']    = '/wp-json/wp/v2/posts';
+		$_SERVER['REQUEST_METHOD'] = 'GET';
+
+		$key_anonymous = $this->build_key();
+
+		$_COOKIE['wordpress_logged_in_abc'] = 'admin|123|token|hmac';
+		$key_cookie                         = $this->build_key();
+
+		unset( $_COOKIE['wordpress_logged_in_abc'] );
+
+		$this->assertSame( $key_anonymous, $key_cookie );
+	}
+
 	// ---------- save_cache_headers ----------
 
 	public function test_save_cache_headers_captures_response_headers_into_endpoint_state() {
@@ -267,6 +302,47 @@ class Test_Endpoint_Api extends Caching_Test_Case {
 		global $wpdb;
 		$method = $wpdb->get_var( "SELECT request_method FROM `{$wpdb->prefix}wrc_caches`" );
 		$this->assertSame( 'POST', $method );
+	}
+
+	public function test_save_cache_does_not_persist_response_generated_for_authenticated_user() {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
+		$api = new Endpoint_Api();
+		$this->arrange_request( $api, '/wp-json/wp/v2/users', 'GET' );
+
+		$result = [ [ 'id' => 1, 'email' => 'admin@example.com' ] ];
+		$this->assertSame( $result, $api->save_cache( $result ) );
+		$this->assertSame( 0, $this->count_cache_rows() );
+
+		wp_set_current_user( 0 );
+	}
+
+	public function test_save_cache_persists_authenticated_response_when_cache_key_is_user_specific() {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
+		$api = new Endpoint_Api();
+		$this->arrange_request( $api, '/wp-json/wp/v2/users', 'GET' );
+		$this->set_private_property( $api, 'cache_key_is_user_specific', true );
+
+		$api->save_cache( [ [ 'id' => 1 ] ] );
+
+		$this->assertSame( 1, $this->count_cache_rows() );
+
+		wp_set_current_user( 0 );
+	}
+
+	public function test_cache_authenticated_response_filter_allows_caching() {
+		wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+		add_filter( 'wp_rest_cache/cache_authenticated_response', '__return_true' );
+
+		$api = new Endpoint_Api();
+		$this->arrange_request( $api, '/wp-json/wp/v2/users', 'GET' );
+
+		$api->save_cache( [ [ 'id' => 1 ] ] );
+
+		$this->assertSame( 1, $this->count_cache_rows() );
+
+		wp_set_current_user( 0 );
 	}
 
 	// ----- helpers -----
