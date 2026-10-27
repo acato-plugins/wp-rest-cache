@@ -4,7 +4,7 @@ Tags: cache, wp-rest-api, api, rest, rest cache
 Requires at least: 4.7
 Tested up to: 7.0
 Requires PHP: 7.0
-Stable tag: 2026.3.1
+Stable tag: 2026.4.0
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl.html
 
@@ -186,6 +186,12 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 5. Cache details page - Cache data.
 
 == Changelog ==
+
+= 2026.4.0 =
+Release Date: October 27th, 2026
+
+Security: Responses generated for authenticated users (e.g. through Application Passwords or Basic auth) could be cached and served to unauthenticated visitors. Requests with an Authorization header and requests with context=edit are no longer cached, responses for authenticated users are only cached if the cache key is user specific, and nonce cached requests are now cached per session. All existing caches are flushed on update.
+Feature: Added filter `wp_rest_cache/cache_authenticated_response` to allow caching of responses generated for authenticated users when the cache key is made user specific.
 
 = 2026.3.1 =
 Release Date: July 25th, 2026

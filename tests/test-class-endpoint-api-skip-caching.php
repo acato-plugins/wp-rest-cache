@@ -191,6 +191,64 @@ class Test_Endpoint_Api_Skip_Caching extends Caching_Test_Case {
 		unset( $_GET['skip_cache'] );
 	}
 
+	// ---------- Authenticated requests ----------
+
+	public function test_edit_context_always_skips_caching() {
+		// context=edit responses are privileged by definition, even when nonce caching is enabled.
+		add_filter( 'wp_rest_cache/skip_nonce_caching', '__return_false' );
+		$this->enable_endpoint( 'wp/v2', 'users' );
+		$_GET['context'] = 'edit';
+
+		$api = $this->arrange( '/wp-json/wp/v2/users?context=edit' );
+
+		$this->assertTrue( $api->skip_caching() );
+
+		unset( $_GET['context'] );
+	}
+
+	public function test_view_context_does_not_skip_caching() {
+		$this->enable_endpoint( 'wp/v2', 'users' );
+		$_GET['context'] = 'view';
+
+		$api = $this->arrange( '/wp-json/wp/v2/users?context=view' );
+
+		$this->assertFalse( $api->skip_caching() );
+
+		unset( $_GET['context'] );
+	}
+
+	public function test_authorization_header_skips_caching() {
+		// Application Passwords / Basic auth send no nonce, only an Authorization header.
+		$this->enable_endpoint( 'wp/v2', 'users' );
+
+		$api = $this->arrange( '/wp-json/wp/v2/users' );
+		$this->get_private_property( $api, 'request' )->set_header( 'authorization', 'Basic YWRtaW46c2VjcmV0' );
+
+		$this->assertTrue( $api->skip_caching() );
+	}
+
+	public function test_php_auth_user_skips_caching() {
+		$this->enable_endpoint( 'wp/v2', 'users' );
+		$_SERVER['PHP_AUTH_USER'] = 'admin';
+
+		$api = $this->arrange( '/wp-json/wp/v2/users' );
+
+		$this->assertTrue( $api->skip_caching() );
+
+		unset( $_SERVER['PHP_AUTH_USER'] );
+	}
+
+	public function test_authorization_header_does_not_skip_caching_when_it_is_part_of_the_cache_key() {
+		// When Authorization is a cacheable request header every set of credentials gets its own cache.
+		$this->enable_endpoint( 'wp/v2', 'users' );
+
+		$api = $this->arrange( '/wp-json/wp/v2/users' );
+		$this->get_private_property( $api, 'request' )->set_header( 'authorization', 'Basic YWRtaW46c2VjcmV0' );
+		$this->set_private_property( $api, 'request_headers', [ 'Authorization' => 'Basic YWRtaW46c2VjcmV0' ] );
+
+		$this->assertFalse( $api->skip_caching() );
+	}
+
 	// ----- helpers -----
 
 	/**

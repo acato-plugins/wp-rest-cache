@@ -73,6 +73,14 @@ class Endpoint_Api {
 	private $request;
 
 	/**
+	 * Whether the current cache key contains a credential (session or Authorization header) specific part.
+	 *
+	 * @access private
+	 * @var    bool $cache_key_is_user_specific True if the cache key is unique per set of credentials.
+	 */
+	private $cache_key_is_user_specific = false;
+
+	/**
 	 * The default WordPress REST endpoints, that can be cached.
 	 *
 	 * @access private
@@ -189,7 +197,17 @@ class Endpoint_Api {
 			$request_method = '';
 		}
 
-		$this->cache_key = md5( $this->request_uri . wp_json_encode( $this->request_headers ) . $request_method );
+		$this->cache_key_is_user_specific = $this->authorization_header_is_cacheable();
+
+		// A nonce means a cookie authenticated request (only cached when the `wp_rest_cache/skip_nonce_caching` filter
+		// allows it), make sure every session gets its own cache.
+		$session_hash = '';
+		if ( ! is_null( $this->request->get_header( 'x_wp_nonce' ) ) ) {
+			$session_hash                     = $this->get_session_hash();
+			$this->cache_key_is_user_specific = $this->cache_key_is_user_specific || '' !== $session_hash;
+		}
+
+		$this->cache_key = md5( $this->request_uri . wp_json_encode( $this->request_headers ) . $request_method . $session_hash );
 
 		/**
 		 * Filter the generated cache key.
@@ -205,6 +223,63 @@ class Endpoint_Api {
 		 * @param string $request_method  The request method.
 		 */
 		$this->cache_key = apply_filters( 'wp_rest_cache/cache_key', $this->cache_key, $this->request_uri, $this->request_headers, $request_method );
+	}
+
+	/**
+	 * Get a hash of the logged in cookie(s), to be able to distinguish caches per session.
+	 *
+	 * The cache is served from the Must-Use plugin, before pluggable functions are loaded, so the current user
+	 * cannot be determined. The logged in cookie is unique per session and cannot be guessed.
+	 *
+	 * @return string The hash, or an empty string if no logged in cookie is present.
+	 */
+	private function get_session_hash() {
+		$session_cookies = [];
+		foreach ( $_COOKIE as $name => $value ) {
+			if ( ( defined( 'LOGGED_IN_COOKIE' ) && LOGGED_IN_COOKIE === $name ) || str_starts_with( (string) $name, 'wordpress_logged_in_' ) ) {
+				$session_cookies[ $name ] = $value;
+			}
+		}
+
+		if ( empty( $session_cookies ) ) {
+			return '';
+		}
+
+		ksort( $session_cookies );
+
+		return hash( 'sha256', (string) wp_json_encode( $session_cookies ) );
+	}
+
+	/**
+	 * Check if the current request carries credentials through the Authorization header or HTTP authentication, as
+	 * used by Application Passwords, Basic auth, JWT, OAuth etc.
+	 *
+	 * @return bool True if credentials are present.
+	 */
+	private function has_authorization_credentials() {
+		if ( ! empty( $this->request->get_header( 'authorization' ) ) ) {
+			return true;
+		}
+
+		return ! empty( $_SERVER['PHP_AUTH_USER'] )
+			|| ! empty( $_SERVER['HTTP_AUTHORIZATION'] )
+			|| ! empty( $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] );
+	}
+
+	/**
+	 * Check if the Authorization header of the current request is part of the cache key (because it is configured
+	 * as a cacheable request header), which makes the cache unique per set of credentials.
+	 *
+	 * @return bool True if the Authorization header is part of the cache key.
+	 */
+	private function authorization_header_is_cacheable() {
+		foreach ( $this->request_headers as $header => $value ) {
+			if ( 'authorization' === strtolower( str_replace( '-', '_', trim( (string) $header ) ) ) && ! empty( $value ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
@@ -257,6 +332,27 @@ class Endpoint_Api {
 	 * @return array<string,mixed> Response data to send to the client.
 	 */
 	public function save_cache( $result ) {
+		$user_id = get_current_user_id();
+
+		/**
+		 * Allow caching of responses generated for an authenticated user.
+		 *
+		 * A response generated for an authenticated user can contain data that is not meant for other visitors. By
+		 * default it is only cached if the cache key is unique per set of credentials (i.e. nonce caching is enabled,
+		 * or the Authorization header is a cacheable request header). Only return true if the cache key is made user
+		 * specific in another way, for example through the `wp_rest_cache/cache_key` filter.
+		 *
+		 * @since 2026.4.0
+		 *
+		 * @param bool             $allow       Whether to cache the response.
+		 * @param int              $user_id     The ID of the user the response was generated for.
+		 * @param \WP_REST_Request $request     The current REST Request.
+		 * @param string           $request_uri The REST URI that is being requested.
+		 */
+		if ( 0 !== $user_id && ! apply_filters( 'wp_rest_cache/cache_authenticated_response', $this->cache_key_is_user_specific, $user_id, $this->request, $this->request_uri ) ) {
+			return $result;
+		}
+
 		// Only Avoid cache if not 200.
 		if ( ! empty( $result )
 			&& is_array( $result )
@@ -338,6 +434,18 @@ class Endpoint_Api {
 		 * @param string $request_uri The REST URI that is being requested.
 		 */
 		if ( apply_filters( 'wp_rest_cache/skip_nonce_caching', true, $this->request, $this->request_uri ) && ! is_null( $wp_nonce ) ) {
+			return true;
+		}
+
+		// Never cache the edit context, it contains data meant for privileged users only.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only check.
+		if ( isset( $_GET['context'] ) && 'edit' === $_GET['context'] ) {
+			return true;
+		}
+
+		// Requests authenticated through the Authorization header (Application Passwords, Basic auth, JWT etc.)
+		// should not share their cache with other visitors.
+		if ( $this->has_authorization_credentials() && ! $this->authorization_header_is_cacheable() ) {
 			return true;
 		}
 
