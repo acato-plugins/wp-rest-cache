@@ -112,7 +112,7 @@ class Test_Caching_Upgrade extends WP_UnitTestCase {
 
 		Caching::get_instance()->update_database_structure();
 
-		$this->assertSame( '2026.1.0', get_option( 'wp_rest_cache_database_version' ) );
+		$this->assertSame( Caching::DB_VERSION, get_option( 'wp_rest_cache_database_version' ) );
 
 		$relations_object_id   = $this->column_type( $relations_table, 'object_id' );
 		$relations_object_type = $this->column_type( $relations_table, 'object_type' );
