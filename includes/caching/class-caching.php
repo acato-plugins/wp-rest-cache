@@ -1754,7 +1754,7 @@ class Caching {
 		$sql = "SELECT  `cache_key`, `deleted`, `request_uri`, `request_headers`
                 FROM    {$this->db_table_caches}
                 WHERE   `expiration` = %s
-                AND     `cleaned` = %d
+                AND     ( `cleaned` = %d OR `deleted` = 1 )
                 LIMIT   %d";
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		$caches = $wpdb->get_results( $wpdb->prepare( $sql, date_i18n( 'Y-m-d H:i:s', 1 ), 0, $limit ) );
@@ -1777,7 +1777,7 @@ class Caching {
 		$sql = "SELECT  COUNT( `cache_id` ) AS `number_of_caches`
                 FROM    {$this->db_table_caches}
                 WHERE   `expiration` = %s
-                AND     `cleaned` = %d";
+                AND     ( `cleaned` = %d OR `deleted` = 1 )";
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		$count = $wpdb->get_var( $wpdb->prepare( $sql, date_i18n( 'Y-m-d H:i:s', 1 ), 0 ) );
 
