@@ -113,6 +113,88 @@ class Test_Caching_Cleanup extends Caching_Test_Case {
 		$this->assertFalse( $this->cache_row_exists( $cache_id ) );
 	}
 
+	public function test_cleanup_hard_deletes_previously_cleaned_row_marked_deleted() {
+		// A row flushed and cleaned earlier (cleaned = 1), then hard-deleted via "delete all caches"
+		// (deleted = 1), must still be removed by the cleanup.
+		$cache_id = $this->insert_cache(
+			[
+				'cache_key'  => 'cleaned-then-deleted',
+				'expiration' => $this->flushed_sentinel(),
+				'cleaned'    => 1,
+				'deleted'    => 1,
+			]
+		);
+
+		Caching::get_instance()->cleanup_deleted_caches();
+
+		$this->assertFalse( $this->cache_row_exists( $cache_id ) );
+	}
+
+	public function test_cleanup_keeps_previously_cleaned_row_not_marked_deleted() {
+		$cache_id = $this->insert_cache(
+			[
+				'cache_key'  => 'cleaned-only',
+				'expiration' => $this->flushed_sentinel(),
+				'cleaned'    => 1,
+				'deleted'    => 0,
+			]
+		);
+
+		Caching::get_instance()->cleanup_deleted_caches();
+
+		$this->assertTrue( $this->cache_row_exists( $cache_id ) );
+	}
+
+	public function test_cleanup_ignores_deleted_row_that_is_not_flushed() {
+		$cache_id = $this->insert_cache(
+			[
+				'cache_key'  => 'deleted-not-flushed',
+				'expiration' => '2099-01-01 00:00:00',
+				'cleaned'    => 1,
+				'deleted'    => 1,
+			]
+		);
+
+		Caching::get_instance()->cleanup_deleted_caches();
+
+		$this->assertTrue( $this->cache_row_exists( $cache_id ) );
+	}
+
+	public function test_delete_all_caches_removes_previously_cleaned_rows_after_cleanup() {
+		$cache_id = $this->insert_cache(
+			[
+				'cache_key'   => 'flushed-earlier',
+				'object_type' => 'post',
+				'expiration'  => $this->flushed_sentinel(),
+				'cleaned'     => 1,
+				'deleted'     => 0,
+			]
+		);
+
+		Caching::get_instance()->delete_all_caches( true );
+		Caching::get_instance()->cleanup_deleted_caches();
+
+		$this->assertFalse( $this->cache_row_exists( $cache_id ) );
+	}
+
+	public function test_cleanup_reschedules_itself_when_previously_cleaned_deleted_rows_remain() {
+		for ( $i = 0; $i < 3; $i++ ) {
+			$this->insert_cache(
+				[
+					'cache_key'  => "k{$i}",
+					'expiration' => $this->flushed_sentinel(),
+					'cleaned'    => 1,
+					'deleted'    => 1,
+				]
+			);
+		}
+		add_filter( 'wp_rest_cache/max_cleanup_caches', fn() => 2 );
+
+		Caching::get_instance()->cleanup_deleted_caches();
+
+		$this->assertNotFalse( wp_next_scheduled( self::CRON_HOOK ) );
+	}
+
 	public function test_cleanup_with_deleted_zero_soft_deletes_row_and_marks_cleaned() {
 		$cache_id = $this->insert_cache(
 			[
