@@ -4,7 +4,7 @@ Tags: cache, wp-rest-api, api, rest, rest cache
 Requires at least: 4.7
 Tested up to: 7.0
 Requires PHP: 7.0
-Stable tag: 2026.4.0
+Stable tag: 2026.4.1
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl.html
 
@@ -186,6 +186,11 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 5. Cache details page - Cache data.
 
 == Changelog ==
+
+= 2026.4.1 =
+Release Date: October 29th, 2026
+
+Fix: Deleted caches that had been flushed and cleaned up before were never removed from the database, causing the caches table to grow indefinitely. Existing leftover caches are removed by the cleanup cron. It was reported by krstarica.
 
 = 2026.4.0 =
 Release Date: October 27th, 2026
