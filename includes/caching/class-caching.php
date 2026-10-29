@@ -1637,14 +1637,37 @@ class Caching {
 
 		$regenerate_number = (int) $this->get_regenerate_number();
 
-		$sql =
-			"SELECT * 
-            FROM `{$this->db_table_caches}`
-            WHERE `cache_type` = 'endpoint'
-            ORDER BY `cache_hits` DESC";
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		$results = $wpdb->get_results( $sql, ARRAY_A );
-		foreach ( $results as &$result ) {
+		// Walk the caches in chunks, so a large caches table isn't loaded into memory all at once.
+		$chunk_size = 500;
+		$offset     = 0;
+		do {
+			$sql =
+				"SELECT *
+				FROM `{$this->db_table_caches}`
+				WHERE `cache_type` = 'endpoint'
+				ORDER BY `cache_hits` DESC, `cache_id` ASC
+				LIMIT %d OFFSET %d";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			$results     = $wpdb->get_results( $wpdb->prepare( $sql, $chunk_size, $offset ), ARRAY_A );
+			$offset     += $chunk_size;
+			$is_complete = count( $results ) < $chunk_size;
+
+			if ( $this->regenerate_caches( $results, $regenerate_number ) ) {
+				return;
+			}
+		} while ( ! $is_complete );
+	}
+
+	/**
+	 * Regenerate the expired caches from a chunk of caches.
+	 *
+	 * @param array<int,array<string,mixed>> $results The caches to check.
+	 * @param int                            $regenerate_number The number of caches that may still be regenerated, decremented for each regenerated cache.
+	 *
+	 * @return bool Whether the maximum number of regenerated caches has been reached.
+	 */
+	private function regenerate_caches( $results, &$regenerate_number ) {
+		foreach ( $results as $result ) {
 			if ( 1 === strtotime( $result['expiration'] ) || false === get_transient( $this->transient_key( $result['cache_key'] ) ) ) {
 				/**
 				 * Filter whether to skip regeneration for a specific cache.
@@ -1671,10 +1694,12 @@ class Caching {
 
 				--$regenerate_number;
 				if ( $regenerate_number <= 0 ) {
-					break;
+					return true;
 				}
 			}
 		}
+
+		return false;
 	}
 
 	/**
@@ -1783,6 +1808,93 @@ class Caching {
 
 		if ( $count > 0 ) {
 			$this->schedule_cleanup();
+		}
+	}
+
+	/**
+	 * Schedule the daily cron job that purges stale caches from the database.
+	 *
+	 * @return void
+	 */
+	public function schedule_purge_stale_caches() {
+		if ( ! wp_next_scheduled( 'wp_rest_cache_purge_stale_caches' ) ) {
+			wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', 'wp_rest_cache_purge_stale_caches' );
+		}
+	}
+
+	/**
+	 * Function called by a cron job to remove stale caches (and their relations) from the database.
+	 *
+	 * A cache is stale when it has expired naturally (longer ago than the grace period), or when it has been flushed
+	 * and cleaned up. Neither is picked up by the cleanup cron, so without this purge the caches table keeps growing.
+	 * Their transients have already expired or were deleted during cleanup, so only the database rows are removed.
+	 *
+	 * @return void
+	 */
+	public function purge_stale_caches() {
+		global $wpdb;
+
+		/**
+		 * Should stale caches be purged from the database?
+		 *
+		 * The regenerate cron needs flushed and expired caches to know which caches to regenerate, so by default
+		 * stale caches are only purged when regeneration is disabled.
+		 *
+		 * @since 2026.4.2
+		 *
+		 * @param bool $purge Whether stale caches should be purged.
+		 */
+		if ( ! apply_filters( 'wp_rest_cache/purge_stale_caches', ! $this->should_regenerate() ) ) {
+			return;
+		}
+
+		/**
+		 * How long after expiration should a cache be kept before it is purged?
+		 *
+		 * @since 2026.4.2
+		 *
+		 * @param int $grace_period The grace period in seconds.
+		 */
+		$grace_period = (int) apply_filters( 'wp_rest_cache/stale_cache_grace_period', DAY_IN_SECONDS );
+
+		/**
+		 * How many stale caches should be purged in each run?
+		 *
+		 * @since 2026.4.2
+		 *
+		 * @param int $limit The maximum number of purged caches per cron run.
+		 */
+		$limit = (int) apply_filters( 'wp_rest_cache/max_purge_caches', 1000 );
+
+		// The expiration is stored in local time, unless Memcache(d) is used (see insert_cache_row()).
+		// phpcs:ignore WordPress.DateTime.CurrentTimeTimestamp.Requested
+		$now     = $this->get_memcache_used() ? time() : current_time( 'timestamp' );
+		$flushed = date_i18n( 'Y-m-d H:i:s', 1 );
+
+		// Unlimited caches have an expiration of 1970-01-01 00:00:00, which is excluded by `expiration` > flushed.
+		$sql = "SELECT  `cache_id`
+                FROM    {$this->db_table_caches}
+                WHERE   ( `expiration` = %s AND `cleaned` = 1 )
+                OR      ( `expiration` > %s AND `expiration` < %s )
+                LIMIT   %d";
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		$cache_ids = $wpdb->get_col( $wpdb->prepare( $sql, $flushed, $flushed, date_i18n( 'Y-m-d H:i:s', $now - $grace_period ), $limit ) );
+
+		if ( ! $cache_ids ) {
+			return;
+		}
+
+		$number_of_caches = count( $cache_ids );
+		$cache_ids        = implode( ',', array_map( 'intval', $cache_ids ) );
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$wpdb->query( "DELETE FROM `{$this->db_table_relations}` WHERE `cache_id` IN ( {$cache_ids} )" );
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$wpdb->query( "DELETE FROM `{$this->db_table_caches}` WHERE `cache_id` IN ( {$cache_ids} )" );
+
+		if ( $number_of_caches >= $limit ) {
+			// There are probably more stale caches, continue shortly instead of waiting a day.
+			wp_schedule_single_event( time() + MINUTE_IN_SECONDS, 'wp_rest_cache_purge_stale_caches' );
 		}
 	}
 

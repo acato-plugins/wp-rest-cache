@@ -52,6 +52,18 @@ class Test_Plugin extends Caching_Test_Case {
 		);
 	}
 
+	public function test_init_schedules_the_stale_cache_purge() {
+		$this->assertNotFalse(
+			has_action( 'init', [ Caching::get_instance(), 'schedule_purge_stale_caches' ] )
+		);
+	}
+
+	public function test_purge_cron_hook_runs_purge_stale_caches() {
+		$this->assertNotFalse(
+			has_action( 'wp_rest_cache_purge_stale_caches', [ Caching::get_instance(), 'purge_stale_caches' ] )
+		);
+	}
+
 	public function test_save_post_is_hooked_at_priority_999() {
 		$this->assertSame(
 			999,
