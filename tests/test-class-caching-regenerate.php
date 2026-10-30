@@ -126,6 +126,27 @@ class Test_Caching_Regenerate extends Caching_Test_Case {
 		$this->assertCount( 2, $this->http_calls );
 	}
 
+	public function test_walks_past_the_first_chunk_to_find_caches_needing_regeneration() {
+		// 500 hot caches that are still valid fill the first chunk; the one that needs
+		// regeneration only shows up in the second chunk.
+		for ( $i = 0; $i < 500; $i++ ) {
+			$this->insert_cache(
+				[
+					'cache_key'  => "valid{$i}",
+					'expiration' => self::FAR_FUTURE,
+					'cache_hits' => 100,
+				]
+			);
+			set_transient( Caching::get_instance()->transient_key( "valid{$i}" ), 'cached' );
+		}
+		$this->seed_cache_needing_regen( '/uri/second-chunk', $this->flushed_sentinel(), false, 1, 'second-chunk' );
+
+		Caching::get_instance()->regenerate_expired_caches();
+
+		$this->assertCount( 1, $this->http_calls );
+		$this->assertStringContainsString( '/uri/second-chunk', $this->http_calls[0][0] );
+	}
+
 	public function test_skip_filter_returning_true_prevents_request_and_does_not_consume_quota() {
 		update_option( 'wp_rest_cache_regenerate_number', 1 );
 

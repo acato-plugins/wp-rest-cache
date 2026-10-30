@@ -4,7 +4,7 @@ Tags: cache, wp-rest-api, api, rest, rest cache
 Requires at least: 4.7
 Tested up to: 7.0
 Requires PHP: 7.0
-Stable tag: 2026.4.1
+Stable tag: 2026.4.2
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl.html
 
@@ -134,6 +134,10 @@ add_filter( 'wp_rest_cache/determine_object_type', 'wprc_determine_object_type',
 
 Yes they can!  Go to Settings > WP REST Cache, on the Settings tab you can check `Enable cache regeneration`, this will activate a cron job which will check if there are any expired (or flushed) caches and regenerate them. Using the `Regeneration interval` you can determine how often this regeneration process should run. The `Max number regenerate caches` limits the number of regenerated caches per regeneration process, this is so your server doesn't get flooded with the regeneration calls.
 
+= Are expired caches removed from the database? =
+
+Yes. Once a day a cron job removes caches from the database that expired more than a day ago, or that were flushed and already cleaned up. This only happens when cache regeneration is disabled, because the regeneration needs these caches to know what to regenerate. Use the filter `wp_rest_cache/purge_stale_caches` to override this, `wp_rest_cache/stale_cache_grace_period` to change how long (in seconds) an expired cache is kept and `wp_rest_cache/max_purge_caches` to change the number of caches removed per run (default 1000).
+
 = Can I hide the 'Clear REST cache' in the wp-admin bar? =
 
 Yes you can! Use the hook `wp_rest_cache/display_clear_cache_button` like this:
@@ -186,6 +190,13 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 5. Cache details page - Cache data.
 
 == Changelog ==
+
+= 2026.4.2 =
+Release Date: October 29th, 2026
+
+Fix: Caches that expired, or that were flushed and cleaned up, were never removed from the database, causing the caches table to grow indefinitely. A daily cron job now removes them (unless cache regeneration is enabled). It was reported by krstarica.
+Improvement: The cache regeneration cron no longer loads the entire caches table into memory.
+Feature: Added filters `wp_rest_cache/purge_stale_caches`, `wp_rest_cache/stale_cache_grace_period` and `wp_rest_cache/max_purge_caches`.
 
 = 2026.4.1 =
 Release Date: October 29th, 2026

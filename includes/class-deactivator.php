@@ -29,6 +29,7 @@ class Deactivator {
 	 */
 	public static function deactivate() {
 		Caching\Caching::get_instance()->clear_caches( true );
+		wp_clear_scheduled_hook( 'wp_rest_cache_purge_stale_caches' );
 		if ( file_exists( WPMU_PLUGIN_DIR . '/wp-rest-cache.php' ) ) {
 			$active = false;
 			if ( is_multisite() ) {
