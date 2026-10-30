@@ -55,7 +55,7 @@ class Plugin {
 	 */
 	public function __construct() {
 		$this->plugin_name = 'wp-rest-cache';
-		$this->version     = '2026.4.1';
+		$this->version     = '2026.4.2';
 
 		$this->define_admin_hooks();
 		$this->define_api_hooks();
@@ -182,6 +182,8 @@ class Plugin {
 
 		add_action( 'wp_rest_cache_regenerate_cron', [ $caching, 'regenerate_expired_caches' ] );
 		add_action( 'wp_rest_cache_cleanup_deleted_caches', [ $caching, 'cleanup_deleted_caches' ] );
+		add_action( 'init', [ $caching, 'schedule_purge_stale_caches' ] );
+		add_action( 'wp_rest_cache_purge_stale_caches', [ $caching, 'purge_stale_caches' ] );
 	}
 
 	/**
