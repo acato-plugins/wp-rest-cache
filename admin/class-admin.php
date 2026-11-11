@@ -524,6 +524,7 @@ class Admin {
 	 */
 	public function check_credential_skips() {
 		/** This filter is documented in the function create_menu(). */
+		// phpcs:ignore WordPress.WP.Capabilities.Undetermined -- the same filtered capability as the settings page, defaults to 'administrator'.
 		if ( ! current_user_can( apply_filters( 'wp_rest_cache/settings_capability', 'administrator' ) ) ) {
 			return;
 		}
