@@ -35,6 +35,11 @@ class Test_Caching_Upgrade_2026 extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 
+		// The WP test framework turns CREATE TABLE into CREATE TEMPORARY TABLE, which RENAME TABLE (used to rebuild the
+		// relations table) can't handle. Upgrades create and swap real tables, so test them on real tables.
+		remove_filter( 'query', [ $this, '_create_temporary_tables' ] );
+		remove_filter( 'query', [ $this, '_drop_temporary_tables' ] );
+
 		global $wpdb;
 		$this->caches_table    = "{$wpdb->prefix}wrc_caches";
 		$this->relations_table = "{$wpdb->prefix}wrc_relations";
@@ -144,6 +149,95 @@ class Test_Caching_Upgrade_2026 extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Data provider: the database versions a site without a relations PRIMARY KEY can upgrade from.
+	 *
+	 * @return array<string,array<int,string>>
+	 */
+	public function provide_versions_without_relations_primary_key() {
+		return [
+			'2026.3.1 (database version 2026.1.0)'         => [ '2026.1.0' ],
+			'2026.4.0 - 2026.4.2 (database version 2026.4.0)' => [ '2026.4.0' ],
+		];
+	}
+
+	/**
+	 * A relations table without its PRIMARY KEY and with duplicate relations (left behind by the unlocked 2026.1.0
+	 * upgrade) is rebuilt: the PRIMARY KEY is back, every relation is kept once, and there are no database errors.
+	 *
+	 * @dataProvider provide_versions_without_relations_primary_key
+	 *
+	 * @param string $version The database version before the upgrade.
+	 */
+	public function test_upgrade_rebuilds_relations_without_primary_key( $version ) {
+		global $wpdb;
+
+		$this->recreate_relations_without_primary_key();
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery
+		$wpdb->query( "INSERT INTO `{$this->relations_table}` VALUES (6041, '499', 'nav_menu_item'), (6041, '499', 'nav_menu_item'), (6041, '499', 'nav_menu_item'), (6041, '12', 'post'), (6042, '499', 'nav_menu_item')" );
+		// phpcs:enable
+		update_option( 'wp_rest_cache_database_version', $version, false );
+
+		$errors = $this->count_database_errors();
+		Caching::get_instance()->update_database_structure();
+
+		$this->assertSame( $errors, $this->count_database_errors(), 'The upgrade should not cause database errors' );
+		$this->assert_current_schema();
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery
+		$rows = $wpdb->get_results( "SELECT cache_id, object_id, object_type FROM `{$this->relations_table}` ORDER BY cache_id, object_id", ARRAY_A );
+		$left = $wpdb->get_col( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $this->relations_table . '_' ) . '%' ) );
+		// phpcs:enable
+
+		$this->assertSame(
+			[
+				[ 'cache_id' => '6041', 'object_id' => '12', 'object_type' => 'post' ],
+				[ 'cache_id' => '6041', 'object_id' => '499', 'object_type' => 'nav_menu_item' ],
+				[ 'cache_id' => '6042', 'object_id' => '499', 'object_type' => 'nav_menu_item' ],
+			],
+			$rows
+		);
+		$this->assertSame( [], $left, 'No temporary tables should be left behind' );
+	}
+
+	/**
+	 * After the rebuild, inserting an existing relation again replaces it instead of adding a duplicate.
+	 */
+	public function test_relations_are_not_duplicated_after_the_rebuild() {
+		global $wpdb;
+
+		$this->recreate_relations_without_primary_key();
+		update_option( 'wp_rest_cache_database_version', '2026.4.0', false );
+		Caching::get_instance()->update_database_structure();
+
+		Caching::get_instance()->insert_cache_relation( 6041, '499', 'nav_menu_item' );
+		Caching::get_instance()->insert_cache_relation( 6041, '499', 'nav_menu_item' );
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery
+		$this->assertSame( '1', $wpdb->get_var( "SELECT COUNT(*) FROM `{$this->relations_table}`" ) );
+	}
+
+	/**
+	 * Replace the relations table with one without a PRIMARY KEY, as left behind by a failed 2026.1.0 upgrade.
+	 *
+	 * @return void
+	 */
+	private function recreate_relations_without_primary_key() {
+		global $wpdb;
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery
+		$wpdb->query( "DROP TABLE IF EXISTS `{$this->relations_table}`" );
+		$wpdb->query(
+			"CREATE TABLE `{$this->relations_table}` (
+				`cache_id` BIGINT(20) NOT NULL,
+				`object_id` VARCHAR(100) NOT NULL,
+				`object_type` VARCHAR(50) NOT NULL,
+				KEY `cache_id` (`cache_id`),
+				KEY `object` (`object_id`, `object_type`)
+			)"
+		);
+		// phpcs:enable
+	}
+
+	/**
 	 * Assert that both tables have all keys of the current schema.
 	 *
 	 * @return void
@@ -229,11 +323,21 @@ class Test_Caching_Upgrade_2026 extends WP_UnitTestCase {
 	/**
 	 * Count the database errors wpdb has recorded so far.
 	 *
+	 * dbDelta() runs `DESCRIBE` on a table that doesn't exist yet to find out it has to create it, so those errors are
+	 * expected on a fresh install and not counted.
+	 *
 	 * @return int The number of database errors.
 	 */
 	private function count_database_errors() {
 		global $EZSQL_ERROR; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase -- wpdb's global.
-		return is_array( $EZSQL_ERROR ) ? count( $EZSQL_ERROR ) : 0; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase
+		$errors = is_array( $EZSQL_ERROR ) ? $EZSQL_ERROR : []; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase
+
+		return count(
+			array_filter(
+				$errors,
+				fn( $error ) => 0 !== strpos( ltrim( $error['query'] ), 'DESCRIBE ' )
+			)
+		);
 	}
 
 	/**

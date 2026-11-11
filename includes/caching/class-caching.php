@@ -2215,17 +2215,11 @@ class Caching {
 		if ( self::DB_VERSION !== $version || $this->db_table_relations !== $current_db_version ) {
 			include_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
-			$sql_relations =
-				"CREATE TABLE `{$this->db_table_relations}` (
-					`cache_id` BIGINT(20) NOT NULL,
-					`object_id` VARCHAR(100) NOT NULL,
-					`object_type` VARCHAR(50) NOT NULL,
-					PRIMARY KEY (`cache_id`, `object_id`, `object_type`),
-					KEY `cache_id` (`cache_id`),
-					KEY `object` (`object_id`, `object_type`)
-				)";
+			if ( $this->db_table_relations === $current_db_version && ! $this->has_primary_key( $this->db_table_relations ) ) {
+				$this->rebuild_relations_table();
+			}
 
-			dbDelta( $sql_relations );
+			dbDelta( $this->get_relations_table_sql( $this->db_table_relations ) );
 
 			update_option( 'wp_rest_cache_database_version', self::DB_VERSION, false );
 		}
@@ -2237,6 +2231,83 @@ class Caching {
 		if ( $version && version_compare( '2026.4.0', $version, '>' ) ) {
 			$this->upgrade_2026_4_0();
 		}
+	}
+
+	/**
+	 * Get the CREATE TABLE statement for the relations table.
+	 *
+	 * @param string $table_name The table name, the relations table or a temporary table with the same structure.
+	 *
+	 * @return string The CREATE TABLE statement.
+	 */
+	private function get_relations_table_sql( $table_name ) {
+		return "CREATE TABLE `{$table_name}` (
+					`cache_id` BIGINT(20) NOT NULL,
+					`object_id` VARCHAR(100) NOT NULL,
+					`object_type` VARCHAR(50) NOT NULL,
+					PRIMARY KEY (`cache_id`, `object_id`, `object_type`),
+					KEY `cache_id` (`cache_id`),
+					KEY `object` (`object_id`, `object_type`)
+				)";
+	}
+
+	/**
+	 * Check whether a table has a PRIMARY KEY.
+	 *
+	 * @param string $table_name The table name.
+	 *
+	 * @return bool True if the table has a PRIMARY KEY.
+	 */
+	private function has_primary_key( $table_name ) {
+		global $wpdb;
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		return (bool) $wpdb->get_results( "SHOW KEYS FROM `{$table_name}` WHERE Key_name = 'PRIMARY'" );
+	}
+
+	/**
+	 * Rebuild the relations table with its PRIMARY KEY, without duplicate relations.
+	 *
+	 * The 2026.1.0 upgrade drops the PRIMARY KEY of the relations table and lets dbDelta() add it again. That upgrade
+	 * wasn't locked, so other requests could insert relations in between. Without a PRIMARY KEY `$wpdb->replace()`
+	 * acts as a plain INSERT, so duplicates got in, the PRIMARY KEY could no longer be added ("Duplicate entry ... for
+	 * key PRIMARY") and the duplicates kept growing. dbDelta() can't remove duplicates, so the relations are copied to
+	 * a new table that has the PRIMARY KEY (INSERT IGNORE skips the duplicates), which then atomically replaces the old
+	 * table. Relations inserted between the copy and the swap are lost: those caches aren't flushed when their objects
+	 * change, until they expire.
+	 *
+	 * @return void
+	 */
+	private function rebuild_relations_table() {
+		global $wpdb;
+
+		$rebuild_table = $this->db_table_relations . '_rebuild';
+		$old_table     = $this->db_table_relations . '_old';
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.SchemaChange
+		// Leftovers from an earlier attempt that didn't finish.
+		$wpdb->query( "DROP TABLE IF EXISTS `{$rebuild_table}`, `{$old_table}`" );
+
+		if ( false === $wpdb->query( $this->get_relations_table_sql( $rebuild_table ) ) ) {
+			return;
+		}
+
+		$copied = $wpdb->query(
+			"INSERT IGNORE INTO `{$rebuild_table}` ( `cache_id`, `object_id`, `object_type` )
+			SELECT `cache_id`, `object_id`, `object_type` FROM `{$this->db_table_relations}`"
+		);
+		if ( false === $copied ) {
+			$wpdb->query( "DROP TABLE IF EXISTS `{$rebuild_table}`" );
+			return;
+		}
+
+		if ( false === $wpdb->query( "RENAME TABLE `{$this->db_table_relations}` TO `{$old_table}`, `{$rebuild_table}` TO `{$this->db_table_relations}`" ) ) {
+			$wpdb->query( "DROP TABLE IF EXISTS `{$rebuild_table}`" );
+			return;
+		}
+
+		$wpdb->query( "DROP TABLE IF EXISTS `{$old_table}`" );
+		// phpcs:enable
 	}
 
 	/**
