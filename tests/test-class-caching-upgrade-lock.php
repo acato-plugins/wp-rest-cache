@@ -95,9 +95,9 @@ class Test_Caching_Upgrade_Lock extends Caching_Test_Case {
 	}
 
 	/**
-	 * The upgrade adds the `expiration` index to the caches table.
+	 * The upgrade adds the `stale_caches` index to the caches table.
 	 */
-	public function test_adds_the_expiration_index() {
+	public function test_adds_the_stale_caches_index() {
 		global $wpdb;
 
 		update_option( 'wp_rest_cache_database_version', '2026.1.0', false );
@@ -105,8 +105,8 @@ class Test_Caching_Upgrade_Lock extends Caching_Test_Case {
 		Caching::get_instance()->update_database_structure();
 
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery
-		$index = $wpdb->get_results( "SHOW KEYS FROM `{$wpdb->prefix}wrc_caches` WHERE Key_name = 'expiration'", ARRAY_A );
-		$this->assertSame( [ 'expiration' ], array_column( $index, 'Column_name' ) );
+		$index = $wpdb->get_results( "SHOW KEYS FROM `{$wpdb->prefix}wrc_caches` WHERE Key_name = 'stale_caches'", ARRAY_A );
+		$this->assertSame( [ 'expiration', 'cleaned', 'deleted' ], array_column( $index, 'Column_name' ) );
 	}
 
 	/**

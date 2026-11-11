@@ -84,6 +84,7 @@ class Test_Caching_Regenerate extends Caching_Test_Case {
 	}
 
 	public function test_regenerates_rows_with_missing_transient_even_when_expiration_is_future() {
+		add_filter( 'wp_rest_cache/regenerate_missing_transients', '__return_true' );
 		$this->seed_cache_needing_regen( '/wp-json/wp/v2/posts/2', '2099-01-01 00:00:00', false );
 
 		Caching::get_instance()->regenerate_expired_caches();
@@ -177,6 +178,7 @@ class Test_Caching_Regenerate extends Caching_Test_Case {
 	 * The missing-transient pass walks past the first primary key chunk.
 	 */
 	public function test_walks_past_the_first_chunk_to_find_caches_with_a_missing_transient() {
+		add_filter( 'wp_rest_cache/regenerate_missing_transients', '__return_true' );
 		// 500 valid caches fill the first primary key chunk; the cache without a transient is in the second chunk.
 		for ( $i = 0; $i < 500; $i++ ) {
 			$this->seed_cache_needing_regen( "/uri/valid-{$i}", self::FAR_FUTURE, true, 100, "valid{$i}" );
@@ -205,6 +207,7 @@ class Test_Caching_Regenerate extends Caching_Test_Case {
 	 * An unlimited cache (expiration 1970-01-01 00:00:00) whose transient is gone is regenerated.
 	 */
 	public function test_regenerates_unlimited_caches_with_a_missing_transient() {
+		add_filter( 'wp_rest_cache/regenerate_missing_transients', '__return_true' );
 		$this->seed_cache_needing_regen( '/uri/unlimited', '1970-01-01 00:00:00', false, 1, 'unlimited' );
 
 		Caching::get_instance()->regenerate_expired_caches();
@@ -239,6 +242,17 @@ class Test_Caching_Regenerate extends Caching_Test_Case {
 		Caching::get_instance()->regenerate_expired_caches();
 
 		$this->assertCount( 2, $this->http_calls );
+	}
+
+	/**
+	 * Without an external object cache, caches with a missing transient but a future expiration aren't looked for.
+	 */
+	public function test_does_not_look_for_missing_transients_without_an_external_object_cache() {
+		$this->seed_cache_needing_regen( '/uri/evicted', self::FAR_FUTURE, false, 1, 'evicted' );
+
+		Caching::get_instance()->regenerate_expired_caches();
+
+		$this->assertSame( [], $this->http_calls );
 	}
 
 	public function test_skip_filter_returning_true_prevents_request_and_does_not_consume_quota() {

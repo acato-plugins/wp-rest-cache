@@ -880,17 +880,72 @@ class Caching {
 			}
 		}
 
-		$sql =
-			"UPDATE `{$this->db_table_caches}`
-				SET `expiration` = %s,
-					`deleted` = {$deleted}
-				{$where_clause}";
+		if ( '' === $where_clause ) {
+			$affected_rows = $this->flush_all_cache_rows( $deleted );
+		} else {
+			$sql =
+				"UPDATE `{$this->db_table_caches}`
+					SET `expiration` = %s,
+						`deleted` = {$deleted}
+					{$where_clause}";
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		$affected_rows = $wpdb->query( $wpdb->prepare( $sql, date_i18n( 'Y-m-d H:i:s', 1 ) ) );
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			$affected_rows = $wpdb->query( $wpdb->prepare( $sql, date_i18n( 'Y-m-d H:i:s', 1 ) ) );
+		}
 
 		if ( 0 !== $affected_rows && false !== $affected_rows ) {
 			$this->schedule_cleanup();
+		}
+
+		return $affected_rows;
+	}
+
+	/**
+	 * Flush all cache rows, in primary key chunks.
+	 *
+	 * A single UPDATE over a large caches table locks every row until it finishes, blocking every request that reads
+	 * or writes a cache in the meantime (e.g. during the 2026.4.0 upgrade, which flushes all caches on `init`).
+	 * Chunks keep each statement, and with it each lock, short. All chunks are still flushed before returning.
+	 *
+	 * @param string $deleted The SQL expression for the new value of the `deleted` column.
+	 *
+	 * @return int|false The number of flushed caches, or false on a database error.
+	 */
+	private function flush_all_cache_rows( $deleted ) {
+		global $wpdb;
+
+		/**
+		 * Filter the number of caches flushed per query when all caches are flushed.
+		 *
+		 * @since 2026.4.3
+		 *
+		 * @param int $chunk_size The number of caches per query. Default 5000.
+		 */
+		$chunk_size = max( 1, (int) apply_filters( 'wp_rest_cache/flush_chunk_size', 5000 ) );
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$range         = $wpdb->get_row( "SELECT MIN( `cache_id` ) AS `min_id`, MAX( `cache_id` ) AS `max_id` FROM `{$this->db_table_caches}`" );
+		$affected_rows = 0;
+
+		if ( ! $range || is_null( $range->min_id ) ) {
+			return $affected_rows;
+		}
+
+		// Start from the lowest ID, there can be a large gap of deleted caches before it.
+		for ( $from = (int) $range->min_id - 1; $from < (int) $range->max_id; $from += $chunk_size ) {
+			$sql =
+				"UPDATE `{$this->db_table_caches}`
+					SET `expiration` = %s,
+						`deleted` = {$deleted}
+					WHERE `cache_id` > %d
+					AND `cache_id` <= %d";
+
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			$result = $wpdb->query( $wpdb->prepare( $sql, date_i18n( 'Y-m-d H:i:s', 1 ), $from, $from + $chunk_size ) );
+			if ( false === $result ) {
+				return false;
+			}
+			$affected_rows += $result;
 		}
 
 		return $affected_rows;
@@ -1692,6 +1747,21 @@ class Caching {
 			);
 		} while ( true );
 
+		/**
+		 * Filter whether to look for caches that haven't expired, but whose transient is gone.
+		 *
+		 * This takes a transient lookup for every cache in the table. Transients only disappear before their
+		 * expiration when they are evicted from an external object cache, so by default this is only done when one
+		 * is used.
+		 *
+		 * @since 2026.4.3
+		 *
+		 * @param bool $regenerate_missing Whether to look for caches with a missing transient.
+		 */
+		if ( ! apply_filters( 'wp_rest_cache/regenerate_missing_transients', wp_using_ext_object_cache() ) ) {
+			return;
+		}
+
 		// Pass 2: caches that haven't expired, but whose transient is gone (e.g. evicted from an object cache). These
 		// can only be found by checking every transient, so walk the rest of the table in primary key order.
 		$last_cache_id = 0;
@@ -2130,7 +2200,7 @@ class Caching {
 					UNIQUE INDEX `cache_key` (`cache_key`),
 					KEY `cache_type` (`cache_type`),
 					KEY `non_single_caches` (`cache_type`, `object_type`, `is_single`),
-					KEY `expiration` (`expiration`)
+					KEY `stale_caches` (`expiration`, `cleaned`, `deleted`)
 				)";
 
 			dbDelta( $sql_caches );

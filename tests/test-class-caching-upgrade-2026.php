@@ -153,7 +153,7 @@ class Test_Caching_Upgrade_2026 extends WP_UnitTestCase {
 		$this->assertSame( [ 'cache_key' ], $this->index_columns( $this->caches_table, 'cache_key' ) );
 		$this->assertSame( [ 'cache_type' ], $this->index_columns( $this->caches_table, 'cache_type' ) );
 		$this->assertSame( [ 'cache_type', 'object_type', 'is_single' ], $this->index_columns( $this->caches_table, 'non_single_caches' ) );
-		$this->assertSame( [ 'expiration' ], $this->index_columns( $this->caches_table, 'expiration' ) );
+		$this->assertSame( [ 'expiration', 'cleaned', 'deleted' ], $this->index_columns( $this->caches_table, 'stale_caches' ) );
 
 		$this->assertSame( [ 'cache_id', 'object_id', 'object_type' ], $this->index_columns( $this->relations_table, 'PRIMARY' ) );
 		$this->assertSame( [ 'cache_id' ], $this->index_columns( $this->relations_table, 'cache_id' ) );
