@@ -64,6 +64,24 @@ class Test_Caching_Delete_All extends Caching_Test_Case {
 		$this->assertSame( 3, (int) Caching::get_instance()->delete_all_caches( false ) );
 	}
 
+	/**
+	 * Flushing all caches works in primary key chunks, and still flushes every cache.
+	 */
+	public function test_flushes_all_caches_in_chunks() {
+		add_filter( 'wp_rest_cache/flush_chunk_size', fn() => 2 );
+		$ids = [];
+		for ( $i = 0; $i < 5; $i++ ) {
+			$ids[] = $this->insert_cache();
+		}
+
+		$this->assertSame( 5, (int) Caching::get_instance()->delete_all_caches( true ) );
+
+		foreach ( $ids as $id ) {
+			$this->assertExpired( $id );
+			$this->assertSame( '1', $this->column_value( $id, 'deleted' ) );
+		}
+	}
+
 	public function test_returns_zero_when_no_rows_exist() {
 		$this->assertSame( 0, (int) Caching::get_instance()->delete_all_caches( false ) );
 	}

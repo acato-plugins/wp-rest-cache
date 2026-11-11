@@ -60,6 +60,9 @@ class Test_Caching_Upgrade extends WP_UnitTestCase {
 		); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.DirectDatabaseQuery
 
 		update_option( 'wp_rest_cache_database_version', '2025.1.0', false );
+
+		// See Caching_Test_Case::clean_plugin_tables(): a lock left behind by an earlier upgrade would block this one.
+		$wpdb->delete( $wpdb->options, [ 'option_name' => Caching::UPGRADE_LOCK_OPTION ] );
 	}
 
 	/**

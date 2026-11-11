@@ -21,6 +21,10 @@ abstract class Caching_Test_Case extends WP_UnitTestCase {
 		global $wpdb;
 		$wpdb->query( "DELETE FROM `{$wpdb->prefix}wrc_relations`" );
 		$wpdb->query( "DELETE FROM `{$wpdb->prefix}wrc_caches`" );
+
+		// A database upgrade that runs DDL implicitly commits the test transaction, including the upgrade lock, while
+		// the rollback in tear_down then undoes its release. Make sure no leftover lock blocks the next upgrade.
+		$wpdb->delete( $wpdb->options, [ 'option_name' => \WP_Rest_Cache_Plugin\Includes\Caching\Caching::UPGRADE_LOCK_OPTION ] );
 	}
 
 	/**

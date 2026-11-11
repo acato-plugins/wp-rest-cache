@@ -27,7 +27,21 @@ class Caching {
 	 *
 	 * @var string DB_VERSION The current version of the database tables.
 	 */
-	const DB_VERSION = '2026.4.0';
+	const DB_VERSION = '2026.4.3';
+
+	/**
+	 * The option used as a lock, so only one request at a time runs the database upgrade.
+	 *
+	 * @var string UPGRADE_LOCK_OPTION
+	 */
+	const UPGRADE_LOCK_OPTION = 'wp_rest_cache_upgrade_lock';
+
+	/**
+	 * After how many seconds the database upgrade lock is considered stale.
+	 *
+	 * @var int UPGRADE_LOCK_TIMEOUT
+	 */
+	const UPGRADE_LOCK_TIMEOUT = 900;
 
 	/**
 	 * The table name for the table where caches are stored together with their statistics.
@@ -866,17 +880,72 @@ class Caching {
 			}
 		}
 
-		$sql =
-			"UPDATE `{$this->db_table_caches}`
-				SET `expiration` = %s,
-					`deleted` = {$deleted}
-				{$where_clause}";
+		if ( '' === $where_clause ) {
+			$affected_rows = $this->flush_all_cache_rows( $deleted );
+		} else {
+			$sql =
+				"UPDATE `{$this->db_table_caches}`
+					SET `expiration` = %s,
+						`deleted` = {$deleted}
+					{$where_clause}";
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		$affected_rows = $wpdb->query( $wpdb->prepare( $sql, date_i18n( 'Y-m-d H:i:s', 1 ) ) );
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			$affected_rows = $wpdb->query( $wpdb->prepare( $sql, date_i18n( 'Y-m-d H:i:s', 1 ) ) );
+		}
 
 		if ( 0 !== $affected_rows && false !== $affected_rows ) {
 			$this->schedule_cleanup();
+		}
+
+		return $affected_rows;
+	}
+
+	/**
+	 * Flush all cache rows, in primary key chunks.
+	 *
+	 * A single UPDATE over a large caches table locks every row until it finishes, blocking every request that reads
+	 * or writes a cache in the meantime (e.g. during the 2026.4.0 upgrade, which flushes all caches on `init`).
+	 * Chunks keep each statement, and with it each lock, short. All chunks are still flushed before returning.
+	 *
+	 * @param string $deleted The SQL expression for the new value of the `deleted` column.
+	 *
+	 * @return int|false The number of flushed caches, or false on a database error.
+	 */
+	private function flush_all_cache_rows( $deleted ) {
+		global $wpdb;
+
+		/**
+		 * Filter the number of caches flushed per query when all caches are flushed.
+		 *
+		 * @since 2026.4.3
+		 *
+		 * @param int $chunk_size The number of caches per query. Default 5000.
+		 */
+		$chunk_size = max( 1, (int) apply_filters( 'wp_rest_cache/flush_chunk_size', 5000 ) );
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$range         = $wpdb->get_row( "SELECT MIN( `cache_id` ) AS `min_id`, MAX( `cache_id` ) AS `max_id` FROM `{$this->db_table_caches}`" );
+		$affected_rows = 0;
+
+		if ( ! $range || is_null( $range->min_id ) ) {
+			return $affected_rows;
+		}
+
+		// Start from the lowest ID, there can be a large gap of deleted caches before it.
+		for ( $from = (int) $range->min_id - 1; $from < (int) $range->max_id; $from += $chunk_size ) {
+			$sql =
+				"UPDATE `{$this->db_table_caches}`
+					SET `expiration` = %s,
+						`deleted` = {$deleted}
+					WHERE `cache_id` > %d
+					AND `cache_id` <= %d";
+
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			$result = $wpdb->query( $wpdb->prepare( $sql, date_i18n( 'Y-m-d H:i:s', 1 ), $from, $from + $chunk_size ) );
+			if ( false === $result ) {
+				return false;
+			}
+			$affected_rows += $result;
 		}
 
 		return $affected_rows;
@@ -1636,26 +1705,101 @@ class Caching {
 		global $wpdb;
 
 		$regenerate_number = (int) $this->get_regenerate_number();
+		if ( $regenerate_number <= 0 ) {
+			return;
+		}
 
-		// Walk the caches in chunks, so a large caches table isn't loaded into memory all at once.
+		// Both passes walk the caches in chunks with keyset pagination (no OFFSET), so a large caches table is neither
+		// loaded into memory at once nor scanned again for every chunk.
 		$chunk_size = 500;
-		$offset     = 0;
+		$flushed    = date_i18n( 'Y-m-d H:i:s', 1 );
+		$now        = date_i18n( 'Y-m-d H:i:s', $this->get_expiration_now() );
+
+		// Pass 1: flushed or expired caches, most hit first. Uses the `expiration` index, so only these rows are
+		// sorted. Unlimited caches have an expiration of 1970-01-01 00:00:00, which is excluded by `expiration` > flushed.
+		$keyset = '';
 		do {
 			$sql =
 				"SELECT *
 				FROM `{$this->db_table_caches}`
 				WHERE `cache_type` = 'endpoint'
+				AND ( `expiration` = %s OR ( `expiration` > %s AND `expiration` < %s ) )
+				{$keyset}
 				ORDER BY `cache_hits` DESC, `cache_id` ASC
-				LIMIT %d OFFSET %d";
+				LIMIT %d";
 			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-			$results     = $wpdb->get_results( $wpdb->prepare( $sql, $chunk_size, $offset ), ARRAY_A );
-			$offset     += $chunk_size;
-			$is_complete = count( $results ) < $chunk_size;
+			$results = $wpdb->get_results( $wpdb->prepare( $sql, $flushed, $flushed, $now, $chunk_size ), ARRAY_A );
 
 			if ( $this->regenerate_caches( $results, $regenerate_number ) ) {
 				return;
 			}
-		} while ( ! $is_complete );
+
+			if ( count( $results ) < $chunk_size ) {
+				break;
+			}
+
+			$last   = end( $results );
+			$keyset = $wpdb->prepare(
+				'AND ( `cache_hits` < %d OR ( `cache_hits` = %d AND `cache_id` > %d ) )',
+				$last['cache_hits'],
+				$last['cache_hits'],
+				$last['cache_id']
+			);
+		} while ( true );
+
+		/**
+		 * Filter whether to look for caches that haven't expired, but whose transient is gone.
+		 *
+		 * This takes a transient lookup for every cache in the table. Transients only disappear before their
+		 * expiration when they are evicted from an external object cache, so by default this is only done when one
+		 * is used.
+		 *
+		 * @since 2026.4.3
+		 *
+		 * @param bool $regenerate_missing Whether to look for caches with a missing transient.
+		 */
+		if ( ! apply_filters( 'wp_rest_cache/regenerate_missing_transients', wp_using_ext_object_cache() ) ) {
+			return;
+		}
+
+		// Pass 2: caches that haven't expired, but whose transient is gone (e.g. evicted from an object cache). These
+		// can only be found by checking every transient, so walk the rest of the table in primary key order.
+		$last_cache_id = 0;
+		do {
+			$sql =
+				"SELECT *
+				FROM `{$this->db_table_caches}`
+				WHERE `cache_id` > %d
+				AND `cache_type` = 'endpoint'
+				AND `expiration` <> %s
+				AND ( `expiration` < %s OR `expiration` >= %s )
+				ORDER BY `cache_id` ASC
+				LIMIT %d";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			$results = $wpdb->get_results( $wpdb->prepare( $sql, $last_cache_id, $flushed, $flushed, $now, $chunk_size ), ARRAY_A );
+
+			if ( $this->regenerate_caches( $results, $regenerate_number ) ) {
+				return;
+			}
+
+			if ( count( $results ) < $chunk_size ) {
+				break;
+			}
+
+			$last          = end( $results );
+			$last_cache_id = (int) $last['cache_id'];
+		} while ( true );
+	}
+
+	/**
+	 * Get the current time as a timestamp in the same time base the `expiration` column is stored in: local time,
+	 * unless Memcache(d) is used (see insert_cache_row()).
+	 *
+	 * @return int The current timestamp.
+	 */
+	private function get_expiration_now() {
+		// phpcs:ignore WordPress.DateTime.CurrentTimeTimestamp.Requested
+		return $this->get_memcache_used() ? time() : current_time( 'timestamp' );
 	}
 
 	/**
@@ -1799,14 +1943,16 @@ class Caching {
 			}
 		}
 
-		$sql = "SELECT  COUNT( `cache_id` ) AS `number_of_caches`
+		// Only check whether there is anything left, counting all remaining caches isn't needed.
+		$sql = "SELECT  1
                 FROM    {$this->db_table_caches}
                 WHERE   `expiration` = %s
-                AND     ( `cleaned` = %d OR `deleted` = 1 )";
+                AND     ( `cleaned` = %d OR `deleted` = 1 )
+                LIMIT   1";
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		$count = $wpdb->get_var( $wpdb->prepare( $sql, date_i18n( 'Y-m-d H:i:s', 1 ), 0 ) );
+		$remaining = $wpdb->get_var( $wpdb->prepare( $sql, date_i18n( 'Y-m-d H:i:s', 1 ), 0 ) );
 
-		if ( $count > 0 ) {
+		if ( $remaining ) {
 			$this->schedule_cleanup();
 		}
 	}
@@ -1866,9 +2012,7 @@ class Caching {
 		 */
 		$limit = (int) apply_filters( 'wp_rest_cache/max_purge_caches', 1000 );
 
-		// The expiration is stored in local time, unless Memcache(d) is used (see insert_cache_row()).
-		// phpcs:ignore WordPress.DateTime.CurrentTimeTimestamp.Requested
-		$now     = $this->get_memcache_used() ? time() : current_time( 'timestamp' );
+		$now     = $this->get_expiration_now();
 		$flushed = date_i18n( 'Y-m-d H:i:s', 1 );
 
 		// Unlimited caches have an expiration of 1970-01-01 00:00:00, which is excluded by `expiration` > flushed.
@@ -1908,6 +2052,126 @@ class Caching {
 
 		$version = get_option( 'wp_rest_cache_database_version' );
 
+		if ( self::DB_VERSION === $version && $this->tables_exist() ) {
+			return;
+		}
+
+		// This runs on `init`, so right after an update many requests arrive here at the same time. Only one of them
+		// may run the (possibly heavy) upgrade, the others continue without waiting for it.
+		if ( ! $this->acquire_upgrade_lock() ) {
+			return;
+		}
+
+		try {
+			// Another request may have finished the upgrade in the meantime, so don't trust a cached option value.
+			$version = $this->get_database_version_uncached();
+			$this->run_database_upgrade( $version );
+		} finally {
+			$this->release_upgrade_lock();
+		}
+	}
+
+	/**
+	 * Check whether both plugin tables exist.
+	 *
+	 * This runs on every request, so both tables are checked with a single query.
+	 *
+	 * @return bool True if both tables exist.
+	 */
+	private function tables_exist() {
+		global $wpdb;
+
+		$tables = $wpdb->get_col( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $wpdb->prefix . 'wrc_' ) . '%' ) );
+
+		return in_array( $this->db_table_caches, $tables, true ) && in_array( $this->db_table_relations, $tables, true );
+	}
+
+	/**
+	 * Get the database version straight from the database, bypassing the (possibly persistent) object cache.
+	 *
+	 * @return string|false The database version, or false if it isn't set.
+	 */
+	private function get_database_version_uncached() {
+		global $wpdb;
+
+		$version = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT `option_value` FROM `{$wpdb->options}` WHERE `option_name` = %s LIMIT 1",
+				'wp_rest_cache_database_version'
+			)
+		);
+
+		return is_null( $version ) ? false : $version;
+	}
+
+	/**
+	 * Acquire the database upgrade lock. Uses an INSERT IGNORE on the options table (like core's
+	 * WP_Upgrader::create_lock()), which is atomic, unlike add_option(). A lock older than
+	 * UPGRADE_LOCK_TIMEOUT seconds is considered stale (e.g. a request that died mid-upgrade) and is taken over.
+	 *
+	 * @return bool True if the lock was acquired.
+	 */
+	private function acquire_upgrade_lock() {
+		global $wpdb;
+
+		$now = time();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		$inserted = $wpdb->query(
+			$wpdb->prepare(
+				"INSERT IGNORE INTO `{$wpdb->options}` ( `option_name`, `option_value`, `autoload` ) VALUES ( %s, %s, 'no' )",
+				self::UPGRADE_LOCK_OPTION,
+				$now
+			)
+		);
+		if ( $inserted ) {
+			return true;
+		}
+
+		$locked_at = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT `option_value` FROM `{$wpdb->options}` WHERE `option_name` = %s LIMIT 1",
+				self::UPGRADE_LOCK_OPTION
+			)
+		);
+		if ( is_null( $locked_at ) || (int) $locked_at > $now - self::UPGRADE_LOCK_TIMEOUT ) {
+			return false;
+		}
+
+		// Stale lock: take it over, only one request can win this conditional update.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		return (bool) $wpdb->query(
+			$wpdb->prepare(
+				"UPDATE `{$wpdb->options}` SET `option_value` = %s WHERE `option_name` = %s AND `option_value` = %s",
+				$now,
+				self::UPGRADE_LOCK_OPTION,
+				$locked_at
+			)
+		);
+	}
+
+	/**
+	 * Release the database upgrade lock.
+	 *
+	 * @return void
+	 */
+	private function release_upgrade_lock() {
+		global $wpdb;
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		$wpdb->delete( $wpdb->options, [ 'option_name' => self::UPGRADE_LOCK_OPTION ], [ '%s' ] );
+	}
+
+	/**
+	 * Create or update the database tables and run the version specific upgrades.
+	 *
+	 * @param string|false $version The database version before the upgrade, false on a fresh install.
+	 *
+	 * @return void
+	 */
+	private function run_database_upgrade( $version ) {
+		global $wpdb;
+
 		if ( version_compare( '2026.1.0', $version, '>' ) ) {
 			$this->upgrade_2026_1_0();
 		}
@@ -1935,7 +2199,8 @@ class Caching {
 					PRIMARY KEY (`cache_id`),
 					UNIQUE INDEX `cache_key` (`cache_key`),
 					KEY `cache_type` (`cache_type`),
-					KEY `non_single_caches` (`cache_type`, `object_type`, `is_single`)
+					KEY `non_single_caches` (`cache_type`, `object_type`, `is_single`),
+					KEY `stale_caches` (`expiration`, `cleaned`, `deleted`)
 				)";
 
 			dbDelta( $sql_caches );
@@ -1950,17 +2215,11 @@ class Caching {
 		if ( self::DB_VERSION !== $version || $this->db_table_relations !== $current_db_version ) {
 			include_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
-			$sql_relations =
-				"CREATE TABLE `{$this->db_table_relations}` (
-					`cache_id` BIGINT(20) NOT NULL,
-					`object_id` VARCHAR(100) NOT NULL,
-					`object_type` VARCHAR(50) NOT NULL,
-					PRIMARY KEY (`cache_id`, `object_id`, `object_type`),
-					KEY `cache_id` (`cache_id`),
-					KEY `object` (`object_id`, `object_type`)
-				)";
+			if ( $this->db_table_relations === $current_db_version && ! $this->has_primary_key( $this->db_table_relations ) ) {
+				$this->rebuild_relations_table();
+			}
 
-			dbDelta( $sql_relations );
+			dbDelta( $this->get_relations_table_sql( $this->db_table_relations ) );
 
 			update_option( 'wp_rest_cache_database_version', self::DB_VERSION, false );
 		}
@@ -1972,6 +2231,83 @@ class Caching {
 		if ( $version && version_compare( '2026.4.0', $version, '>' ) ) {
 			$this->upgrade_2026_4_0();
 		}
+	}
+
+	/**
+	 * Get the CREATE TABLE statement for the relations table.
+	 *
+	 * @param string $table_name The table name, the relations table or a temporary table with the same structure.
+	 *
+	 * @return string The CREATE TABLE statement.
+	 */
+	private function get_relations_table_sql( $table_name ) {
+		return "CREATE TABLE `{$table_name}` (
+					`cache_id` BIGINT(20) NOT NULL,
+					`object_id` VARCHAR(100) NOT NULL,
+					`object_type` VARCHAR(50) NOT NULL,
+					PRIMARY KEY (`cache_id`, `object_id`, `object_type`),
+					KEY `cache_id` (`cache_id`),
+					KEY `object` (`object_id`, `object_type`)
+				)";
+	}
+
+	/**
+	 * Check whether a table has a PRIMARY KEY.
+	 *
+	 * @param string $table_name The table name.
+	 *
+	 * @return bool True if the table has a PRIMARY KEY.
+	 */
+	private function has_primary_key( $table_name ) {
+		global $wpdb;
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		return (bool) $wpdb->get_results( "SHOW KEYS FROM `{$table_name}` WHERE Key_name = 'PRIMARY'" );
+	}
+
+	/**
+	 * Rebuild the relations table with its PRIMARY KEY, without duplicate relations.
+	 *
+	 * The 2026.1.0 upgrade drops the PRIMARY KEY of the relations table and lets dbDelta() add it again. That upgrade
+	 * wasn't locked, so other requests could insert relations in between. Without a PRIMARY KEY `$wpdb->replace()`
+	 * acts as a plain INSERT, so duplicates got in, the PRIMARY KEY could no longer be added ("Duplicate entry ... for
+	 * key PRIMARY") and the duplicates kept growing. dbDelta() can't remove duplicates, so the relations are copied to
+	 * a new table that has the PRIMARY KEY (INSERT IGNORE skips the duplicates), which then atomically replaces the old
+	 * table. Relations inserted between the copy and the swap are lost: those caches aren't flushed when their objects
+	 * change, until they expire.
+	 *
+	 * @return void
+	 */
+	private function rebuild_relations_table() {
+		global $wpdb;
+
+		$rebuild_table = $this->db_table_relations . '_rebuild';
+		$old_table     = $this->db_table_relations . '_old';
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.SchemaChange
+		// Leftovers from an earlier attempt that didn't finish.
+		$wpdb->query( "DROP TABLE IF EXISTS `{$rebuild_table}`, `{$old_table}`" );
+
+		if ( false === $wpdb->query( $this->get_relations_table_sql( $rebuild_table ) ) ) {
+			return;
+		}
+
+		$copied = $wpdb->query(
+			"INSERT IGNORE INTO `{$rebuild_table}` ( `cache_id`, `object_id`, `object_type` )
+			SELECT `cache_id`, `object_id`, `object_type` FROM `{$this->db_table_relations}`"
+		);
+		if ( false === $copied ) {
+			$wpdb->query( "DROP TABLE IF EXISTS `{$rebuild_table}`" );
+			return;
+		}
+
+		if ( false === $wpdb->query( "RENAME TABLE `{$this->db_table_relations}` TO `{$old_table}`, `{$rebuild_table}` TO `{$this->db_table_relations}`" ) ) {
+			$wpdb->query( "DROP TABLE IF EXISTS `{$rebuild_table}`" );
+			return;
+		}
+
+		$wpdb->query( "DROP TABLE IF EXISTS `{$old_table}`" );
+		// phpcs:enable
 	}
 
 	/**
