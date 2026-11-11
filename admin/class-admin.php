@@ -548,7 +548,7 @@ class Admin {
 				'warning',
 				sprintf(
 					/* translators: %s: number of requests */
-					__( 'More than %s REST API requests in the last 24 hours were not cached, because they contained an Authorization header or HTTP authentication (e.g. Application Passwords or JWT). Since version 2026.4.0 these requests are no longer cached, so a response meant for one user is never served to another. If these requests all use the same credentials (e.g. a headless front end), add <code>Authorization</code> to the <em>Global cacheable request headers</em>: every set of credentials then gets its own cache.', 'wp-rest-cache' ),
+					__( 'More than %s REST API requests in the last 24 hours were not cached, because they contained an Authorization header or HTTP authentication (e.g. Application Passwords or JWT). Since version 2026.4.0 these requests are no longer cached, so a response meant for one user is never served to another. If these requests all use the same credentials (e.g. a headless front end), add <code>Authorization</code> to the <em>Global cacheable request headers</em>: every set of credentials then gets its own cache. The header value is stored with each cache (masked in the wp-admin), because cache regeneration needs it.', 'wp-rest-cache' ),
 					number_format_i18n( $threshold )
 				),
 				'permanent',

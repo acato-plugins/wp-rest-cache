@@ -156,7 +156,7 @@ class Endpoint_Api {
 		if ( is_array( $cacheable_headers ) ) {
 			foreach ( $cacheable_headers as $header ) {
 				if ( '' !== $header ) {
-					$this->request_headers[ $header ] = $this->request->get_header( $header );
+					$this->request_headers[ $header ] = $this->get_request_header( $header );
 				}
 			}
 		}
@@ -173,7 +173,7 @@ class Endpoint_Api {
 				if ( is_array( $cacheable_headers ) ) {
 					foreach ( $cacheable_headers as $header ) {
 						if ( strlen( $header ) ) {
-							$this->request_headers[ $header ] = $this->request->get_header( $header );
+							$this->request_headers[ $header ] = $this->get_request_header( $header );
 						}
 					}
 				}
@@ -181,6 +181,33 @@ class Endpoint_Api {
 		}
 
 		ksort( $this->request_headers );
+	}
+
+	/**
+	 * Get the value of a request header.
+	 *
+	 * When the web server handles HTTP Basic authentication, PHP may only receive the credentials in `PHP_AUTH_USER`
+	 * and `PHP_AUTH_PW`, without an Authorization header. Such a request is skipped for caching because it carries
+	 * credentials, so when `Authorization` is a cacheable request header the header is rebuilt from them. That way
+	 * these requests are cached per set of credentials as well.
+	 *
+	 * @param string $header The header name.
+	 *
+	 * @return string|null The header value, or null if the header isn't present.
+	 */
+	private function get_request_header( $header ) {
+		$value = $this->request->get_header( $header );
+
+		if ( empty( $value )
+			&& 'authorization' === strtolower( str_replace( '-', '_', trim( $header ) ) )
+			&& ! empty( $_SERVER['PHP_AUTH_USER'] )
+		) {
+			$user     = sanitize_text_field( wp_unslash( $_SERVER['PHP_AUTH_USER'] ) );
+			$password = isset( $_SERVER['PHP_AUTH_PW'] ) ? wp_unslash( $_SERVER['PHP_AUTH_PW'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- a password, used as is.
+			$value    = 'Basic ' . base64_encode( $user . ':' . $password ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- builds a standard Basic auth header.
+		}
+
+		return $value;
 	}
 
 	/**

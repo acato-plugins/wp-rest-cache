@@ -213,6 +213,13 @@ class API_Caches_Table extends \WP_List_Table {
 			return esc_html( $custom_output );
 		}
 
+		if ( 'request_headers' === $column_name && ! empty( $item['request_headers'] ) ) {
+			$headers = json_decode( $item['request_headers'], true );
+			if ( is_array( $headers ) ) {
+				return esc_html( (string) wp_json_encode( \WP_Rest_Cache_Plugin\Includes\Util::mask_request_headers( $headers ) ) );
+			}
+		}
+
 		return esc_html( $item[ $column_name ] ?? '' );
 	}
 
