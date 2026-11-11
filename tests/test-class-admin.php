@@ -299,7 +299,7 @@ class Test_Admin extends Caching_Test_Case {
 	// ---------- deactivated_plugin ----------
 
 	public function test_deactivated_plugin_adds_a_warning_notice() {
-		$this->admin->deactivated_plugin();
+		$this->admin->deactivated_plugin( 'some-other/plugin.php' );
 
 		$notices = get_option( 'wp_rest_cache_admin_notices' );
 		$this->assertNotEmpty( $notices['warning'] ?? [] );
@@ -307,5 +307,35 @@ class Test_Admin extends Caching_Test_Case {
 			'A plugin has been deactivated',
 			$notices['warning'][0]['message']
 		);
+	}
+
+	/**
+	 * Activating WP REST Cache itself doesn't add the activation notice.
+	 */
+	public function test_activated_plugin_for_wp_rest_cache_itself_does_not_add_a_notice() {
+		$this->admin->activated_plugin( 'wp-rest-cache/wp-rest-cache.php', false );
+
+		$this->assertEmpty( get_option( 'wp_rest_cache_admin_notices', [] ) );
+	}
+
+	/**
+	 * Deactivating WP REST Cache itself doesn't add the deactivation notice (it would only show up after re-activation).
+	 */
+	public function test_deactivated_plugin_for_wp_rest_cache_itself_does_not_add_a_notice() {
+		$this->admin->deactivated_plugin( 'wp-rest-cache/wp-rest-cache.php' );
+
+		$this->assertEmpty( get_option( 'wp_rest_cache_admin_notices', [] ) );
+	}
+
+	/**
+	 * WP REST Cache is also recognised when it is installed in a folder with another name.
+	 */
+	public function test_wp_rest_cache_is_recognised_by_its_actual_location() {
+		$plugin = plugin_basename( dirname( __DIR__ ) . '/wp-rest-cache.php' );
+
+		$this->admin->activated_plugin( $plugin, false );
+		$this->admin->deactivated_plugin( $plugin );
+
+		$this->assertEmpty( get_option( 'wp_rest_cache_admin_notices', [] ) );
 	}
 }

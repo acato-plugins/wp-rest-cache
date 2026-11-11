@@ -638,6 +638,11 @@ class Admin {
 	 * @return void
 	 */
 	public function activated_plugin( $plugin, $network_wide ) {
+		// Activating WP REST Cache itself doesn't change the REST API output, and there are no caches yet.
+		if ( $this->is_own_plugin( $plugin ) ) {
+			return;
+		}
+
 		// Wordfence alters the output of the users endpoint, so flush all users endpoint caches.
 		if ( 'wordfence/wordfence.php' === $plugin ) {
 			$rest_prefix = sprintf( '/%s/', get_option( 'wp_rest_cache_rest_prefix', 'wp-json' ) );
@@ -668,9 +673,17 @@ class Admin {
 	/**
 	 * Upon plugin deactivation show a message about flushing the REST cache.
 	 *
+	 * @param string $plugin The plugin that has just been deactivated.
+	 *
 	 * @return void
 	 */
-	public function deactivated_plugin() {
+	public function deactivated_plugin( $plugin = '' ) {
+		// When WP REST Cache itself is deactivated its caches are cleared, and the notice would only be shown once it is
+		// activated again (together with the activation notice), where it makes no sense.
+		if ( $this->is_own_plugin( $plugin ) ) {
+			return;
+		}
+
 		$this->add_notice(
 			'warning',
 			__( 'A plugin has been deactivated. This might effect the WP REST API output, so please consider if clearing the REST Cache is necessary.', 'wp-rest-cache' ),
@@ -680,6 +693,18 @@ class Admin {
 				'url'   => self::empty_cache_url(),
 			]
 		);
+	}
+
+	/**
+	 * Check whether a plugin (as passed to the (de)activation hooks) is WP REST Cache itself.
+	 *
+	 * @param string $plugin Path to the plugin file relative to the plugins directory.
+	 *
+	 * @return bool True if it is WP REST Cache.
+	 */
+	private function is_own_plugin( $plugin ) {
+		// The default folder name (also assumed by the Must-Use plugin), or wherever this copy is installed.
+		return in_array( $plugin, [ 'wp-rest-cache/wp-rest-cache.php', plugin_basename( dirname( __DIR__ ) . '/wp-rest-cache.php' ) ], true );
 	}
 
 	/**
