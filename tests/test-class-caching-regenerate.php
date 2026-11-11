@@ -147,6 +147,100 @@ class Test_Caching_Regenerate extends Caching_Test_Case {
 		$this->assertStringContainsString( '/uri/second-chunk', $this->http_calls[0][0] );
 	}
 
+	/**
+	 * The flushed/expired pass continues to the next chunk (keyset pagination) when the first chunk regenerates nothing.
+	 */
+	public function test_walks_past_the_first_chunk_of_flushed_caches() {
+		// 500 flushed caches with the most hits are all skipped, so the first chunk regenerates nothing and the
+		// keyset pagination has to continue to the second chunk.
+		for ( $i = 0; $i < 500; $i++ ) {
+			$this->seed_cache_needing_regen( "/uri/skipped-{$i}", $this->flushed_sentinel(), false, 100, "skipped{$i}" );
+		}
+		$this->seed_cache_needing_regen( '/uri/second-chunk', $this->flushed_sentinel(), false, 1, 'second-chunk' );
+
+		add_filter(
+			'wp_rest_cache/skip_cache_regeneration',
+			function ( $skip, $result ) {
+				return 0 === strpos( $result['request_uri'], '/uri/skipped-' ) ? true : $skip;
+			},
+			10,
+			2
+		);
+
+		Caching::get_instance()->regenerate_expired_caches();
+
+		$this->assertCount( 1, $this->http_calls );
+		$this->assertStringContainsString( '/uri/second-chunk', $this->http_calls[0][0] );
+	}
+
+	/**
+	 * The missing-transient pass walks past the first primary key chunk.
+	 */
+	public function test_walks_past_the_first_chunk_to_find_caches_with_a_missing_transient() {
+		// 500 valid caches fill the first primary key chunk; the cache without a transient is in the second chunk.
+		for ( $i = 0; $i < 500; $i++ ) {
+			$this->seed_cache_needing_regen( "/uri/valid-{$i}", self::FAR_FUTURE, true, 100, "valid{$i}" );
+		}
+		$this->seed_cache_needing_regen( '/uri/evicted', self::FAR_FUTURE, false, 1, 'evicted' );
+
+		Caching::get_instance()->regenerate_expired_caches();
+
+		$this->assertCount( 1, $this->http_calls );
+		$this->assertStringContainsString( '/uri/evicted', $this->http_calls[0][0] );
+	}
+
+	/**
+	 * A cache whose expiration lies in the past is regenerated.
+	 */
+	public function test_regenerates_caches_that_expired_by_date() {
+		$this->seed_cache_needing_regen( '/uri/expired', '2000-01-01 00:00:00', false, 1, 'expired' );
+
+		Caching::get_instance()->regenerate_expired_caches();
+
+		$this->assertCount( 1, $this->http_calls );
+		$this->assertStringContainsString( '/uri/expired', $this->http_calls[0][0] );
+	}
+
+	/**
+	 * An unlimited cache (expiration 1970-01-01 00:00:00) whose transient is gone is regenerated.
+	 */
+	public function test_regenerates_unlimited_caches_with_a_missing_transient() {
+		$this->seed_cache_needing_regen( '/uri/unlimited', '1970-01-01 00:00:00', false, 1, 'unlimited' );
+
+		Caching::get_instance()->regenerate_expired_caches();
+
+		$this->assertCount( 1, $this->http_calls );
+		$this->assertStringContainsString( '/uri/unlimited', $this->http_calls[0][0] );
+	}
+
+	/**
+	 * Flushed and expired caches take priority over caches with a missing transient, regardless of cache hits.
+	 */
+	public function test_flushed_and_expired_caches_go_before_caches_with_a_missing_transient() {
+		update_option( 'wp_rest_cache_regenerate_number', 1 );
+
+		$this->seed_cache_needing_regen( '/uri/evicted', self::FAR_FUTURE, false, 1000, 'evicted' );
+		$this->seed_cache_needing_regen( '/uri/flushed', $this->flushed_sentinel(), false, 1, 'flushed' );
+
+		Caching::get_instance()->regenerate_expired_caches();
+
+		$this->assertCount( 1, $this->http_calls );
+		$this->assertStringContainsString( '/uri/flushed', $this->http_calls[0][0] );
+	}
+
+	/**
+	 * A cache handled by the first pass is not regenerated again by the second pass.
+	 */
+	public function test_regenerates_a_cache_only_once_per_run() {
+		// The HTTP call is mocked, so the cache stays flushed after its regeneration; the second pass must not pick it up again.
+		$this->seed_cache_needing_regen( '/uri/once', $this->flushed_sentinel(), false, 1, 'once' );
+		$this->seed_cache_needing_regen( '/uri/expired-once', '2000-01-01 00:00:00', false, 1, 'expired-once' );
+
+		Caching::get_instance()->regenerate_expired_caches();
+
+		$this->assertCount( 2, $this->http_calls );
+	}
+
 	public function test_skip_filter_returning_true_prevents_request_and_does_not_consume_quota() {
 		update_option( 'wp_rest_cache_regenerate_number', 1 );
 
