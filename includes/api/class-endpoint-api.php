@@ -11,6 +11,7 @@
 
 namespace WP_Rest_Cache_Plugin\Includes\API;
 
+use WP_Rest_Cache_Plugin\Includes\Caching\Credential_Skips;
 use WP_Rest_Cache_Plugin\Includes\Util;
 
 /**
@@ -155,7 +156,7 @@ class Endpoint_Api {
 		if ( is_array( $cacheable_headers ) ) {
 			foreach ( $cacheable_headers as $header ) {
 				if ( '' !== $header ) {
-					$this->request_headers[ $header ] = $this->request->get_header( $header );
+					$this->request_headers[ $header ] = $this->get_request_header( $header );
 				}
 			}
 		}
@@ -172,7 +173,7 @@ class Endpoint_Api {
 				if ( is_array( $cacheable_headers ) ) {
 					foreach ( $cacheable_headers as $header ) {
 						if ( strlen( $header ) ) {
-							$this->request_headers[ $header ] = $this->request->get_header( $header );
+							$this->request_headers[ $header ] = $this->get_request_header( $header );
 						}
 					}
 				}
@@ -180,6 +181,33 @@ class Endpoint_Api {
 		}
 
 		ksort( $this->request_headers );
+	}
+
+	/**
+	 * Get the value of a request header.
+	 *
+	 * When the web server handles HTTP Basic authentication, PHP may only receive the credentials in `PHP_AUTH_USER`
+	 * and `PHP_AUTH_PW`, without an Authorization header. Such a request is skipped for caching because it carries
+	 * credentials, so when `Authorization` is a cacheable request header the header is rebuilt from them. That way
+	 * these requests are cached per set of credentials as well.
+	 *
+	 * @param string $header The header name.
+	 *
+	 * @return string|null The header value, or null if the header isn't present.
+	 */
+	private function get_request_header( $header ) {
+		$value = $this->request->get_header( $header );
+
+		if ( empty( $value )
+			&& 'authorization' === strtolower( str_replace( '-', '_', trim( $header ) ) )
+			&& ! empty( $_SERVER['PHP_AUTH_USER'] )
+		) {
+			$user     = sanitize_text_field( wp_unslash( $_SERVER['PHP_AUTH_USER'] ) );
+			$password = isset( $_SERVER['PHP_AUTH_PW'] ) ? wp_unslash( $_SERVER['PHP_AUTH_PW'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- a password, used as is.
+			$value    = 'Basic ' . base64_encode( $user . ':' . $password ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- builds a standard Basic auth header.
+		}
+
+		return $value;
 	}
 
 	/**
@@ -350,6 +378,8 @@ class Endpoint_Api {
 		 * @param string           $request_uri The REST URI that is being requested.
 		 */
 		if ( 0 !== $user_id && ! apply_filters( 'wp_rest_cache/cache_authenticated_response', $this->cache_key_is_user_specific, $user_id, $this->request, $this->request_uri ) ) {
+			Credential_Skips::get_instance()->record( Credential_Skips::REASON_AUTHENTICATED_USER );
+
 			return $result;
 		}
 
@@ -444,10 +474,9 @@ class Endpoint_Api {
 		}
 
 		// Requests authenticated through the Authorization header (Application Passwords, Basic auth, JWT etc.)
-		// should not share their cache with other visitors.
-		if ( $this->has_authorization_credentials() && ! $this->authorization_header_is_cacheable() ) {
-			return true;
-		}
+		// should not share their cache with other visitors. Don't return yet: the skip is only counted (for the admin
+		// notice) if the request would otherwise have been cached, which the checks below determine.
+		$skip_for_credentials = $this->has_authorization_credentials() && ! $this->authorization_header_is_cacheable();
 
 		// Default only cache GET-requests.
 		$allowed_request_methods = get_option( 'wp_rest_cache_allowed_request_methods', [ 'GET' ] );
@@ -533,6 +562,12 @@ class Endpoint_Api {
 					return true;
 				}
 			}
+		}
+
+		if ( $skip_for_credentials ) {
+			Credential_Skips::get_instance()->record( Credential_Skips::REASON_AUTHORIZATION );
+
+			return true;
 		}
 
 		// We dont skip.

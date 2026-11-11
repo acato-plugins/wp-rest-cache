@@ -159,6 +159,14 @@ Yes you can! There are two options for this:
 }
 add_filter('wp_rest_cache/cacheable_request_headers', 'wprc_add_cacheable_request_headers', 10, 1);`
 
+= Since version 2026.4.0 my REST requests are no longer cached. Why? =
+
+Requests with an `Authorization` header or HTTP authentication (e.g. Application Passwords, Basic auth or JWT) and responses generated for a logged-in user are no longer cached, so a response meant for one user is never served to another. If your front end (e.g. a headless site) sends the same credentials with every request, go to Settings > WP REST Cache and add `Authorization` to the `Global cacheable request headers`: every set of credentials then gets its own cache. This also works when your web server handles the Basic authentication.
+
+Please note: the header value (e.g. the Basic auth credentials) is then stored in the database with each cache, because cache regeneration needs it to repeat the request. It is masked in the wp-admin. If the header isn't needed for WordPress, removing it from the requests is the best option.
+
+For responses generated for a logged-in user, use the filter `wp_rest_cache/cache_authenticated_response` to allow caching, but only when the responses are the same for every user or the cache key is made user specific (e.g. with the filter `wp_rest_cache/cache_key`).
+
 = Can I change which users can change the settings and flush caches? =
 
 Yes you can! Use the hook `wp_rest_cache/settings_capability` like this:
