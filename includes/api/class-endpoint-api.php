@@ -11,6 +11,7 @@
 
 namespace WP_Rest_Cache_Plugin\Includes\API;
 
+use WP_Rest_Cache_Plugin\Includes\Caching\Credential_Skips;
 use WP_Rest_Cache_Plugin\Includes\Util;
 
 /**
@@ -350,6 +351,8 @@ class Endpoint_Api {
 		 * @param string           $request_uri The REST URI that is being requested.
 		 */
 		if ( 0 !== $user_id && ! apply_filters( 'wp_rest_cache/cache_authenticated_response', $this->cache_key_is_user_specific, $user_id, $this->request, $this->request_uri ) ) {
+			Credential_Skips::get_instance()->record( Credential_Skips::REASON_AUTHENTICATED_USER );
+
 			return $result;
 		}
 
@@ -444,10 +447,9 @@ class Endpoint_Api {
 		}
 
 		// Requests authenticated through the Authorization header (Application Passwords, Basic auth, JWT etc.)
-		// should not share their cache with other visitors.
-		if ( $this->has_authorization_credentials() && ! $this->authorization_header_is_cacheable() ) {
-			return true;
-		}
+		// should not share their cache with other visitors. Don't return yet: the skip is only counted (for the admin
+		// notice) if the request would otherwise have been cached, which the checks below determine.
+		$skip_for_credentials = $this->has_authorization_credentials() && ! $this->authorization_header_is_cacheable();
 
 		// Default only cache GET-requests.
 		$allowed_request_methods = get_option( 'wp_rest_cache_allowed_request_methods', [ 'GET' ] );
@@ -533,6 +535,12 @@ class Endpoint_Api {
 					return true;
 				}
 			}
+		}
+
+		if ( $skip_for_credentials ) {
+			Credential_Skips::get_instance()->record( Credential_Skips::REASON_AUTHORIZATION );
+
+			return true;
 		}
 
 		// We dont skip.
