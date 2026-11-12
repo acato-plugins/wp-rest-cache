@@ -660,7 +660,7 @@ class Admin {
 		} else {
 			$this->add_notice(
 				'warning',
-				__( 'A new plugin has been activated. This might effect the WP REST API output, so please consider if clearing the REST Cache is necessary.', 'wp-rest-cache' ),
+				__( 'A new plugin has been activated. This might affect the WP REST API output, so please consider if clearing the REST Cache is necessary.', 'wp-rest-cache' ),
 				false,
 				[
 					'label' => __( 'Clear REST cache', 'wp-rest-cache' ),
@@ -686,7 +686,7 @@ class Admin {
 
 		$this->add_notice(
 			'warning',
-			__( 'A plugin has been deactivated. This might effect the WP REST API output, so please consider if clearing the REST Cache is necessary.', 'wp-rest-cache' ),
+			__( 'A plugin has been deactivated. This might affect the WP REST API output, so please consider if clearing the REST Cache is necessary.', 'wp-rest-cache' ),
 			false,
 			[
 				'label' => __( 'Clear REST cache', 'wp-rest-cache' ),
