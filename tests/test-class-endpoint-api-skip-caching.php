@@ -18,7 +18,10 @@ class Test_Endpoint_Api_Skip_Caching extends Caching_Test_Case {
 
 	public function set_up() {
 		parent::set_up();
-		$this->server_backup = [ 'REQUEST_METHOD' => $_SERVER['REQUEST_METHOD'] ?? null ];
+		$this->server_backup = [
+			'REQUEST_METHOD'              => $_SERVER['REQUEST_METHOD'] ?? null,
+			'HTTP_X_HTTP_METHOD_OVERRIDE' => $_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE'] ?? null,
+		];
 	}
 
 	public function tear_down() {
@@ -29,6 +32,7 @@ class Test_Endpoint_Api_Skip_Caching extends Caching_Test_Case {
 				$_SERVER[ $key ] = $value;
 			}
 		}
+		unset( $_GET['_method'] );
 		parent::tear_down();
 	}
 
@@ -68,6 +72,66 @@ class Test_Endpoint_Api_Skip_Caching extends Caching_Test_Case {
 		$api = $this->arrange( '/wp-json/wp/v2/posts', 'POST' );
 
 		$this->assertTrue( $api->skip_caching() );
+	}
+
+	// ---------- Method override ----------
+
+	public function test_method_override_header_skips_caching() {
+		$this->enable_endpoint( 'wp/v2', 'pages' );
+		$_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE'] = 'OPTIONS';
+
+		$api = $this->arrange( '/wp-json/wp/v2/pages/1' );
+
+		$this->assertTrue( $api->skip_caching() );
+	}
+
+	public function test_method_parameter_skips_caching() {
+		$this->enable_endpoint( 'wp/v2', 'pages' );
+		$_GET['_method'] = 'OPTIONS';
+
+		$api = $this->arrange( '/wp-json/wp/v2/pages/1' );
+
+		$this->assertTrue( $api->skip_caching() );
+	}
+
+	public function test_method_override_equal_to_request_method_is_not_a_skip_reason() {
+		$this->enable_endpoint( 'wp/v2', 'pages' );
+		$_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE'] = 'get';
+
+		$api = $this->arrange( '/wp-json/wp/v2/pages/1' );
+
+		$this->assertFalse( $api->skip_caching() );
+	}
+
+	// ---------- Request body ----------
+
+	public function test_get_request_with_body_skips_caching() {
+		$this->enable_endpoint( 'wp/v2', 'pages' );
+
+		$api = $this->arrange( '/wp-json/wp/v2/pages/1' );
+		$this->set_private_property( $api, 'request_body', '{"id":2}' );
+
+		$this->assertTrue( $api->skip_caching() );
+	}
+
+	public function test_get_request_with_body_is_cached_when_filter_disabled() {
+		add_filter( 'wp_rest_cache/skip_get_request_with_body', '__return_false' );
+		$this->enable_endpoint( 'wp/v2', 'pages' );
+
+		$api = $this->arrange( '/wp-json/wp/v2/pages/1' );
+		$this->set_private_property( $api, 'request_body', '{"id":2}' );
+
+		$this->assertFalse( $api->skip_caching() );
+	}
+
+	public function test_allowed_post_request_with_body_is_not_a_skip_reason() {
+		update_option( 'wp_rest_cache_allowed_request_methods', [ 'GET', 'POST' ] );
+		$this->enable_endpoint( 'wp/v2', 'posts' );
+
+		$api = $this->arrange( '/wp-json/wp/v2/posts', 'POST' );
+		$this->set_private_property( $api, 'request_body', '{"search":"foo"}' );
+
+		$this->assertFalse( $api->skip_caching() );
 	}
 
 	public function test_request_method_added_to_allowlist_is_not_a_skip_reason() {
@@ -265,6 +329,7 @@ class Test_Endpoint_Api_Skip_Caching extends Caching_Test_Case {
 		$api = new Endpoint_Api();
 		$this->set_private_property( $api, 'request_uri', $request_uri );
 		$this->set_private_property( $api, 'request', $request );
+		$this->set_private_property( $api, 'request_body', '' );
 
 		$_SERVER['REQUEST_METHOD'] = $method;
 
