@@ -4,7 +4,7 @@ Tags: cache, wp-rest-api, api, rest, rest cache
 Requires at least: 4.7
 Tested up to: 7.0
 Requires PHP: 7.0
-Stable tag: 2026.4.2
+Stable tag: 2026.4.3
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl.html
 
@@ -190,6 +190,13 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 5. Cache details page - Cache data.
 
 == Changelog ==
+
+= 2026.4.3 =
+Release Date: November 23rd, 2026
+
+Security: Unauthenticated visitors could poison the cache by sending a GET request with a request body (e.g. a JSON body) or a method override (`_method` parameter or `X-HTTP-Method-Override` header). WordPress core uses these to generate the response, but they were not part of the cache key, so the response was served to all visitors of that URL. It was reported by Kang MinSeok (AhnLab) through Patchstack. All existing caches are flushed on update.
+Backwards compatibility: GET and HEAD requests with a request body, and requests with a method override, are no longer cached. For other request methods that are allowed to be cached (setting "Allowed request methods") the request body is now part of the cache key, so requests with a different body no longer share a cache. The cache key of requests without a body is unchanged. The `Endpoint_Api::save_cache()` method now accepts the optional `$server` and `$request` arguments of the `rest_pre_echo_response` filter.
+Feature: Added filter `wp_rest_cache/skip_get_request_with_body` to allow caching of GET and HEAD requests with a request body (cached per body).
 
 = 2026.4.2 =
 Release Date: October 29th, 2026

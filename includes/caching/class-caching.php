@@ -27,7 +27,7 @@ class Caching {
 	 *
 	 * @var string DB_VERSION The current version of the database tables.
 	 */
-	const DB_VERSION = '2026.4.0';
+	const DB_VERSION = '2026.4.3';
 
 	/**
 	 * The table name for the table where caches are stored together with their statistics.
@@ -1971,6 +1971,8 @@ class Caching {
 
 		if ( $version && version_compare( '2026.4.0', $version, '>' ) ) {
 			$this->upgrade_2026_4_0();
+		} elseif ( $version && version_compare( '2026.4.3', $version, '>' ) ) {
+			$this->upgrade_2026_4_3();
 		}
 	}
 
@@ -1981,6 +1983,16 @@ class Caching {
 	 * @return void
 	 */
 	private function upgrade_2026_4_0() {
+		$this->delete_all_caches( true );
+	}
+
+	/**
+	 * Delete all caches, as caches created before this version could contain responses generated for a request body
+	 * or method override sent by a visitor, which were served to all visitors.
+	 *
+	 * @return void
+	 */
+	private function upgrade_2026_4_3() {
 		$this->delete_all_caches( true );
 	}
 
