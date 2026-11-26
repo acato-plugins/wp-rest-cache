@@ -136,7 +136,7 @@ if ( ! current_user_can( apply_filters( 'wp_rest_cache/settings_capability', 'ad
 					</div>
 					<?php if ( $wp_rest_cache['row']['request_headers'] ) : ?>
 						<?php
-						$wprc_request_headers = json_decode( $wp_rest_cache['row']['request_headers'], true );
+						$wprc_request_headers = \WP_Rest_Cache_Plugin\Includes\Util::mask_request_headers( json_decode( $wp_rest_cache['row']['request_headers'], true ) );
 
 						/**
 						 * Filter the request headers before displaying in cache details.

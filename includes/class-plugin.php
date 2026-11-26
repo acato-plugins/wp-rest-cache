@@ -79,6 +79,7 @@ class Plugin {
 		add_action( 'admin_init', [ $plugin_admin, 'display_pro_message' ] );
 		add_action( 'admin_init', [ $plugin_admin, 'check_muplugin_existence' ] );
 		add_action( 'admin_init', [ $plugin_admin, 'check_memcache_ext_object_caching' ] );
+		add_action( 'admin_init', [ $plugin_admin, 'check_credential_skips' ] );
 		add_action( 'admin_init', [ $plugin_admin, 'handle_actions' ] );
 		add_action( 'admin_notices', [ $plugin_admin, 'display_notices' ] );
 		add_action( 'network_admin_notices', [ $plugin_admin, 'display_notices' ] );

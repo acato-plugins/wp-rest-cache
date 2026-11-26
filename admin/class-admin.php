@@ -12,6 +12,7 @@
 namespace WP_Rest_Cache_Plugin\Admin;
 
 use WP_Rest_Cache_Plugin\Includes\Caching\Caching;
+use WP_Rest_Cache_Plugin\Includes\Caching\Credential_Skips;
 
 /**
  * The admin-specific functionality of the plugin.
@@ -506,6 +507,63 @@ class Admin {
 			$this->add_notice(
 				'warning',
 				__( 'We have detected you are using external object caching. If you are using Memcache(d) as external object cache, please make sure you visit this plugin\'s settings page and check the `Using Memcache(d)` checkbox.', 'wp-rest-cache' ),
+				'permanent'
+			);
+		}
+	}
+
+	/**
+	 * Warn when many REST requests weren't cached because they carried credentials.
+	 *
+	 * Since 2026.4.0 these requests are no longer cached for security reasons. On sites that send credentials with
+	 * (almost) every REST request, e.g. a headless front end, this means caching silently stopped working. The notice
+	 * explains why and how these requests can be cached safely. It is only shown to users who may change the plugin
+	 * settings, and can be hidden permanently per user.
+	 *
+	 * @return void
+	 */
+	public function check_credential_skips() {
+		/** This filter is documented in the function create_menu(). */
+		// phpcs:ignore WordPress.WP.Capabilities.Undetermined -- the same filtered capability as the settings page, defaults to 'administrator'.
+		if ( ! current_user_can( apply_filters( 'wp_rest_cache/settings_capability', 'administrator' ) ) ) {
+			return;
+		}
+
+		/**
+		 * Filter from how many uncached requests (in 24 hours) the credentials notice is shown.
+		 *
+		 * @since 2026.4.3
+		 *
+		 * @param int $threshold The number of requests. Default 1000.
+		 */
+		$threshold = (int) apply_filters( 'wp_rest_cache/credential_skips_notice_threshold', 1000 );
+		$skips     = Credential_Skips::get_instance();
+		$button    = [
+			'label' => __( 'Go to settings', 'wp-rest-cache' ),
+			'url'   => admin_url( 'options-general.php?page=wp-rest-cache&sub=settings' ),
+		];
+
+		if ( $skips->get_count( Credential_Skips::REASON_AUTHORIZATION ) >= $threshold ) {
+			$this->add_notice(
+				'warning',
+				sprintf(
+					/* translators: %s: number of requests */
+					__( 'More than %s REST API requests in the last 24 hours were not cached, because they contained an Authorization header or HTTP authentication (e.g. Application Passwords or JWT). Since version 2026.4.0 these requests are no longer cached, so a response meant for one user is never served to another. If these requests all use the same credentials (e.g. a headless front end), add <code>Authorization</code> to the <em>Global cacheable request headers</em>: every set of credentials then gets its own cache. The header value is stored with each cache (masked in the wp-admin), because cache regeneration needs it.', 'wp-rest-cache' ),
+					number_format_i18n( $threshold )
+				),
+				'permanent',
+				$button
+			);
+		}
+
+		if ( $skips->get_count( Credential_Skips::REASON_AUTHENTICATED_USER ) >= $threshold ) {
+			$this->add_notice(
+				'warning',
+				sprintf(
+					/* translators: %s: number of requests */
+					__( 'More than %s REST API responses in the last 24 hours were not cached, because they were generated for a logged-in user. Since version 2026.4.0 these responses are no longer cached, so a response meant for one user is never served to another. If these responses are the same for every user, or the cache key is made user specific, the filter <code>wp_rest_cache/cache_authenticated_response</code> can be used to cache them.', 'wp-rest-cache' ),
+					number_format_i18n( $threshold )
+				),
 				'permanent'
 			);
 		}
