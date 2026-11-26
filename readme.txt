@@ -199,6 +199,15 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 2026.4.4 =
+Release Date: November 26th, 2026
+
+Feature: Show an admin notice when many REST requests aren't cached because they carry credentials (e.g. an `Authorization` header or HTTP authentication), explaining how to cache them. Added filters `wp_rest_cache/credential_skips_notice_threshold` and `wp_rest_cache/credential_skips_sample_rate`.
+Improvement: When `Authorization` is a cacheable request header, requests where the web server handles the Basic authentication are now cached per set of credentials as well.
+Improvement: Stored credentials in the `Authorization` and `Proxy-Authorization` request headers are masked in the wp-admin.
+Improvement: Added a FAQ item on why REST requests are no longer cached since version 2026.4.0.
+Fix: Typo in the plugin (de)activation notices.
+
 = 2026.4.3 =
 Release Date: November 23rd, 2026
 
