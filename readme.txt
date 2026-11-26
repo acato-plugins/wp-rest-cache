@@ -4,7 +4,7 @@ Tags: cache, wp-rest-api, api, rest, rest cache
 Requires at least: 4.7
 Tested up to: 7.0
 Requires PHP: 7.0
-Stable tag: 2026.4.2
+Stable tag: 2026.4.4
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl.html
 
@@ -159,6 +159,14 @@ Yes you can! There are two options for this:
 }
 add_filter('wp_rest_cache/cacheable_request_headers', 'wprc_add_cacheable_request_headers', 10, 1);`
 
+= Since version 2026.4.0 my REST requests are no longer cached. Why? =
+
+Requests with an `Authorization` header or HTTP authentication (e.g. Application Passwords, Basic auth or JWT) and responses generated for a logged-in user are no longer cached, so a response meant for one user is never served to another. If your front end (e.g. a headless site) sends the same credentials with every request, go to Settings > WP REST Cache and add `Authorization` to the `Global cacheable request headers`: every set of credentials then gets its own cache. This also works when your web server handles the Basic authentication.
+
+Please note: the header value (e.g. the Basic auth credentials) is then stored in the database with each cache, because cache regeneration needs it to repeat the request. It is masked in the wp-admin. If the header isn't needed for WordPress, removing it from the requests is the best option.
+
+For responses generated for a logged-in user, use the filter `wp_rest_cache/cache_authenticated_response` to allow caching, but only when the responses are the same for every user or the cache key is made user specific (e.g. with the filter `wp_rest_cache/cache_key`).
+
 = Can I change which users can change the settings and flush caches? =
 
 Yes you can! Use the hook `wp_rest_cache/settings_capability` like this:
@@ -190,6 +198,22 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 5. Cache details page - Cache data.
 
 == Changelog ==
+
+= 2026.4.4 =
+Release Date: November 26th, 2026
+
+Feature: Show an admin notice when many REST requests aren't cached because they carry credentials (e.g. an `Authorization` header or HTTP authentication), explaining how to cache them. Added filters `wp_rest_cache/credential_skips_notice_threshold` and `wp_rest_cache/credential_skips_sample_rate`.
+Improvement: When `Authorization` is a cacheable request header, requests where the web server handles the Basic authentication are now cached per set of credentials as well.
+Improvement: Stored credentials in the `Authorization` and `Proxy-Authorization` request headers are masked in the wp-admin.
+Improvement: Added a FAQ item on why REST requests are no longer cached since version 2026.4.0.
+Fix: Typo in the plugin (de)activation notices.
+
+= 2026.4.3 =
+Release Date: November 23rd, 2026
+
+Security: Unauthenticated visitors could poison the cache by sending a GET request with a request body (e.g. a JSON body) or a method override (`_method` parameter or `X-HTTP-Method-Override` header). WordPress core uses these to generate the response, but they were not part of the cache key, so the response was served to all visitors of that URL. It was reported by Kang MinSeok (AhnLab) through Patchstack. All existing caches are flushed on update.
+Backwards compatibility: GET and HEAD requests with a request body, and requests with a method override, are no longer cached. For other request methods that are allowed to be cached (setting "Allowed request methods") the request body is now part of the cache key, so requests with a different body no longer share a cache. The cache key of requests without a body is unchanged. The `Endpoint_Api::save_cache()` method now accepts the optional `$server` and `$request` arguments of the `rest_pre_echo_response` filter.
+Feature: Added filter `wp_rest_cache/skip_get_request_with_body` to allow caching of GET and HEAD requests with a request body (cached per body).
 
 = 2026.4.2 =
 Release Date: October 29th, 2026

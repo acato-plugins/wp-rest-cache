@@ -345,7 +345,44 @@ class Test_Endpoint_Api extends Caching_Test_Case {
 		wp_set_current_user( 0 );
 	}
 
+	public function test_build_cache_key_differs_when_request_has_a_body() {
+		$_SERVER['REQUEST_URI']    = '/wp-json/wp/v2/pages/1';
+		$_SERVER['REQUEST_METHOD'] = 'GET';
+
+		$this->assertSame( $this->build_key(), $this->build_key_with_body( '' ) );
+		$this->assertNotSame( $this->build_key(), $this->build_key_with_body( '{"id":2}' ) );
+		$this->assertNotSame( $this->build_key_with_body( '{"id":2}' ), $this->build_key_with_body( '{"id":3}' ) );
+	}
+
+	public function test_save_cache_does_not_persist_response_generated_for_another_method() {
+		$api = new Endpoint_Api();
+		$this->arrange_request( $api, '/wp-json/wp/v2/pages/1', 'GET' );
+
+		$api->save_cache( [ 'id' => 1 ], null, new \WP_REST_Request( 'OPTIONS', '/wp/v2/pages/1' ) );
+
+		$this->assertSame( 0, $this->count_cache_rows() );
+	}
+
+	public function test_save_cache_persists_response_generated_for_the_same_method() {
+		$api = new Endpoint_Api();
+		$this->arrange_request( $api, '/wp-json/wp/v2/pages/1', 'GET' );
+
+		$api->save_cache( [ 'id' => 1 ], null, new \WP_REST_Request( 'GET', '/wp/v2/pages/1' ) );
+
+		$this->assertSame( 1, $this->count_cache_rows() );
+	}
+
 	// ----- helpers -----
+
+	/**
+	 * Build the cache key end-to-end with a planted raw request body.
+	 */
+	private function build_key_with_body( $body ) {
+		$api = new Endpoint_Api();
+		$this->set_private_property( $api, 'request_body', $body );
+		$this->invoke_private( $api, 'build_cache_key', [] );
+		return $this->get_private_property( $api, 'cache_key' );
+	}
 
 	/**
 	 * Build the cache key end-to-end (build_cache_key → reads private $cache_key).

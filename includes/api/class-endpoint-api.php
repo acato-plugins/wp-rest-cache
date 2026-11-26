@@ -11,6 +11,7 @@
 
 namespace WP_Rest_Cache_Plugin\Includes\API;
 
+use WP_Rest_Cache_Plugin\Includes\Caching\Credential_Skips;
 use WP_Rest_Cache_Plugin\Includes\Util;
 
 /**
@@ -79,6 +80,14 @@ class Endpoint_Api {
 	 * @var    bool $cache_key_is_user_specific True if the cache key is unique per set of credentials.
 	 */
 	private $cache_key_is_user_specific = false;
+
+	/**
+	 * The raw body of the current request.
+	 *
+	 * @access private
+	 * @var    string|null $request_body The raw request body, null if not read yet.
+	 */
+	private $request_body = null;
 
 	/**
 	 * The default WordPress REST endpoints, that can be cached.
@@ -155,7 +164,7 @@ class Endpoint_Api {
 		if ( is_array( $cacheable_headers ) ) {
 			foreach ( $cacheable_headers as $header ) {
 				if ( '' !== $header ) {
-					$this->request_headers[ $header ] = $this->request->get_header( $header );
+					$this->request_headers[ $header ] = $this->get_request_header( $header );
 				}
 			}
 		}
@@ -172,7 +181,7 @@ class Endpoint_Api {
 				if ( is_array( $cacheable_headers ) ) {
 					foreach ( $cacheable_headers as $header ) {
 						if ( strlen( $header ) ) {
-							$this->request_headers[ $header ] = $this->request->get_header( $header );
+							$this->request_headers[ $header ] = $this->get_request_header( $header );
 						}
 					}
 				}
@@ -180,6 +189,33 @@ class Endpoint_Api {
 		}
 
 		ksort( $this->request_headers );
+	}
+
+	/**
+	 * Get the value of a request header.
+	 *
+	 * When the web server handles HTTP Basic authentication, PHP may only receive the credentials in `PHP_AUTH_USER`
+	 * and `PHP_AUTH_PW`, without an Authorization header. Such a request is skipped for caching because it carries
+	 * credentials, so when `Authorization` is a cacheable request header the header is rebuilt from them. That way
+	 * these requests are cached per set of credentials as well.
+	 *
+	 * @param string $header The header name.
+	 *
+	 * @return string|null The header value, or null if the header isn't present.
+	 */
+	private function get_request_header( $header ) {
+		$value = $this->request->get_header( $header );
+
+		if ( empty( $value )
+			&& 'authorization' === strtolower( str_replace( '-', '_', trim( $header ) ) )
+			&& ! empty( $_SERVER['PHP_AUTH_USER'] )
+		) {
+			$user     = sanitize_text_field( wp_unslash( $_SERVER['PHP_AUTH_USER'] ) );
+			$password = isset( $_SERVER['PHP_AUTH_PW'] ) ? wp_unslash( $_SERVER['PHP_AUTH_PW'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- a password, used as is.
+			$value    = 'Basic ' . base64_encode( $user . ':' . $password ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- builds a standard Basic auth header.
+		}
+
+		return $value;
 	}
 
 	/**
@@ -207,7 +243,15 @@ class Endpoint_Api {
 			$this->cache_key_is_user_specific = $this->cache_key_is_user_specific || '' !== $session_hash;
 		}
 
-		$this->cache_key = md5( $this->request_uri . wp_json_encode( $this->request_headers ) . $request_method . $session_hash );
+		// The request body (JSON or form parameters) takes precedence over the query string in WordPress core, so
+		// requests with a body must never share a cache with requests without one. For backwards compatibility the
+		// cache key of a request without a body is unchanged.
+		$body_hash = '';
+		if ( $this->has_request_body() ) {
+			$body_hash = md5( $this->get_request_body() . wp_json_encode( $_POST ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- only used for the cache key.
+		}
+
+		$this->cache_key = md5( $this->request_uri . wp_json_encode( $this->request_headers ) . $request_method . $session_hash . $body_hash );
 
 		/**
 		 * Filter the generated cache key.
@@ -248,6 +292,60 @@ class Endpoint_Api {
 		ksort( $session_cookies );
 
 		return hash( 'sha256', (string) wp_json_encode( $session_cookies ) );
+	}
+
+	/**
+	 * Get the raw body of the current request.
+	 *
+	 * @return string The raw request body.
+	 */
+	private function get_request_body() {
+		if ( is_null( $this->request_body ) ) {
+			$this->request_body = (string) \WP_REST_Server::get_raw_data();
+		}
+
+		return $this->request_body;
+	}
+
+	/**
+	 * Check if the current request has a body (raw data or form parameters). WordPress core uses the body parameters
+	 * for every request method, including GET, and they take precedence over the query string.
+	 *
+	 * @return bool True if the request has a body.
+	 */
+	private function has_request_body() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- read-only check.
+		return '' !== $this->get_request_body() || ! empty( $_POST ) || ! empty( $_FILES );
+	}
+
+	/**
+	 * Get the HTTP method of the current request as sent by the client.
+	 *
+	 * @return string The request method.
+	 */
+	private function get_server_request_method() {
+		// No filter_input, see https://stackoverflow.com/questions/25232975/php-filter-inputinput-server-request-method-returns-null/36205923.
+		return isset( $_SERVER['REQUEST_METHOD'] ) ? strtoupper( filter_var( $_SERVER['REQUEST_METHOD'], FILTER_SANITIZE_FULL_SPECIAL_CHARS ) ) : 'GET';
+	}
+
+	/**
+	 * Get the method WordPress core will use to handle the current REST request. Like WP_REST_Server::serve_request()
+	 * this honours the `_method` parameter and the X-HTTP-Method-Override header.
+	 *
+	 * @return string The effective request method.
+	 */
+	private function get_effective_request_method() {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput -- sanitized below, read-only.
+		if ( isset( $_GET['_method'] ) ) {
+			$method = $_GET['_method'];
+		} elseif ( isset( $_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE'] ) ) {
+			$method = $_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE'];
+		} else {
+			return $this->get_server_request_method();
+		}
+		// phpcs:enable
+
+		return is_string( $method ) ? strtoupper( preg_replace( '/[^A-Za-z]/', '', $method ) ) : '';
 	}
 
 	/**
@@ -327,11 +425,18 @@ class Endpoint_Api {
 	/**
 	 * Cache the response data.
 	 *
-	 * @param array<string,mixed> $result Response data to send to the client.
+	 * @param array<string,mixed>   $result  Response data to send to the client.
+	 * @param \WP_REST_Server|null  $server  Server instance.
+	 * @param \WP_REST_Request|null $request Request used to generate the response.
 	 *
 	 * @return array<string,mixed> Response data to send to the client.
 	 */
-	public function save_cache( $result ) {
+	public function save_cache( $result, $server = null, $request = null ) {
+		// Never cache a response that was generated for a different method than the one in the cache key.
+		if ( $request instanceof \WP_REST_Request && strtoupper( $request->get_method() ) !== $this->get_server_request_method() ) {
+			return $result;
+		}
+
 		$user_id = get_current_user_id();
 
 		/**
@@ -350,6 +455,8 @@ class Endpoint_Api {
 		 * @param string           $request_uri The REST URI that is being requested.
 		 */
 		if ( 0 !== $user_id && ! apply_filters( 'wp_rest_cache/cache_authenticated_response', $this->cache_key_is_user_specific, $user_id, $this->request, $this->request_uri ) ) {
+			Credential_Skips::get_instance()->record( Credential_Skips::REASON_AUTHENTICATED_USER );
+
 			return $result;
 		}
 
@@ -444,16 +551,41 @@ class Endpoint_Api {
 		}
 
 		// Requests authenticated through the Authorization header (Application Passwords, Basic auth, JWT etc.)
-		// should not share their cache with other visitors.
-		if ( $this->has_authorization_credentials() && ! $this->authorization_header_is_cacheable() ) {
-			return true;
-		}
+		// should not share their cache with other visitors. Don't return yet: the skip is only counted (for the admin
+		// notice) if the request would otherwise have been cached, which the checks below determine.
+		$skip_for_credentials = $this->has_authorization_credentials() && ! $this->authorization_header_is_cacheable();
 
 		// Default only cache GET-requests.
 		$allowed_request_methods = get_option( 'wp_rest_cache_allowed_request_methods', [ 'GET' ] );
 		// No filter_input, see https://stackoverflow.com/questions/25232975/php-filter-inputinput-server-request-method-returns-null/36205923.
 		$request_method = isset( $_SERVER['REQUEST_METHOD'] ) ? filter_var( $_SERVER['REQUEST_METHOD'], FILTER_SANITIZE_FULL_SPECIAL_CHARS ) : 'GET';
 		if ( ! in_array( $request_method, $allowed_request_methods, true ) ) {
+			return true;
+		}
+
+		// WordPress core handles the request with the method from `_method` or the X-HTTP-Method-Override header,
+		// never cache a response generated for a different method than the one in the cache key.
+		if ( $this->get_effective_request_method() !== $this->get_server_request_method() ) {
+			return true;
+		}
+
+		/**
+		 * Filter whether to skip caching of GET or HEAD requests with a request body.
+		 *
+		 * WordPress core uses the body parameters of a GET request, and they take precedence over the query string.
+		 * Regular clients never send a body with a GET request. The body is part of the cache key, so returning false
+		 * is safe, but allows anyone to fill the cache with an unlimited number of caches.
+		 *
+		 * @since 2026.4.3
+		 *
+		 * @param bool             $skip        True if caching should be skipped for GET and HEAD requests with a body.
+		 * @param \WP_REST_Request $request     The current REST Request.
+		 * @param string           $request_uri The REST URI that is being requested.
+		 */
+		if ( in_array( $this->get_server_request_method(), [ 'GET', 'HEAD' ], true )
+			&& $this->has_request_body()
+			&& apply_filters( 'wp_rest_cache/skip_get_request_with_body', true, $this->request, $this->request_uri )
+		) {
 			return true;
 		}
 
@@ -535,6 +667,12 @@ class Endpoint_Api {
 			}
 		}
 
+		if ( $skip_for_credentials ) {
+			Credential_Skips::get_instance()->record( Credential_Skips::REASON_AUTHORIZATION );
+
+			return true;
+		}
+
 		// We dont skip.
 		return false;
 	}
@@ -611,7 +749,7 @@ class Endpoint_Api {
 		add_filter( 'rest_pre_serve_request', [ $this, 'save_cache_headers' ], 9999, 2 );
 
 		// Catch the result after serving.
-		add_filter( 'rest_pre_echo_response', [ $this, 'save_cache' ], 1000, 1 );
+		add_filter( 'rest_pre_echo_response', [ $this, 'save_cache' ], 1000, 3 );
 	}
 
 	/**
