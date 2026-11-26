@@ -138,6 +138,27 @@ class Test_Admin extends Caching_Test_Case {
 		$this->assertStringContainsString( 'Settings', $result[1] );
 	}
 
+	/**
+	 * The network admin plugins page gets a settings link to the settings of the main site.
+	 */
+	public function test_add_network_plugin_settings_link_links_to_the_main_site_settings() {
+		$result = $this->admin->add_network_plugin_settings_link( [ '<a href="#deactivate">Deactivate</a>' ] );
+
+		$this->assertCount( 2, $result );
+		$this->assertStringContainsString( esc_url( get_admin_url( get_main_site_id(), 'options-general.php?page=wp-rest-cache' ) ), $result[1] );
+		$this->assertStringContainsString( 'Settings', $result[1] );
+	}
+
+	/**
+	 * The settings links are registered for the plugins page and the network admin plugins page.
+	 */
+	public function test_settings_links_are_registered_for_both_plugins_pages() {
+		$basename = trailingslashit( dirname( plugin_basename( dirname( __DIR__ ) . '/includes' ) ) ) . 'wp-rest-cache.php';
+
+		$this->assertNotFalse( has_filter( 'plugin_action_links_' . $basename ) );
+		$this->assertNotFalse( has_filter( 'network_admin_plugin_action_links_' . $basename ) );
+	}
+
 	// ---------- empty_cache_url ----------
 
 	public function test_empty_cache_url_contains_clear_cache_subpage_and_nonce() {

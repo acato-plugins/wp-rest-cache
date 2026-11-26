@@ -98,6 +98,13 @@ class Plugin {
 				'add_plugin_settings_link',
 			]
 		);
+		add_filter(
+			'network_admin_plugin_action_links_' . trailingslashit( dirname( plugin_basename( __DIR__ ) ) ) . 'wp-rest-cache.php',
+			[
+				$plugin_admin,
+				'add_network_plugin_settings_link',
+			]
+		);
 		add_action( 'update_option_wp_rest_cache_regenerate', [ $plugin_admin, 'regenerate_updated' ], 10, 2 );
 		add_action(
 			'update_option_wp_rest_cache_regenerate_interval',

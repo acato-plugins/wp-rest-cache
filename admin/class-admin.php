@@ -171,6 +171,25 @@ class Admin {
 	}
 
 	/**
+	 * Add a link to the settings page on the network admin plugins page.
+	 *
+	 * The settings are per site and the network admin has no settings page of its own, so this links to the settings
+	 * of the main site. A network activated plugin isn't listed on the plugins page of the individual sites, so without
+	 * this link there would be no link to the settings at all.
+	 *
+	 * @param array<int|string,string> $links An array of plugin action links.
+	 *
+	 * @return array<int|string,string> The plugin action links, including the settings link.
+	 */
+	public function add_network_plugin_settings_link( $links ): array {
+		$links[] = '<a href="' .
+					esc_url( get_admin_url( get_main_site_id(), 'options-general.php?page=wp-rest-cache' ) ) . '">' .
+					esc_html__( 'Settings', 'wp-rest-cache' ) . '</a>';
+
+		return $links;
+	}
+
+	/**
 	 * Register plugin specific settings.
 	 *
 	 * @return void
