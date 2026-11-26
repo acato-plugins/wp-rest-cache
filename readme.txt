@@ -4,7 +4,7 @@ Tags: cache, wp-rest-api, api, rest, rest cache
 Requires at least: 4.7
 Tested up to: 7.0
 Requires PHP: 7.0
-Stable tag: 2026.4.3
+Stable tag: 2026.4.4
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl.html
 
